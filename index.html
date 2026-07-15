@@ -370,8 +370,8 @@ body.mode-player .app{max-width:480px;margin:0 auto;padding:0;}
    ============================================================ */
 
 /* ===== Supabase config ===== */
-const SUPABASE_URL = 'https://lmjluzxzxpbuhvantbwt.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxtamx1enh6eHBidWh2YW50Ynd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwNzQyMzcsImV4cCI6MjA5OTY1MDIzN30.Qj0SZi_pBJNvLdDj5Hr9osh9ub3xRkhRyx-1AZjElKY';
+const SUPABASE_URL = '';
+const SUPABASE_ANON_KEY = '';
 const hasSupabase = !!(SUPABASE_URL && SUPABASE_ANON_KEY);
 
 async function sbFetch(path, opts){
@@ -436,6 +436,7 @@ const LIFELINE_DEFS = [
   {key:'promote', label:'Promote', icon:'👤', desc:'Swap a teammate into the hot seat permanently'},
   {key:'doubleDip', label:'Double Dip', icon:'🔁', desc:'Two attempts; first miss triggers no steal'},
   {key:'swap', label:'Swap It Out', icon:'🔀', desc:'Discard this question, draw a new one'},
+  {key:'bomb', label:'Bomb', icon:'💣', desc:'Force a hard question on the opposing team — if they miss, you climb a level for free'},
 ];
 const PUZZLE_TIMER_MS = 20000;
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // no I/O confusion
@@ -464,8 +465,8 @@ function defaultState(){
     levelTypes: Array(15).fill(''), // '' = auto by difficulty, 'puzzle' = puzzle
     // Lifelines
     lifelines: {
-      A:{promote:false,doubleDip:false,swap:false},
-      B:{promote:false,doubleDip:false,swap:false}
+      A:{promote:false,doubleDip:false,swap:false,bomb:false},
+      B:{promote:false,doubleDip:false,swap:false,bomb:false}
     },
     // Current flow
     currentQuestion: null,
@@ -503,7 +504,7 @@ function normalizeState(s){
     ['A','B'].forEach(t=>{
       s.lifelines[t].promote = s.lifelines[t].huddle||false;
       delete s.lifelines[t].huddle;
-      delete s.lifelines[t].bomb;
+      // bomb key retained from v2
     });
   }
   return s;
@@ -702,7 +703,8 @@ async function hostDrawQuestion(){
     if(!q){ state.currentQuestion=null; } else {
       q.used=true;
       state.currentQuestion = makeCurrentQuestion(q, state.ladderCurrent);
-      state.flow={stage:'idle',optionsRevealed:0};
+      // Draw and reveal in one step — question shows on TV immediately
+      state.flow={stage:'question',optionsRevealed:0};
     }
   }
   state.steal=null; state.wheel=null;
@@ -716,7 +718,7 @@ async function rerollQuestion(){
   if(!newQ) return;
   newQ.used=true;
   state.currentQuestion = makeCurrentQuestion(newQ, state.ladderCurrent);
-  state.flow={stage:'idle',optionsRevealed:0};
+  state.flow={stage:'question',optionsRevealed:0};
   await saveLobby(); renderHost();
 }
 
@@ -737,7 +739,7 @@ async function flowAdvance(){
 function flowButtonLabel(){
   const f=state.flow; const q=state.currentQuestion; if(!q) return '';
   const isMC=(q.options.length>1);
-  if(f.stage==='idle') return 'Reveal Question';
+  if(f.stage==='idle') return '';
   if(f.stage==='question') return isMC?'Reveal Option A':'Show Answer';
   if(f.stage==='options') return f.optionsRevealed<q.options.length?`Reveal Option ${letterFor(f.optionsRevealed)}`:'Show Answer';
   if(f.stage==='ready') return 'Show Answer';
@@ -869,6 +871,21 @@ async function useLifeline(key){
     const diff=state.currentQuestion?state.currentQuestion.difficulty:levelDiff(state.ladderCurrent);
     const newQ=pickQuestion(diff);
     if(newQ){ newQ.used=true; state.currentQuestion=makeCurrentQuestion(newQ,state.ladderCurrent); state.flow={stage:'idle',optionsRevealed:0}; }
+    await saveLobby(); renderHost(); return;
+  }
+  if(key==='bomb'){
+    state.lifelines[team].bomb=true;
+    // Pull a hard question and direct it at the opposing panel as a steal question
+    const hardQ=pickQuestion('hard');
+    if(!hardQ){ showModal('💣','No hard questions available in the pool.',null,null); return; }
+    hardQ.used=true;
+    state.currentQuestion=makeCurrentQuestion(hardQ, state.ladderCurrent);
+    state.currentQuestion.isBomb=true;
+    state.flow={stage:'idle',optionsRevealed:0};
+    // Start a steal immediately — opposing team must answer
+    state.stealRoundCounter++;
+    state.steal={roundId:state.stealRoundCounter,votes:{},locked:false,resolved:false,outcome:null,isBomb:true};
+    state.wheel=null;
     await saveLobby(); renderHost(); return;
   }
   state.lifelines[team][key]=true;
@@ -1045,7 +1062,7 @@ async function newGame(){
     state.players.forEach(p=>p.personalBank=0);
     state.ladderCurrent=1;
     state.ladderWon=Array(15).fill(false);
-    state.lifelines={A:{promote:false,doubleDip:false,swap:false},B:{promote:false,doubleDip:false,swap:false}};
+    state.lifelines={A:{promote:false,doubleDip:false,swap:false,bomb:false},B:{promote:false,doubleDip:false,swap:false,bomb:false}};
     state.currentQuestion=null; state.flow={stage:'idle',optionsRevealed:0};
     state.steal=null; state.wheel=null;
     state.puzzle={phrase:'',category:'',revealedLetters:[],usedLetters:[],active:false,glitchAt:0,currentGuessingTeam:'A',timerStartedAt:0,timerPaused:true,timerElapsed:0};
@@ -1682,7 +1699,7 @@ function renderFlowCard(isPuzzleLevel){
   const showLL=f.stage==='question'||f.stage==='options'||f.stage==='ready';
   return `<div class="flow-card">
     <div class="flow-level" style="display:flex;align-items:center;justify-content:space-between;">
-      <span>Level ${q.level} — ${diffPill(q.difficulty)}</span>
+      <span>${q.isBomb?'💣 BOMB — ':''}Level ${q.level} — ${diffPill(q.difficulty)}</span>
       <button class="btn btn-ghost btn-sm" onclick="rerollQuestion()">🎲 Reroll</button>
     </div>
     <div class="flow-q">${esc(q.text)}</div>
@@ -1946,11 +1963,11 @@ async function toggleLevelType(l){
 }
 
 function setHostTab(t){ hostTab=t; renderHost(); }
-function openDisplay(){ window.open(location.href.split('#')[0]+'#display','_blank'); }
+function openDisplay(){ window.open(location.href.split('#')[0]+'?lobby='+currentLobbyCode+'#display','_blank'); }
 function copyPlayerLink(){
-  const url=location.href.split('#')[0];
-  navigator.clipboard.writeText(url).catch(()=>{});
-  showUrlModal('Player Link (send this to players)', url);
+  const url=location.href.split('#')[0]+'?lobby='+currentLobbyCode;
+  navigator.clipboard.writeText(url).then(()=>{}).catch(()=>{});
+  showUrlModal('Player Link — send this to players', url);
 }
 
 /* ============================================================
@@ -2318,10 +2335,9 @@ window.addEventListener('hashchange',()=>{
 (async function init(){
   mode=detectMode();
   if(mode==='display'){
-    // Display waits for a lobby code via URL param or enters a code
     const params=new URLSearchParams(location.search);
     const code=params.get('lobby');
-    if(code){ await loadLobby(code); currentLobbyCode=code; }
+    if(code){ const ok=await loadLobby(code); if(ok) currentLobbyCode=code; }
     render();
     pollTimer=setInterval(pollForUpdates,1200);
     return;
