@@ -1,0 +1,2147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fortune & Fortune</title>
+
+<style id="icon-css">
+/* Inline icon system - no CDN */
+.ico { display:inline-block; font-style:normal; font-weight:700; line-height:1; }
+.ico::before { display:inline-block; }
+.ico-check::before { content:'✓'; }
+.ico-circle-check::before { content:'✓'; color:var(--green); }
+.ico-circle-xmark::before { content:'✗'; }
+.ico-triangle-exclamation::before { content:'⚠'; }
+.ico-bomb::before { content:'💣'; font-style:normal; }
+.ico-bolt::before { content:'⚡'; }
+.ico-puzzle-piece::before { content:'⬡'; }
+.ico-dice::before { content:'⚄'; }
+.ico-rotate-right::before { content:'↺'; }
+.ico-forward::before { content:'▶▶'; font-size:0.7em; }
+.ico-play::before { content:'▶'; }
+.ico-tv::before { content:'🖥'; }
+.ico-mobile-screen::before { content:'📱'; }
+.ico-hand::before { content:'✋'; }
+.ico-lock::before { content:'🔒'; }
+.ico-key::before { content:'🔑'; }
+.ico-shield::before { content:'🛡'; }
+.ico-arrows-spin::before { content:'⟳'; font-size:1.2em; }
+.ico-star::before { content:'★'; }
+.ico-user-plus::before { content:'👤+'; font-size:0.85em; }
+.ico-right-left::before { content:'⇄'; }
+.ico-clipboard-check::before { content:'📋'; }
+.ico-sack-dollar::before { content:'💰'; }
+.ico-users::before { content:'👥'; }
+.ico-circle-question::before { content:'❓'; }
+.ico-envelope::before { content:'✉'; }
+.ico-chevron-up::before { content:'▲'; font-size:0.7em; }
+.ico-chevron-down::before { content:'▼'; font-size:0.7em; }
+</style>
+
+<style>
+  :root{
+    --navy-950:#081326; --navy-900:#0b1a33; --navy-800:#122744; --navy-700:#1a3560;
+    --navy-600:#254a82; --navy-500:#33609e;
+    --gold-300:#f0da9c; --gold-400:#e8c66b; --gold-500:#d4af37; --gold-600:#b5912a;
+    --cream:#f4f0e6; --ink:#eef1f6; --muted:#9fb0c9; --red:#c0392b; --green:#3a8a5f;
+    --radius:10px; --shadow:0 8px 24px rgba(0,0,0,0.35);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 600px at 20% -10%, rgba(212,175,55,0.08), transparent 60%),
+      radial-gradient(1000px 500px at 100% 0%, rgba(37,74,130,0.25), transparent 55%),
+      var(--navy-950);
+    color:var(--ink); font-family:system-ui,-apple-system,'Segoe UI',sans-serif; min-height:100vh;
+  }
+  h1,h2,h3{font-family:'Anton','Impact','Arial Black',sans-serif,'Impact','Arial Black',system-ui,sans-serif;letter-spacing:0.03em;font-weight:400;}
+  button{font-family:inherit;cursor:pointer;}
+  input,textarea,select{font-family:inherit;}
+  .app{max-width:1500px;margin:0 auto;padding:14px 20px 60px;}
+
+  /* ===== Top bar ===== */
+  .topbar{
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    padding:10px 4px 14px;border-bottom:1px solid rgba(212,175,55,0.18);margin-bottom:14px;
+  }
+  .topbar-left{display:flex;align-items:center;gap:10px;}
+  .brand{font-family:'Anton','Impact','Arial Black',sans-serif,'Impact','Arial Black',sans-serif;font-size:21px;color:var(--gold-400);white-space:nowrap;}
+  .tabs{display:flex;gap:6px;margin:0 auto;}
+  .tab-btn{
+    background:transparent;border:1px solid var(--navy-500);color:var(--muted);
+    padding:7px 16px;border-radius:999px;font-size:13px;font-weight:600;transition:all .15s;
+  }
+  .tab-btn.active{background:var(--gold-500);color:var(--navy-950);border-color:var(--gold-500);}
+  .tab-btn:not(.active):hover{border-color:var(--gold-500);color:var(--gold-300);}
+  .ghost-btn{
+    background:var(--navy-800);border:1px solid var(--navy-600);color:var(--cream);
+    padding:8px 13px;border-radius:8px;font-size:13px;font-weight:600;
+  }
+  .ghost-btn:hover{border-color:var(--gold-500);color:var(--gold-300);}
+  .danger-outline{border-color:var(--navy-500);}
+  .danger-outline:hover{border-color:var(--red);color:#e08074;}
+
+  /* ===== Game strip: teams + ladder ===== */
+  .game-strip{
+    display:grid;grid-template-columns:minmax(180px,1fr) auto minmax(180px,1fr);gap:14px;align-items:stretch;
+    margin-bottom:16px;
+  }
+  @media (max-width:1100px){.game-strip{grid-template-columns:1fr;}}
+  .team-box{
+    background:linear-gradient(180deg,var(--navy-800),var(--navy-900));
+    border:1px solid var(--navy-600);border-radius:var(--radius);padding:10px 14px;
+  }
+  .team-box.is-hotseat{border-color:var(--gold-500);box-shadow:0 0 0 1px var(--gold-500),0 0 14px rgba(212,175,55,0.22);}
+  .team-box-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;}
+  .team-box-name{font-weight:700;font-size:15px;color:var(--ink);}
+  .team-hs-tag{font-size:9px;color:var(--navy-950);background:var(--gold-500);padding:2px 8px;border-radius:999px;font-weight:700;text-transform:uppercase;}
+  .team-lifelines{display:flex;gap:6px;}
+  .ll-mini{color:var(--gold-400);font-size:12px;width:16px;text-align:center;}
+  .ll-mini.used{color:var(--navy-600);}
+  .player-chips{display:flex;flex-wrap:wrap;gap:6px;}
+  .player-chip{
+    display:flex;align-items:center;gap:6px;
+    background:var(--navy-950);border:1px solid var(--navy-600);border-radius:999px;
+    padding:5px 11px;font-size:12px;font-weight:600;color:var(--ink);transition:all .12s;
+  }
+  .player-chip:hover{border-color:var(--gold-500);}
+  .player-chip.is-hot{background:var(--gold-500);color:var(--navy-950);border-color:var(--gold-400);}
+  .chip-score{
+    background:var(--navy-700);color:var(--gold-300);border-radius:999px;
+    padding:1px 7px;font-size:10px;font-weight:700;font-variant-numeric:tabular-nums;
+  }
+  .player-chip.is-hot .chip-score{background:rgba(8,19,38,0.25);color:var(--navy-950);}
+
+  /* ladder strip */
+  .ladder-strip{
+    display:flex;align-items:center;gap:6px;
+    background:linear-gradient(180deg,var(--navy-800),var(--navy-900));
+    border:1px solid var(--navy-600);border-radius:var(--radius);padding:10px 14px;
+  }
+  .ladder-icons{display:flex;gap:4px;align-items:center;}
+  .lad-ic{
+    width:30px;height:30px;border-radius:6px;border:1px solid var(--navy-600);
+    background:var(--navy-950);display:flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;position:relative;transition:all .12s;
+  }
+  .lad-ic:hover{border-color:var(--gold-500);}
+  .lad-ic.won{background:var(--green);border-color:var(--green);color:#fff;}
+  .lad-ic.current{background:var(--gold-500);border-color:var(--gold-400);color:var(--navy-950);box-shadow:0 0 10px rgba(232,198,107,0.4);}
+  .lad-ic.special{border-style:dashed;border-color:var(--gold-600);}
+  .lad-ic .tip{
+    display:none;position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);
+    background:var(--navy-950);border:1px solid var(--gold-600);border-radius:6px;
+    padding:5px 9px;font-size:11px;color:var(--ink);white-space:nowrap;z-index:30;font-weight:600;
+  }
+  .lad-ic:hover .tip{display:block;}
+  .next-btn{
+    background:var(--gold-500);color:var(--navy-950);border:none;border-radius:8px;
+    padding:8px 14px;font-weight:700;font-size:12px;white-space:nowrap;margin-left:6px;
+  }
+  .next-btn:hover{background:var(--gold-400);}
+
+  /* ===== Panels ===== */
+  .panel{
+    background:linear-gradient(180deg,var(--navy-800),var(--navy-900));
+    border:1px solid var(--navy-600);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;
+  }
+  .panel + .panel{margin-top:16px;}
+  .panel-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;cursor:pointer;user-select:none;}
+  .panel-header:hover{background:rgba(212,175,55,0.05);}
+  .panel-title-row{display:flex;align-items:center;gap:10px;font-size:12px;text-transform:uppercase;letter-spacing:0.12em;color:var(--gold-400);font-weight:700;}
+  .panel-title-row i{font-size:13px;width:15px;text-align:center;}
+  .panel-chevron{color:var(--muted);font-size:12px;}
+  .panel-body{padding:0 18px 18px;}
+  label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;letter-spacing:0.03em;}
+  input[type=text],textarea,select{
+    width:100%;background:var(--navy-950);border:1px solid var(--navy-600);color:var(--ink);
+    border-radius:8px;padding:9px 12px;font-size:14px;outline:none;transition:border-color .15s;
+  }
+  input[type=text]:focus,textarea:focus,select:focus{border-color:var(--gold-500);}
+  input[type=file]{width:100%;color:var(--muted);font-size:12px;background:var(--navy-950);border:1px solid var(--navy-600);border-radius:8px;padding:8px 10px;}
+  .field{margin-bottom:13px;}
+  .row{display:flex;gap:10px;}
+  .row > *{flex:1;}
+  .primary-btn{background:var(--gold-500);color:var(--navy-950);border:none;padding:10px 18px;border-radius:8px;font-weight:700;font-size:14px;}
+  .primary-btn:hover{background:var(--gold-400);}
+  .primary-btn:disabled{opacity:0.45;cursor:default;}
+  .secondary-btn{background:transparent;border:1px solid var(--navy-500);color:var(--muted);padding:10px 16px;border-radius:8px;font-size:14px;font-weight:600;}
+  .secondary-btn:hover{border-color:var(--gold-500);color:var(--gold-300);}
+  .small-btn{padding:5px 9px;font-size:11px;}
+  .hint{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.5;}
+
+  /* ===== Question flow card ===== */
+  .flow-card{
+    background:var(--navy-950);border:1px solid var(--gold-600);border-radius:var(--radius);
+    padding:18px 20px;margin-bottom:16px;
+  }
+  .flow-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+  .flow-level-tag{font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--gold-400);font-weight:700;}
+  .flow-q{font-size:18px;font-weight:600;line-height:1.45;color:var(--ink);}
+  .flow-opts{margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  @media (max-width:640px){.flow-opts{grid-template-columns:1fr;}}
+  .flow-opt{
+    background:var(--navy-800);border:1px solid var(--navy-600);border-radius:7px;
+    padding:9px 12px;font-size:14px;position:relative;
+  }
+  .flow-opt.correct{border-color:var(--green);box-shadow:inset 0 0 0 1px var(--green);}
+  .flow-opt.dim{opacity:0.35;}
+  .flow-opt.answer-flash{border-color:var(--gold-400);box-shadow:0 0 10px rgba(232,198,107,0.4);}
+  .flow-opt-letter{color:var(--gold-400);font-weight:700;margin-right:7px;}
+  .flow-answer-line{margin-top:10px;font-size:13px;color:var(--green);font-weight:700;}
+  .flow-controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;align-items:center;}
+  .flow-primary{background:var(--gold-500);color:var(--navy-950);border:none;padding:11px 20px;border-radius:8px;font-weight:700;font-size:14px;}
+  .flow-primary:hover{background:var(--gold-400);}
+  .flow-correct{background:var(--green);color:#fff;border:none;padding:11px 20px;border-radius:8px;font-weight:700;font-size:14px;}
+  .flow-wrong{background:var(--red);color:#fff;border:none;padding:11px 20px;border-radius:8px;font-weight:700;font-size:14px;}
+  .lifeline-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px dashed var(--navy-600);}
+  .ll-btn{
+    display:flex;align-items:center;gap:7px;background:var(--navy-800);border:1px solid var(--navy-600);
+    color:var(--ink);padding:8px 13px;border-radius:8px;font-size:12px;font-weight:700;
+  }
+  .ll-btn i{color:var(--gold-400);}
+  .ll-btn:hover:not(:disabled){border-color:var(--gold-500);}
+  .ll-btn:disabled{opacity:0.35;cursor:default;text-decoration:line-through;}
+  .q-image{width:100%;max-height:240px;object-fit:cover;border-radius:8px;margin-top:12px;display:block;border:1px solid var(--navy-600);}
+
+  /* steal panel */
+  .steal-box{background:linear-gradient(180deg, rgba(192,57,43,0.14), var(--navy-950));border:1px solid var(--red);border-radius:10px;padding:16px 18px;margin-bottom:16px;}
+  .steal-title{font-size:12px;text-transform:uppercase;letter-spacing:0.1em;color:#e8837a;font-weight:700;margin-bottom:10px;}
+  .vote-rows{display:flex;flex-direction:column;gap:6px;margin:10px 0;}
+  .vote-row{display:flex;align-items:center;justify-content:space-between;background:var(--navy-900);border:1px solid var(--navy-700);border-radius:7px;padding:7px 12px;font-size:13px;}
+  .vote-choice{font-weight:700;color:var(--gold-300);}
+  .vote-choice.correct-vote{color:var(--green);}
+  .vote-choice.wrong-vote{color:#e08074;}
+  .vote-waiting{color:var(--muted);font-style:italic;}
+
+  /* ===== Wheel ===== */
+  .wheel-wrap{display:flex;flex-direction:column;align-items:center;gap:14px;padding:10px 0;}
+  .wheel-outer{position:relative;width:260px;height:260px;}
+  .wheel-pointer{
+    position:absolute;top:-8px;left:50%;transform:translateX(-50%);z-index:5;
+    width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;
+    border-top:20px solid var(--gold-400);filter:drop-shadow(0 2px 3px rgba(0,0,0,0.5));
+  }
+  .wheel-disc{
+    width:100%;height:100%;border-radius:50%;border:5px solid var(--gold-500);
+    box-shadow:0 0 24px rgba(212,175,55,0.35), inset 0 0 20px rgba(0,0,0,0.4);
+    transition:transform 4s cubic-bezier(0.12, 0.6, 0.08, 1);
+  }
+  .wheel-winner{font-size:20px;font-weight:700;color:var(--gold-300);font-family:'Anton','Impact','Arial Black',sans-serif,'Impact','Arial Black',sans-serif;letter-spacing:0.04em;}
+
+  /* ===== Puzzle board ===== */
+  .board-wrap{background:var(--navy-950);border:1px solid var(--navy-700);border-radius:var(--radius);padding:20px 16px;min-height:120px;}
+  .category-tag{text-align:center;color:var(--gold-400);font-size:13px;text-transform:uppercase;letter-spacing:0.18em;margin-bottom:14px;font-weight:600;}
+  .board{display:flex;flex-wrap:wrap;justify-content:center;gap:12px 10px;}
+  .board-word{display:flex;gap:4px;}
+  .tile{
+    width:clamp(26px,4vw,42px);height:clamp(32px,4.8vw,50px);
+    background:linear-gradient(180deg,var(--navy-600),var(--navy-700));
+    border:1px solid var(--gold-600);border-radius:4px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Anton','Impact','Arial Black',sans-serif,'Impact','Arial Black',sans-serif;font-size:clamp(16px,2.5vw,26px);color:var(--cream);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.08),0 2px 4px rgba(0,0,0,0.4);
+  }
+  .tile.blank{background:linear-gradient(180deg,var(--navy-700),var(--navy-800));color:transparent;}
+  .tile.reveal-flip{animation:flip 0.5s ease;}
+  @keyframes flip{0%{transform:rotateX(90deg);}60%{transform:rotateX(-12deg);}100%{transform:rotateX(0deg);}}
+  .board-empty-msg{text-align:center;color:var(--muted);font-size:14px;padding:24px 0;}
+  .keyboard{margin-top:14px;}
+  .kb-row{display:flex;gap:6px;margin-bottom:6px;justify-content:center;}
+  .key{
+    width:34px;height:38px;border-radius:6px;border:1px solid var(--navy-500);
+    background:var(--navy-700);color:var(--ink);font-weight:700;font-size:14px;
+    display:flex;align-items:center;justify-content:center;transition:all .12s;
+  }
+  .key:hover:not(:disabled){border-color:var(--gold-500);transform:translateY(-1px);}
+  .key:disabled{cursor:default;}
+  .key.hit{background:var(--green);border-color:var(--green);color:#fff;}
+  .key.miss{background:var(--navy-900);border-color:var(--red);color:#8a5450;}
+
+  /* glitch */
+  @keyframes glitchShake{
+    0%,100%{transform:translate(0,0) skew(0deg);filter:none;}
+    10%{transform:translate(-6px,3px) skew(-3deg);filter:hue-rotate(90deg) saturate(3);}
+    20%{transform:translate(5px,-4px) skew(2deg);filter:invert(0.8);}
+    30%{transform:translate(-3px,2px) skew(-1deg);filter:hue-rotate(180deg);}
+    40%{transform:translate(4px,4px) skew(3deg);filter:contrast(3) brightness(0.6);}
+    50%{transform:translate(-5px,-2px) skew(-2deg);filter:invert(1) hue-rotate(45deg);}
+    60%{transform:translate(2px,3px) skew(1deg);filter:saturate(0.1);}
+    70%{transform:translate(-4px,-3px) skew(-3deg);filter:hue-rotate(270deg) contrast(2);}
+    80%{transform:translate(3px,2px) skew(2deg);filter:brightness(2);}
+    90%{transform:translate(-2px,-1px) skew(-1deg);filter:none;}
+  }
+  .glitching{animation:glitchShake 1.6s steps(1) 1;}
+
+  /* ===== Banks / lists ===== */
+  .bank-list{max-height:250px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-right:4px;margin-top:12px;}
+  .bank-row{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;background:var(--navy-950);border:1px solid var(--navy-700);border-radius:6px;padding:9px 11px;font-size:13px;}
+  .bank-row.editing{border-color:var(--gold-500);}
+  .bank-row-text{flex:1;min-width:0;}
+  .bank-row-cat{font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--gold-400);margin-bottom:2px;}
+  .bank-row-sub{font-size:11px;color:var(--muted);margin-top:3px;}
+  .bank-row-actions{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+  .used-tag{font-size:10px;color:var(--green);text-transform:uppercase;letter-spacing:0.05em;font-weight:700;}
+  .photo-tag{font-size:10px;color:var(--gold-400);text-transform:uppercase;font-weight:700;}
+  .options-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+  /* ===== Setup ===== */
+  .setup-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start;}
+  @media (max-width:1000px){.setup-grid{grid-template-columns:1fr;}}
+  .prize-setup-row{display:flex;align-items:center;gap:9px;margin-bottom:7px;}
+  .prize-setup-num{width:22px;text-align:right;font-weight:700;color:var(--muted);font-size:13px;flex-shrink:0;}
+  .type-toggle{
+    flex-shrink:0;background:var(--navy-950);border:1px solid var(--navy-600);color:var(--muted);
+    border-radius:6px;padding:6px 9px;font-size:10px;font-weight:700;text-transform:uppercase;width:74px;
+  }
+  .type-toggle.puzzle{border-color:var(--gold-600);color:var(--gold-400);}
+  .checklist{display:flex;flex-direction:column;gap:7px;margin:12px 0;}
+  .check-item{display:flex;align-items:center;gap:9px;font-size:13px;}
+  .check-item i.ok{color:var(--green);}
+  .check-item i.warn{color:var(--gold-400);}
+  .check-item i.bad{color:var(--red);}
+  .checkbox-row{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-bottom:12px;}
+  .checkbox-row input{width:16px;height:16px;}
+
+  /* ===== Envelopes ===== */
+  .envelope-row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:6px;}
+  .envelope{
+    width:70px;height:52px;border-radius:6px;border:2px solid var(--gold-500);
+    background:linear-gradient(135deg,var(--navy-700),var(--navy-800));
+    display:flex;align-items:center;justify-content:center;flex-direction:column;
+    font-weight:700;font-size:13px;color:var(--gold-300);transition:all .15s;
+  }
+  .envelope.clickable{cursor:pointer;}
+  .envelope.clickable:hover{transform:translateY(-2px);border-color:var(--gold-300);}
+  .envelope.empty{background:var(--navy-900);border-color:var(--navy-600);color:var(--muted);}
+  .envelope.prize{background:linear-gradient(135deg,var(--gold-500),var(--gold-400));border-color:var(--gold-300);color:var(--navy-950);box-shadow:0 0 16px rgba(232,198,107,0.4);}
+  .envelope.twist{background:linear-gradient(135deg,#5a1f1f,#3a1414);border-color:var(--red);color:#e8a5a0;}
+  .envelope-label{font-size:9px;text-transform:uppercase;margin-top:2px;}
+  .envelope-controls{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;}
+
+  /* ===== Confirm modal ===== */
+  .confirm-overlay{position:fixed;inset:0;background:rgba(4,10,20,0.72);display:none;align-items:center;justify-content:center;z-index:999;padding:20px;}
+  .confirm-overlay.show{display:flex;}
+  .confirm-box{background:linear-gradient(180deg,var(--navy-800),var(--navy-900));border:1px solid var(--gold-500);border-radius:12px;padding:24px 22px;max-width:360px;width:100%;text-align:center;box-shadow:var(--shadow);}
+  .confirm-icon{font-size:26px;color:var(--gold-400);margin-bottom:12px;}
+  .confirm-message{font-size:14px;color:var(--ink);line-height:1.5;margin-bottom:18px;}
+  .confirm-actions{display:flex;gap:10px;}
+  .confirm-actions button{flex:1;}
+  .picker-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
+  .picker-item{background:var(--navy-950);border:1px solid var(--navy-600);color:var(--ink);border-radius:8px;padding:11px;font-size:14px;font-weight:600;}
+  .picker-item:hover{border-color:var(--gold-500);}
+
+  /* ===== Rules tab ===== */
+  .rules-body{max-width:820px;margin:0 auto;font-size:14px;line-height:1.7;color:var(--ink);}
+  .rules-body h2{color:var(--gold-400);font-size:19px;margin:26px 0 8px;}
+  .rules-body p{margin:8px 0;}
+  .rules-ll{display:flex;gap:12px;align-items:flex-start;background:var(--navy-900);border:1px solid var(--navy-600);border-radius:8px;padding:12px 14px;margin:8px 0;}
+  .rules-ll i{color:var(--gold-400);font-size:17px;width:20px;text-align:center;margin-top:2px;}
+  .rules-ll b{display:block;color:var(--gold-300);margin-bottom:2px;}
+
+  /* ===== TV display ===== */
+  body.mode-display{overflow:hidden;height:100vh;}
+  body.mode-display .app{height:100vh;padding:14px 22px;max-width:none;display:flex;flex-direction:column;gap:12px;}
+  .tv-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+  .tv-brand{font-family:'Anton','Impact','Arial Black',sans-serif,'Impact','Arial Black',sans-serif;font-size:26px;color:var(--gold-400);letter-spacing:0.04em;}
+  .tv-hotseat{display:flex;align-items:center;gap:12px;font-size:15px;}
+  .tv-hs-badge{font-size:10px;color:var(--navy-950);background:var(--gold-500);padding:3px 9px;border-radius:999px;font-weight:700;text-transform:uppercase;}
+  .tv-hs-name{font-weight:700;color:var(--ink);font-size:17px;}
+  .tv-hs-team{color:var(--muted);}
+  .tv-main{flex:1;min-height:0;display:grid;grid-template-columns:1fr 250px;gap:16px;}
+  @media (max-width:820px){.tv-main{grid-template-columns:1fr;}}
+  .tv-center{display:flex;flex-direction:column;min-height:0;}
+  .tv-q-hero{
+    flex:1;display:flex;flex-direction:column;justify-content:center;
+    background:var(--navy-950);border:1px solid var(--gold-600);border-radius:14px;
+    padding:30px 34px;min-height:0;overflow-y:auto;
+  }
+  .tv-q-level{font-size:13px;text-transform:uppercase;letter-spacing:0.14em;color:var(--gold-400);font-weight:700;margin-bottom:14px;}
+  .tv-q-text{font-size:clamp(20px,3.4vh,34px);font-weight:700;line-height:1.35;color:var(--ink);}
+  .tv-q-waiting{font-size:clamp(18px,3vh,28px);color:var(--muted);text-align:center;font-family:'Anton','Impact','Arial Black',sans-serif,'Impact','Arial Black',sans-serif;letter-spacing:0.05em;}
+  .tv-opts{margin-top:22px;display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  @media (max-width:640px){.tv-opts{grid-template-columns:1fr;}}
+  .tv-opt{
+    background:var(--navy-800);border:1px solid var(--navy-600);border-radius:9px;
+    padding:13px 16px;font-size:clamp(14px,2.2vh,20px);font-weight:600;
+    opacity:0;transform:translateY(6px);transition:all .35s;
+  }
+  .tv-opt.shown{opacity:1;transform:none;}
+  .tv-opt.is-answer{border-color:var(--green);box-shadow:0 0 0 1px var(--green),0 0 14px rgba(58,138,95,0.35);}
+  .tv-opt.not-answer{opacity:0.3;}
+  .tv-opt-letter{color:var(--gold-400);font-weight:700;margin-right:9px;}
+  .tv-answer-banner{margin-top:18px;text-align:center;font-size:clamp(16px,2.6vh,24px);font-weight:700;color:var(--green);}
+  .tv-side{display:flex;flex-direction:column;gap:12px;min-height:0;overflow-y:auto;}
+  .tv-panel{background:linear-gradient(180deg,var(--navy-800),var(--navy-900));border:1px solid var(--navy-600);border-radius:10px;padding:12px 14px;}
+  .tv-panel-title{font-size:10px;text-transform:uppercase;letter-spacing:0.13em;color:var(--gold-400);font-weight:700;margin-bottom:9px;text-align:center;}
+  .tv-ll{display:flex;gap:8px;}
+  .tv-ll-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--navy-950);border:1px solid var(--navy-600);border-radius:8px;padding:8px 4px;text-align:center;}
+  .tv-ll-item i{font-size:15px;color:var(--gold-400);}
+  .tv-ll-item .ll-name{font-size:8px;text-transform:uppercase;font-weight:700;color:var(--gold-300);letter-spacing:0.03em;}
+  .tv-ll-item .ll-desc{font-size:8px;color:var(--muted);line-height:1.3;}
+  .tv-ll-item.used{opacity:0.35;}
+  .tv-ll-item.used i, .tv-ll-item.used .ll-name{color:var(--muted);}
+  .tv-scores{display:flex;flex-direction:column;gap:4px;}
+  .tv-score-row{display:flex;justify-content:space-between;font-size:12px;padding:4px 8px;background:var(--navy-950);border-radius:6px;}
+  .tv-score-row .sc{font-weight:700;color:var(--gold-300);font-variant-numeric:tabular-nums;}
+  .tv-ladder{display:flex;gap:5px;align-items:center;justify-content:center;flex-wrap:wrap;}
+  .tv-lad-ic{
+    width:34px;height:34px;border-radius:7px;border:1px solid var(--navy-600);
+    background:var(--navy-900);display:flex;align-items:center;justify-content:center;
+    font-size:12px;font-weight:700;color:var(--muted);position:relative;
+  }
+  .tv-lad-ic.won{background:var(--green);border-color:var(--green);color:#fff;}
+  .tv-lad-ic.current{background:var(--gold-500);border-color:var(--gold-400);color:var(--navy-950);box-shadow:0 0 12px rgba(232,198,107,0.45);}
+  .tv-lad-ic.special{border-style:dashed;border-color:var(--gold-600);}
+  .tv-prize-line{text-align:center;font-size:13px;color:var(--gold-300);font-weight:600;margin-top:8px;min-height:18px;}
+  .tv-steal-banner{
+    background:linear-gradient(90deg, rgba(192,57,43,0.35), rgba(192,57,43,0.1));
+    border:1px solid var(--red);border-radius:10px;padding:10px 16px;text-align:center;
+    font-family:'Anton','Impact','Arial Black',sans-serif,'Impact','Arial Black',sans-serif;font-size:19px;color:#f0b3ad;letter-spacing:0.08em;
+  }
+
+  /* ===== Phone player view ===== */
+  body.mode-player .app{max-width:480px;padding:16px;}
+  .ph-card{background:linear-gradient(180deg,var(--navy-800),var(--navy-900));border:1px solid var(--navy-600);border-radius:12px;padding:20px;text-align:center;}
+  .ph-title{font-family:'Anton','Impact','Arial Black',sans-serif,'Impact','Arial Black',sans-serif;font-size:20px;color:var(--gold-400);margin-bottom:14px;}
+  .ph-status{font-size:14px;color:var(--muted);line-height:1.6;}
+  .ph-name{font-size:22px;font-weight:700;color:var(--ink);margin:8px 0 2px;}
+  .ph-vote-btns{display:flex;flex-direction:column;gap:10px;margin-top:14px;}
+  .ph-vote-btn{
+    background:var(--navy-950);border:1px solid var(--navy-600);color:var(--ink);
+    border-radius:10px;padding:15px;font-size:16px;font-weight:600;text-align:left;
+  }
+  .ph-vote-btn:hover{border-color:var(--gold-500);}
+  .ph-vote-btn.picked{background:var(--gold-500);color:var(--navy-950);border-color:var(--gold-400);}
+  .ph-vote-letter{color:var(--gold-400);font-weight:700;margin-right:9px;}
+  .ph-vote-btn.picked .ph-vote-letter{color:var(--navy-950);}
+  .ph-claim-list{display:flex;flex-direction:column;gap:9px;margin-top:12px;}
+
+  .footer-note{text-align:center;color:var(--muted);font-size:12px;margin-top:26px;}
+  .sync-warning{
+    background:rgba(192,57,43,0.12);border:1px solid var(--red);border-radius:8px;
+    padding:10px 14px;font-size:12px;color:#e8a5a0;margin-bottom:14px;line-height:1.5;
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app-root"></div>
+
+<div id="confirm-overlay" class="confirm-overlay">
+  <div class="confirm-box">
+    <div class="confirm-icon"><i class="ico ico-triangle-exclamation"></i></div>
+    <div id="confirm-message" class="confirm-message"></div>
+    <div id="confirm-picker" class="picker-list" style="display:none;"></div>
+    <div class="confirm-actions" id="confirm-actions">
+      <button class="secondary-btn" onclick="cancelConfirm()">Cancel</button>
+      <button class="primary-btn" id="confirm-yes-btn" onclick="confirmYes()">Confirm</button>
+    </div>
+  </div>
+</div>
+<script>
+/* =================== Core: constants, storage, state =================== */
+const STORAGE_KEY = 'gs-state-v2';
+const LADDER_SIZE = 15;
+const QWERTY = ['QWERTYUIOP','ASDFGHJKL','ZXCVBNM'];
+const LIFELINE_DEFS = [
+  ['promote', 'Promote', 'user-plus', 'Swap a teammate into the hot seat for good'],
+  ['doubleDip', 'Double Dip', 'rotate', 'Two tries; a first miss triggers no steal'],
+  ['swap', 'Swap It Out', 'right-left', 'Trade this question for a new one'],
+  ['bomb', 'Bomb', 'bomb', 'Force a brutal question on the other team']
+];
+
+/* ===== SUPABASE CONFIG — paste your project details here ===== */
+const SUPABASE_URL = 'https://lmjluzxzxpbuhvantbwt.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxtamx1enh6eHBidWh2YW50Ynd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwNzQyMzcsImV4cCI6MjA5OTY1MDIzN30.Qj0SZi_pBJNvLdDj5Hr9osh9ub3xRkhRyx-1AZjElKY';
+/* ============================================================= */
+
+const hasCloudStorage = !!(SUPABASE_URL && SUPABASE_ANON_KEY);
+
+async function sbFetch(path, opts){
+  const res = await fetch(SUPABASE_URL + path, {
+    ...opts,
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation',
+      ...(opts && opts.headers)
+    }
+  });
+  if(!res.ok) return null;
+  const text = await res.text();
+  try{ return JSON.parse(text); } catch(e){ return null; }
+}
+
+async function storageGet(key){
+  if(!hasCloudStorage){
+    try{ const raw = localStorage.getItem(key); return raw !== null ? {key, value: raw} : null; } catch(e){ return null; }
+  }
+  const rows = await sbFetch('/rest/v1/kv_store?key=eq.' + encodeURIComponent(key) + '&select=key,value&limit=1', {method:'GET'});
+  if(rows && rows.length > 0) return {key, value: rows[0].value};
+  return null;
+}
+
+async function storageSet(key, value){
+  if(!hasCloudStorage){
+    try{ localStorage.setItem(key, value); return {key, value}; } catch(e){ return null; }
+  }
+  const row = await sbFetch('/rest/v1/kv_store', {
+    method:'POST',
+    headers:{'Prefer':'resolution=merge-duplicates,return=representation'},
+    body: JSON.stringify({key, value})
+  });
+  return row ? {key, value} : null;
+}
+
+async function storageDelete(key){
+  if(!hasCloudStorage){
+    try{ localStorage.removeItem(key); return {key, deleted:true}; } catch(e){ return null; }
+  }
+  await sbFetch('/rest/v1/kv_store?key=eq.' + encodeURIComponent(key), {method:'DELETE'});
+  return {key, deleted:true};
+}
+
+async function storageList(prefix){
+  if(!hasCloudStorage){
+    try{
+      const keys = [];
+      for(let i=0;i<localStorage.length;i++){ const k = localStorage.key(i); if(k && k.startsWith(prefix)) keys.push(k); }
+      return keys;
+    } catch(e){ return []; }
+  }
+  const rows = await sbFetch('/rest/v1/kv_store?key=like.' + encodeURIComponent(prefix + '%') + '&select=key', {method:'GET'});
+  return rows ? rows.map(r=>r.key) : [];
+}
+
+function defaultState(){
+  const levelTypes = Array(LADDER_SIZE).fill('trivia');
+  levelTypes[4] = 'puzzle'; // level 5
+  return {
+    gamePhase: 'setup',
+    // ladder
+    ladderCurrent: 1,
+    ladderRevealed: Array(LADDER_SIZE).fill(false),
+    ladderPrizeText: Array(LADDER_SIZE).fill(''),
+    levelTypes,
+    // players & teams
+    teamAName: 'Team A',
+    teamBName: 'Team B',
+    players: [], // {id, name, team:'A'|'B', score}
+    hotSeatTeam: 'A',
+    hotSeatPlayerId: null,
+    lifelines: { A:{promote:false,doubleDip:false,swap:false,bomb:false}, B:{promote:false,doubleDip:false,swap:false,bomb:false} },
+    // question flow
+    currentQuestion: null, // {level,id,text,options[],displayOrder[],imageKey,isBomb}
+    flow: { stage:'idle', optionsRevealed:0 }, // idle|question|options|ready|answer|resolved
+    // steal
+    steal: null, // {roundId, qLevel, votesLockedAt:null, votes:{playerId:displayIdx}, resolved:false}
+    stealRoundCounter: 0,
+    wheel: null, // {names:[], playerIds:[], winnerIdx, spunAt}
+    // puzzle
+    puzzle: { category:'', phrase:'', revealedLetters:[], usedLetters:[], active:false, glitchAt:0 },
+    // banks
+    questionBank: {},
+    phraseBank: [],
+    bombQuestions: [],
+    // envelopes
+    envelopeEvilTwist: false,
+    envelopeShuffled: false,
+    envelopes: ['closed','closed','closed','closed'],
+    envelopePrizeIndex: null,
+    envelopeTwistRevealed: false
+  };
+}
+
+function normalizeState(s){
+  const d = defaultState();
+  for(const k of Object.keys(d)){
+    if(!(k in s)) s[k] = d[k];
+  }
+  if(!s.flow) s.flow = {stage:'idle', optionsRevealed:0};
+  if(!s.puzzle) s.puzzle = d.puzzle;
+  if(!s.lifelines.A.hasOwnProperty('promote')){
+    // migrate old huddle key
+    ['A','B'].forEach(t=>{
+      s.lifelines[t].promote = s.lifelines[t].huddle || false;
+      delete s.lifelines[t].huddle;
+    });
+  }
+  return s;
+}
+
+let state = defaultState();
+let mode = 'host';
+if(location.hash === '#display') mode = 'display';
+else if(location.hash === '#player') mode = 'player';
+
+let hostTab = 'game'; // game | setup | rules
+let lastSavedJSON = '';
+let pollTimer = null;
+let uiCollapsed = {};
+let uiSelectedLevel = 1;
+let editingQuestion = null; // {level, id}
+let editingPhrase = null;   // id
+let editingBomb = null;     // id
+let pendingConfirmAction = null;
+let myPlayerId = null;      // phone mode identity
+try{ myPlayerId = localStorage.getItem('gs-my-player') || null; } catch(e){}
+let displayPrevRevealed = new Set();
+let lastGlitchSeen = 0;
+let lastWheelSeen = 0;
+let phoneVotedRound = null;
+
+function genId(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+function pickRandomIndex(arr){
+  if(!arr || arr.length === 0) return -1;
+  const unusedIdx = [];
+  arr.forEach((item,i)=>{ if(!item.used) unusedIdx.push(i); });
+  const pool = unusedIdx.length ? unusedIdx : arr.map((_,i)=>i);
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+
+function shuffleArray(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function escapeHtml(str){
+  return (str==null?'':String(str)).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escapeAttr(str){ return escapeHtml(str); }
+function debounce(fn, delay){ let t; return (...args)=>{ clearTimeout(t); t = setTimeout(()=>fn(...args), delay); }; }
+
+async function loadState(){
+  try{
+    const res = await storageGet(STORAGE_KEY);
+    if(res && res.value){ state = normalizeState(JSON.parse(res.value)); }
+    else { state = defaultState(); await storageSet(STORAGE_KEY, JSON.stringify(state)); }
+  } catch(e){ state = defaultState(); }
+  lastSavedJSON = JSON.stringify(state);
+}
+async function saveState(){
+  lastSavedJSON = JSON.stringify(state);
+  await storageSet(STORAGE_KEY, lastSavedJSON);
+}
+
+/* images */
+const imageCache = {};
+function resizeImageFile(file, maxDim=900, quality=0.75){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = e=>{
+      const img = new Image();
+      img.onload = ()=>{
+        let w = img.width, h = img.height;
+        if(w > h){ if(w > maxDim){ h = Math.round(h*maxDim/w); w = maxDim; } }
+        else { if(h > maxDim){ w = Math.round(w*maxDim/h); h = maxDim; } }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+async function ensureImage(imageKey){
+  if(!imageKey) return null;
+  if(imageCache[imageKey]) return imageCache[imageKey];
+  const res = await storageGet(imageKey);
+  if(res && res.value){ imageCache[imageKey] = res.value; return res.value; }
+  return null;
+}
+async function injectImage(imageKey, slotId){
+  const dataUrl = await ensureImage(imageKey);
+  if(dataUrl){
+    const slot = document.getElementById(slotId);
+    if(slot) slot.innerHTML = `<img class="q-image" src="${dataUrl}" alt="Question photo">`;
+  }
+}
+
+/* confirm modal (with optional picker) */
+function requestConfirm(message, actionFn){
+  pendingConfirmAction = actionFn;
+  document.getElementById('confirm-message').textContent = message;
+  document.getElementById('confirm-picker').style.display = 'none';
+  document.getElementById('confirm-yes-btn').style.display = '';
+  document.getElementById('confirm-overlay').classList.add('show');
+}
+function requestPicker(message, items, onPick){
+  // items: [{label, value}]
+  pendingConfirmAction = null;
+  document.getElementById('confirm-message').textContent = message;
+  const picker = document.getElementById('confirm-picker');
+  picker.innerHTML = items.map((it,i)=>`<button class="picker-item" data-pick="${i}">${escapeHtml(it.label)}</button>`).join('');
+  picker.style.display = 'flex';
+  picker.querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const it = items[parseInt(btn.dataset.pick,10)];
+      cancelConfirm();
+      onPick(it.value);
+    });
+  });
+  document.getElementById('confirm-yes-btn').style.display = 'none';
+  document.getElementById('confirm-overlay').classList.add('show');
+}
+function cancelConfirm(){
+  pendingConfirmAction = null;
+  document.getElementById('confirm-overlay').classList.remove('show');
+}
+function confirmYes(){
+  const fn = pendingConfirmAction;
+  cancelConfirm();
+  if(fn) fn();
+}
+
+/* helpers */
+function playerById(id){ return state.players.find(p=>p.id === id) || null; }
+function teamName(t){ return t === 'A' ? state.teamAName : state.teamBName; }
+function opposingTeam(){ return state.hotSeatTeam === 'A' ? 'B' : 'A'; }
+function hotSeatPlayer(){ return playerById(state.hotSeatPlayerId); }
+function currentLevelType(){ return state.levelTypes[state.ladderCurrent - 1] || 'trivia'; }
+function correctDisplayIdx(q){ return q && q.displayOrder ? q.displayOrder.indexOf(0) : -1; }
+function letterFor(i){ return String.fromCharCode(65 + i); }
+
+/* =================== Question flow actions (host) =================== */
+function makeCurrentQuestion(level, q, isBomb){
+  const opts = (q.options || []).slice();
+  return {
+    level, id: q.id, text: q.text,
+    options: opts,
+    displayOrder: opts.length > 1 ? shuffleArray(opts.map((_,i)=>i)) : opts.map((_,i)=>i),
+    imageKey: q.imageKey || null,
+    isBomb: !!isBomb
+  };
+}
+
+async function drawQuestion(level){
+  const bank = state.questionBank[level] || [];
+  const idx = pickRandomIndex(bank);
+  if(idx === -1) return false;
+  const q = bank[idx];
+  q.used = true;
+  state.currentQuestion = makeCurrentQuestion(level, q, false);
+  state.flow = { stage:'idle', optionsRevealed:0 };
+  state.steal = null;
+  state.wheel = null;
+  return true;
+}
+
+async function hostDrawForCurrentLevel(){
+  const ok = await drawQuestion(state.ladderCurrent);
+  if(!ok){
+    state.currentQuestion = null;
+  }
+  await saveState();
+  renderHost();
+}
+
+async function rerollQuestion(){
+  if(!state.currentQuestion) return hostDrawForCurrentLevel();
+  await drawQuestion(state.currentQuestion.level);
+  await saveState();
+  renderHost();
+}
+
+async function flowAdvance(){
+  const f = state.flow;
+  const q = state.currentQuestion;
+  if(!q) return;
+  const optCount = q.options.length;
+  const isMC = optCount > 1;
+  if(f.stage === 'idle'){
+    f.stage = 'question';
+  } else if(f.stage === 'question'){
+    if(isMC){ f.stage = 'options'; f.optionsRevealed = 1; }
+    else { f.stage = 'answer'; }
+  } else if(f.stage === 'options'){
+    if(f.optionsRevealed < optCount){ f.optionsRevealed++; }
+    if(f.optionsRevealed >= optCount){ f.stage = 'ready'; }
+  } else if(f.stage === 'ready'){
+    f.stage = 'answer';
+  }
+  await saveState();
+  renderHost();
+}
+
+function flowButtonLabel(){
+  const f = state.flow;
+  const q = state.currentQuestion;
+  if(!q) return '';
+  const optCount = q.options.length;
+  const isMC = optCount > 1;
+  if(f.stage === 'idle') return 'Reveal Question';
+  if(f.stage === 'question') return isMC ? 'Reveal Answer A' : 'Show Answer';
+  if(f.stage === 'options') return f.optionsRevealed < optCount ? `Reveal Answer ${letterFor(f.optionsRevealed)}` : 'Show Answer';
+  if(f.stage === 'ready') return 'Show Answer';
+  return '';
+}
+
+async function markCorrect(){
+  // reveal prize at current level, +1 score to hot seat player, advance ladder, clear question
+  const lvl = state.ladderCurrent;
+  state.ladderRevealed[lvl-1] = true;
+  const hp = hotSeatPlayer();
+  if(hp) hp.score = (hp.score || 0) + 1;
+  if(lvl < LADDER_SIZE) state.ladderCurrent = lvl + 1;
+  state.currentQuestion = null;
+  state.flow = { stage:'idle', optionsRevealed:0 };
+  state.steal = null;
+  state.wheel = null;
+  state.puzzle.active = false;
+  await saveState();
+  renderHost();
+}
+
+async function startSteal(){
+  state.stealRoundCounter++;
+  state.steal = {
+    roundId: state.stealRoundCounter,
+    qLevel: state.currentQuestion ? state.currentQuestion.level : state.ladderCurrent,
+    votes: {},
+    locked: false,
+    resolved: false
+  };
+  state.wheel = null;
+  await saveState();
+  renderHost();
+}
+
+async function pollStealVotes(){
+  if(!state.steal || state.steal.locked) return;
+  const prefix = `gsv:${state.steal.roundId}:`;
+  const keys = await storageList(prefix);
+  let changed = false;
+  for(const k of keys){
+    const playerId = k.slice(prefix.length);
+    if(!(playerId in state.steal.votes)){
+      const res = await storageGet(k);
+      if(res && res.value !== undefined && res.value !== null){
+        state.steal.votes[playerId] = parseInt(res.value, 10);
+        changed = true;
+      }
+    }
+  }
+  if(changed){ await saveState(); if(mode==='host') renderHost(); }
+}
+
+/* host can also manually set a vote (fallback for players without phones) */
+async function hostSetVote(playerId, displayIdx){
+  if(!state.steal) return;
+  state.steal.votes[playerId] = displayIdx;
+  await saveState();
+  renderHost();
+}
+
+async function resolveSteal(){
+  if(!state.steal || !state.currentQuestion) return;
+  state.steal.locked = true;
+  const correctIdx = correctDisplayIdx(state.currentQuestion);
+  const panelTeam = opposingTeam();
+  const correctVoters = [];
+  for(const [pid, v] of Object.entries(state.steal.votes)){
+    const p = playerById(pid);
+    if(!p || p.team !== panelTeam) continue;
+    if(v === correctIdx){
+      correctVoters.push(p);
+      p.score = (p.score || 0) + 1; // every correct steal vote scores
+    }
+  }
+  state.steal.resolved = true;
+  if(correctVoters.length === 0){
+    // nobody got it; original keeps seat, draw fresh question at same level
+    state.steal.outcome = 'defended';
+    await saveState();
+    renderHost();
+    return;
+  }
+  if(correctVoters.length === 1){
+    state.steal.outcome = 'stolen';
+    await applyStealWinner(correctVoters[0].id);
+    return;
+  }
+  // multiple correct: spin the wheel
+  const winnerIdx = Math.floor(Math.random() * correctVoters.length);
+  state.wheel = {
+    names: correctVoters.map(p=>p.name),
+    playerIds: correctVoters.map(p=>p.id),
+    winnerIdx,
+    spunAt: Date.now(),
+    applied: false
+  };
+  state.steal.outcome = 'wheel';
+  await saveState();
+  renderHost();
+}
+
+async function applyStealWinner(playerId){
+  const p = playerById(playerId);
+  if(!p) return;
+  state.hotSeatPlayerId = p.id;
+  state.hotSeatTeam = p.team;
+  // stealer answered correctly: ladder advances, prize reveals
+  const lvl = state.ladderCurrent;
+  state.ladderRevealed[lvl-1] = true;
+  if(lvl < LADDER_SIZE) state.ladderCurrent = lvl + 1;
+  state.currentQuestion = null;
+  state.flow = { stage:'idle', optionsRevealed:0 };
+  state.steal = null;
+  state.wheel = null;
+  state.puzzle.active = false;
+  await saveState();
+  renderHost();
+}
+
+async function confirmWheelWinner(){
+  if(!state.wheel) return;
+  const pid = state.wheel.playerIds[state.wheel.winnerIdx];
+  await applyStealWinner(pid);
+}
+
+async function dismissDefendedSteal(){
+  // nobody stole; same player continues, new question at same level
+  state.steal = null;
+  await drawQuestion(state.ladderCurrent);
+  await saveState();
+  renderHost();
+}
+
+/* =================== Lifeline actions =================== */
+async function useLifeline(key){
+  const team = state.hotSeatTeam;
+  if(state.lifelines[team][key]) return;
+  if(key === 'promote'){
+    const teammates = state.players.filter(p=>p.team === team && p.id !== state.hotSeatPlayerId);
+    if(teammates.length === 0){ requestConfirm('No other teammates to promote. Mark Promote as used anyway?', async ()=>{ state.lifelines[team].promote = true; await saveState(); renderHost(); }); return; }
+    requestPicker('Promote: who takes the hot seat from now on?', teammates.map(p=>({label:p.name, value:p.id})), async (pid)=>{
+      state.lifelines[team].promote = true;
+      state.hotSeatPlayerId = pid;
+      await saveState();
+      renderHost();
+    });
+    return;
+  }
+  if(key === 'swap'){
+    state.lifelines[team].swap = true;
+    await drawQuestion(state.currentQuestion ? state.currentQuestion.level : state.ladderCurrent);
+    await saveState();
+    renderHost();
+    return;
+  }
+  if(key === 'bomb'){
+    const idx = pickRandomIndex(state.bombQuestions);
+    if(idx === -1){ requestConfirm('Bomb pool is empty. Mark Bomb as used anyway?', async ()=>{ state.lifelines[team].bomb = true; await saveState(); renderHost(); }); return; }
+    state.lifelines[team].bomb = true;
+    const q = state.bombQuestions[idx];
+    q.used = true;
+    state.currentQuestion = makeCurrentQuestion(state.ladderCurrent, q, true);
+    state.flow = { stage:'idle', optionsRevealed:0 };
+    await saveState();
+    renderHost();
+    return;
+  }
+  // doubleDip: just mark used, host adjudicates the two tries
+  state.lifelines[team][key] = true;
+  await saveState();
+  renderHost();
+}
+
+/* =================== Ladder / players / puzzle actions =================== */
+async function setCurrentLevel(level){
+  state.ladderCurrent = level;
+  state.puzzle.active = false;
+  await saveState();
+  renderHost();
+}
+async function ladderNext(){
+  // manual: reveal current prize, advance
+  const lvl = state.ladderCurrent;
+  state.ladderRevealed[lvl-1] = true;
+  if(lvl < LADDER_SIZE) state.ladderCurrent = lvl + 1;
+  await saveState();
+  renderHost();
+}
+async function setHotSeatPlayer(pid){
+  const p = playerById(pid);
+  if(!p) return;
+  state.hotSeatPlayerId = p.id;
+  state.hotSeatTeam = p.team;
+  await saveState();
+  renderHost();
+}
+
+async function startPuzzleLevel(){
+  // pick a phrase (unused first) and activate with a glitch
+  const idx = pickRandomIndex(state.phraseBank);
+  if(idx === -1){ requestConfirm('No phrases in the bank. Add one in Setup first.', ()=>{}); return; }
+  const entry = state.phraseBank[idx];
+  entry.used = true;
+  state.puzzle = {
+    category: entry.category || '',
+    phrase: entry.phrase,
+    revealedLetters: [],
+    usedLetters: [],
+    active: true,
+    glitchAt: Date.now()
+  };
+  state.currentQuestion = null;
+  state.flow = { stage:'idle', optionsRevealed:0 };
+  await saveState();
+  renderHost();
+}
+
+async function pressLetter(ch){
+  if(state.puzzle.usedLetters.includes(ch)) return;
+  state.puzzle.usedLetters.push(ch);
+  if((state.puzzle.phrase||'').toUpperCase().includes(ch)) state.puzzle.revealedLetters.push(ch);
+  await saveState();
+  renderHost();
+}
+
+async function puzzleSolved(){
+  // treat like a correct answer at this level
+  await markCorrect();
+}
+
+async function puzzleFailed(){
+  // host judgement: goes to steal via normal mechanic? Puzzle steal = other team gets a chance to solve verbally.
+  // Keep simple: host decides winner manually or restarts; mark inactive.
+  state.puzzle.active = false;
+  await saveState();
+  renderHost();
+}
+
+/* =================== Envelope actions =================== */
+async function toggleEvilTwist(checked){ state.envelopeEvilTwist = checked; await saveState(); renderHost(); }
+async function shuffleEnvelopes(){
+  state.envelopes = ['closed','closed','closed','closed'];
+  state.envelopePrizeIndex = state.envelopeEvilTwist ? null : Math.floor(Math.random()*4);
+  state.envelopeShuffled = true;
+  state.envelopeTwistRevealed = false;
+  await saveState();
+  renderHost();
+}
+async function openEnvelope(i){
+  if(!state.envelopeShuffled || state.envelopes[i] !== 'closed') return;
+  state.envelopes[i] = state.envelopeEvilTwist ? 'empty' : (i === state.envelopePrizeIndex ? 'prize' : 'empty');
+  await saveState();
+  renderHost();
+}
+async function revealEvilTwist(){ state.envelopeTwistRevealed = true; await saveState(); renderHost(); }
+async function resetEnvelopes(){
+  state.envelopes = ['closed','closed','closed','closed'];
+  state.envelopePrizeIndex = null;
+  state.envelopeShuffled = false;
+  state.envelopeTwistRevealed = false;
+  await saveState();
+  renderHost();
+}
+
+/* =================== New game =================== */
+async function newGame(){
+  state.gamePhase = 'setup';
+  state.ladderCurrent = 1;
+  state.ladderRevealed = Array(LADDER_SIZE).fill(false); // reset reveals, keep prize text
+  state.hotSeatPlayerId = null;
+  state.hotSeatTeam = 'A';
+  state.players.forEach(p=>p.score = 0);
+  state.lifelines = { A:{promote:false,doubleDip:false,swap:false,bomb:false}, B:{promote:false,doubleDip:false,swap:false,bomb:false} };
+  state.currentQuestion = null;
+  state.flow = { stage:'idle', optionsRevealed:0 };
+  state.steal = null;
+  state.wheel = null;
+  state.puzzle = { category:'', phrase:'', revealedLetters:[], usedLetters:[], active:false, glitchAt:0 };
+  state.envelopes = ['closed','closed','closed','closed'];
+  state.envelopePrizeIndex = null;
+  state.envelopeShuffled = false;
+  state.envelopeTwistRevealed = false;
+  // used flags intentionally KEPT
+  await saveState();
+  hostTab = 'setup';
+  renderHost();
+}
+
+/* =================== Bank CRUD (with editing) =================== */
+async function saveQuestionFromForm(){
+  const textEl = document.getElementById('q-text');
+  const optEls = ['q-opt-a','q-opt-b','q-opt-c','q-opt-d'].map(id=>document.getElementById(id));
+  const fileEl = document.getElementById('q-image');
+  const text = textEl.value.trim();
+  const options = optEls.map(o=>o.value.trim()).filter(v=>v.length > 0);
+  if(!text || options.length === 0) return;
+  if(editingQuestion){
+    const bank = state.questionBank[editingQuestion.level] || [];
+    const q = bank.find(x=>x.id === editingQuestion.id);
+    if(q){
+      q.text = text;
+      q.options = options;
+      if(fileEl && fileEl.files && fileEl.files[0]){
+        try{
+          const dataUrl = await resizeImageFile(fileEl.files[0]);
+          const imageKey = q.imageKey || ('qimg:' + q.id);
+          await storageSet(imageKey, dataUrl);
+          imageCache[imageKey] = dataUrl;
+          q.imageKey = imageKey;
+        } catch(e){ console.error('Photo failed', e); }
+      }
+    }
+    editingQuestion = null;
+  } else {
+    const id = genId();
+    const qObj = { id, text, options, used:false };
+    if(fileEl && fileEl.files && fileEl.files[0]){
+      try{
+        const dataUrl = await resizeImageFile(fileEl.files[0]);
+        const imageKey = 'qimg:' + id;
+        await storageSet(imageKey, dataUrl);
+        imageCache[imageKey] = dataUrl;
+        qObj.imageKey = imageKey;
+      } catch(e){ console.error('Photo failed', e); }
+    }
+    if(!state.questionBank[uiSelectedLevel]) state.questionBank[uiSelectedLevel] = [];
+    state.questionBank[uiSelectedLevel].push(qObj);
+  }
+  await saveState();
+  textEl.value = ''; optEls.forEach(o=>o.value = ''); if(fileEl) fileEl.value = '';
+  renderHost();
+}
+
+function startEditQuestion(level, id){
+  const q = (state.questionBank[level]||[]).find(x=>x.id === id);
+  if(!q) return;
+  editingQuestion = {level, id};
+  uiSelectedLevel = level;
+  renderHost();
+  const textEl = document.getElementById('q-text');
+  const optEls = ['q-opt-a','q-opt-b','q-opt-c','q-opt-d'].map(i=>document.getElementById(i));
+  if(textEl) textEl.value = q.text;
+  (q.options||[]).forEach((o,i)=>{ if(optEls[i]) optEls[i].value = o; });
+}
+function cancelEditQuestion(){ editingQuestion = null; renderHost(); }
+
+async function deleteQuestion(level, id){
+  const bank = state.questionBank[level] || [];
+  const q = bank.find(x=>x.id === id);
+  if(q && q.imageKey){ await storageDelete(q.imageKey); delete imageCache[q.imageKey]; }
+  state.questionBank[level] = bank.filter(x=>x.id !== id);
+  if(editingQuestion && editingQuestion.id === id) editingQuestion = null;
+  await saveState();
+  renderHost();
+}
+async function resetQuestionBankUsed(level){
+  (state.questionBank[level] || []).forEach(q=>q.used = false);
+  await saveState(); renderHost();
+}
+
+/* phrases */
+async function savePhraseFromForm(){
+  const catEl = document.getElementById('phrase-cat');
+  const phraseEl = document.getElementById('phrase-text');
+  const category = catEl.value.trim();
+  const phrase = phraseEl.value.trim();
+  if(!phrase) return;
+  if(editingPhrase){
+    const p = state.phraseBank.find(x=>x.id === editingPhrase);
+    if(p){ p.category = category; p.phrase = phrase; }
+    editingPhrase = null;
+  } else {
+    state.phraseBank.push({ id: genId(), category, phrase, used:false });
+  }
+  await saveState();
+  catEl.value = ''; phraseEl.value = '';
+  renderHost();
+}
+function startEditPhrase(id){
+  const p = state.phraseBank.find(x=>x.id === id);
+  if(!p) return;
+  editingPhrase = id;
+  renderHost();
+  const catEl = document.getElementById('phrase-cat');
+  const phraseEl = document.getElementById('phrase-text');
+  if(catEl) catEl.value = p.category || '';
+  if(phraseEl) phraseEl.value = p.phrase;
+}
+function cancelEditPhrase(){ editingPhrase = null; renderHost(); }
+async function deletePhrase(id){
+  state.phraseBank = state.phraseBank.filter(p=>p.id !== id);
+  if(editingPhrase === id) editingPhrase = null;
+  await saveState(); renderHost();
+}
+async function resetPhraseBankUsed(){ state.phraseBank.forEach(p=>p.used = false); await saveState(); renderHost(); }
+
+/* bomb */
+async function saveBombFromForm(){
+  const textEl = document.getElementById('bomb-text');
+  const optEls = ['bomb-opt-a','bomb-opt-b','bomb-opt-c','bomb-opt-d'].map(id=>document.getElementById(id));
+  const text = textEl.value.trim();
+  const options = optEls.map(o=>o.value.trim()).filter(v=>v.length > 0);
+  if(!text || options.length === 0) return;
+  if(editingBomb){
+    const q = state.bombQuestions.find(x=>x.id === editingBomb);
+    if(q){ q.text = text; q.options = options; }
+    editingBomb = null;
+  } else {
+    state.bombQuestions.push({ id: genId(), text, options, used:false });
+  }
+  await saveState();
+  textEl.value = ''; optEls.forEach(o=>o.value = '');
+  renderHost();
+}
+function startEditBomb(id){
+  const q = state.bombQuestions.find(x=>x.id === id);
+  if(!q) return;
+  editingBomb = id;
+  renderHost();
+  const textEl = document.getElementById('bomb-text');
+  const optEls = ['bomb-opt-a','bomb-opt-b','bomb-opt-c','bomb-opt-d'].map(i=>document.getElementById(i));
+  if(textEl) textEl.value = q.text;
+  (q.options||[]).forEach((o,i)=>{ if(optEls[i]) optEls[i].value = o; });
+}
+function cancelEditBomb(){ editingBomb = null; renderHost(); }
+async function deleteBomb(id){
+  state.bombQuestions = state.bombQuestions.filter(x=>x.id !== id);
+  if(editingBomb === id) editingBomb = null;
+  await saveState(); renderHost();
+}
+async function resetBombUsed(){ state.bombQuestions.forEach(q=>q.used = false); await saveState(); renderHost(); }
+
+/* players */
+async function addPlayer(){
+  const nameEl = document.getElementById('player-name-input');
+  const teamEl = document.getElementById('player-team-input');
+  const name = nameEl.value.trim();
+  if(!name) return;
+  state.players.push({ id: genId(), name, team: teamEl.value, score: 0 });
+  await saveState();
+  nameEl.value = '';
+  renderHost();
+}
+async function deletePlayer(id){
+  state.players = state.players.filter(p=>p.id !== id);
+  if(state.hotSeatPlayerId === id) state.hotSeatPlayerId = null;
+  await saveState(); renderHost();
+}
+async function togglePlayerTeam(id){
+  const p = playerById(id);
+  if(!p) return;
+  p.team = p.team === 'A' ? 'B' : 'A';
+  if(state.hotSeatPlayerId === id) state.hotSeatTeam = p.team;
+  await saveState(); renderHost();
+}
+
+async function startHosting(){
+  state.gamePhase = 'live';
+  if(!state.hotSeatPlayerId && state.players.length){
+    const first = state.players.find(p=>p.team === state.hotSeatTeam) || state.players[0];
+    state.hotSeatPlayerId = first.id;
+    state.hotSeatTeam = first.team;
+  }
+  await saveState();
+  hostTab = 'game';
+  renderHost();
+}
+
+/* setup validation */
+function validateSetup(){
+  const checks = [];
+  const players = state.players;
+  const aCount = players.filter(p=>p.team==='A').length;
+  const bCount = players.filter(p=>p.team==='B').length;
+  checks.push({ok: players.length >= 2, level: players.length >= 2 ? 'ok':'bad', text:`Players added: ${players.length} (need at least 2)`});
+  checks.push({ok: aCount>=1 && bCount>=1, level: (aCount>=1&&bCount>=1)?'ok':'bad', text:`Both teams have players (${teamName('A')}: ${aCount}, ${teamName('B')}: ${bCount})`});
+  let missingQ = [];
+  for(let l=1;l<=LADDER_SIZE;l++){
+    if(state.levelTypes[l-1] === 'trivia'){
+      const avail = (state.questionBank[l]||[]).filter(q=>!q.used).length;
+      if(avail === 0) missingQ.push(l);
+    }
+  }
+  checks.push({ok: missingQ.length===0, level: missingQ.length===0?'ok':'bad', text: missingQ.length===0 ? 'Every trivia level has at least 1 unused question' : `Levels missing unused questions: ${missingQ.join(', ')}`});
+  const puzzleLevels = state.levelTypes.filter(t=>t==='puzzle').length;
+  const availPhrases = state.phraseBank.filter(p=>!p.used).length;
+  checks.push({ok: puzzleLevels===0 || availPhrases>0, level:(puzzleLevels===0||availPhrases>0)?'ok':'bad', text:`Unused puzzle phrases: ${availPhrases} (need ≥1 for ${puzzleLevels} puzzle level${puzzleLevels===1?'':'s'})`});
+  const missingPrizes = state.ladderPrizeText.filter(t=>!(t||'').trim()).length;
+  checks.push({ok: missingPrizes===0, level: missingPrizes===0?'ok':'warn', text: missingPrizes===0 ? 'All 15 prizes typed in' : `${missingPrizes} prize${missingPrizes===1?'':'s'} not typed yet (will show as Prize N)`});
+  const bombAvail = state.bombQuestions.filter(q=>!q.used).length;
+  checks.push({ok: bombAvail>0, level: bombAvail>0?'ok':'warn', text:`Bomb pool: ${bombAvail} unused hard question${bombAvail===1?'':'s'}`});
+  const hardFail = checks.some(c=>c.level==='bad');
+  return { checks, hardFail };
+}
+
+/* =================== Shared builders =================== */
+function buildBoardHTML(puzzle, prevRevealedSet){
+  const phrase = puzzle.phrase || '';
+  if(!phrase.trim()) return '<div class="board-empty-msg">No puzzle loaded.</div>';
+  const words = phrase.split(' ').filter(w=>w.length>0);
+  const revealedSet = new Set(puzzle.revealedLetters.map(l=>l.toUpperCase()));
+  let html = '<div class="board">';
+  words.forEach(word=>{
+    html += '<div class="board-word">';
+    for(const ch of word){
+      const upper = ch.toUpperCase();
+      if(!/[A-Z]/.test(upper)){ html += `<div class="tile">${escapeHtml(ch)}</div>`; }
+      else if(revealedSet.has(upper)){
+        const isNew = prevRevealedSet && !prevRevealedSet.has(upper);
+        html += `<div class="tile${isNew?' reveal-flip':''}">${upper}</div>`;
+      } else { html += `<div class="tile blank">&nbsp;</div>`; }
+    }
+    html += '</div>';
+  });
+  html += '</div>';
+  return html;
+}
+
+function buildKeyboardHTML(puzzle){
+  let html = '<div class="keyboard">';
+  QWERTY.forEach(row=>{
+    html += '<div class="kb-row">';
+    for(const ch of row){
+      const used = puzzle.usedLetters.includes(ch);
+      const hit = puzzle.revealedLetters.includes(ch);
+      let cls = 'key';
+      if(used) cls += hit ? ' hit' : ' miss';
+      html += `<button class="${cls}" ${used?'disabled':''} onclick="pressLetter('${ch}')">${ch}</button>`;
+    }
+    html += '</div>';
+  });
+  html += '</div>';
+  return html;
+}
+
+function buildWheelHTML(wheel, idSuffix){
+  const n = wheel.names.length;
+  const seg = 360 / n;
+  const colors = ['#d4af37','#254a82','#b5912a','#33609e','#e8c66b','#1a3560','#f0da9c','#122744'];
+  const stops = wheel.names.map((_,i)=>`${colors[i%colors.length]} ${i*seg}deg ${(i+1)*seg}deg`).join(', ');
+  // final rotation: several spins + land winner segment center at pointer (top)
+  const winnerCenter = wheel.winnerIdx*seg + seg/2;
+  const finalDeg = 360*5 + (360 - winnerCenter);
+  const labels = wheel.names.map((name,i)=>{
+    const angle = i*seg + seg/2;
+    return `<div style="position:absolute;top:50%;left:50%;transform:rotate(${angle}deg) translateY(-92px) rotate(0deg);transform-origin:0 0;font-size:11px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.8);white-space:nowrap;margin-left:-20px;">${escapeHtml(name)}</div>`;
+  }).join('');
+  return `
+    <div class="wheel-wrap">
+      <div class="wheel-outer">
+        <div class="wheel-pointer"></div>
+        <div class="wheel-disc" id="wheel-disc-${idSuffix}" style="background:conic-gradient(${stops});">
+          <div style="position:relative;width:100%;height:100%;" id="wheel-labels-${idSuffix}">${labels}</div>
+        </div>
+      </div>
+      <div class="wheel-winner" id="wheel-winner-${idSuffix}"></div>
+    </div>
+  `;
+}
+
+function animateWheel(wheel, idSuffix){
+  const disc = document.getElementById('wheel-disc-' + idSuffix);
+  const winnerEl = document.getElementById('wheel-winner-' + idSuffix);
+  if(!disc) return;
+  const n = wheel.names.length;
+  const seg = 360 / n;
+  const winnerCenter = wheel.winnerIdx*seg + seg/2;
+  const finalDeg = 360*5 + (360 - winnerCenter);
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{
+      disc.style.transform = `rotate(${finalDeg}deg)`;
+    });
+  });
+  setTimeout(()=>{
+    if(winnerEl) winnerEl.textContent = wheel.names[wheel.winnerIdx] + ' takes the hot seat!';
+  }, 4200);
+}
+
+function envelopesHTML(editable){
+  const envelopes = state.envelopes;
+  let html = '';
+  if(editable){
+    html += `<div class="checkbox-row">
+      <input type="checkbox" id="evil-twist-check" ${state.envelopeEvilTwist?'checked':''} onchange="toggleEvilTwist(this.checked)">
+      <label for="evil-twist-check" style="margin:0;">Evil Twist (all 4 empty, hidden 5th)</label>
+    </div>`;
+  }
+  html += '<div class="envelope-row">';
+  envelopes.forEach((status,i)=>{
+    const cls = status==='empty'?'empty':status==='prize'?'prize':'';
+    const clickable = editable && status==='closed' && state.envelopeShuffled;
+    const label = status==='empty'?'Empty':status==='prize'?'Winner!':(i+1);
+    html += `<div class="envelope ${cls} ${clickable?'clickable':''}" ${clickable?`onclick="openEnvelope(${i})"`:''}>
+      <div>${status==='closed'?'✉️':(status==='prize'?'🏆':'—')}</div>
+      <div class="envelope-label">${label}</div>
+    </div>`;
+  });
+  if(state.envelopeEvilTwist && envelopes.every(s=>s!=='closed')){
+    if(state.envelopeTwistRevealed) html += `<div class="envelope twist"><div>✉️</div><div class="envelope-label">Hidden 5th</div></div>`;
+    else if(editable) html += `<div class="envelope twist clickable" onclick="revealEvilTwist()"><div>?</div><div class="envelope-label">Reveal 5th</div></div>`;
+  }
+  html += '</div>';
+  if(editable){
+    html += `<div class="envelope-controls">
+      <button class="secondary-btn" onclick="shuffleEnvelopes()">${state.envelopeShuffled?'Reshuffle':'Shuffle Envelopes'}</button>
+      <button class="secondary-btn" onclick="requestConfirm('Reset all envelopes?', resetEnvelopes)">Reset</button>
+    </div>
+    <div class="hint">Shuffle first, then click a closed envelope to open. The app secretly tracks the prize.</div>`;
+  }
+  return html;
+}
+
+function panelWrap(id, icon, title, extraHtml, bodyHtml){
+  const collapsed = !!uiCollapsed[id];
+  return `<div class="panel">
+    <div class="panel-header" onclick="togglePanel('${id}')">
+      <div class="panel-title-row"><i class="ico ico-${icon}"></i><span>${title}</span></div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        ${extraHtml||''}
+        <i class="ico ico-chevron-${collapsed?'down':'up'} panel-chevron"></i>
+      </div>
+    </div>
+    <div class="panel-body" style="${collapsed?'display:none;':''}">${bodyHtml}</div>
+  </div>`;
+}
+function togglePanel(id){ uiCollapsed[id] = !uiCollapsed[id]; renderHost(); }
+
+/* =================== Host: game tab =================== */
+function teamBoxHTML(team){
+  const isHot = state.hotSeatTeam === team;
+  const players = state.players.filter(p=>p.team===team);
+  const ll = state.lifelines[team];
+  return `
+    <div class="team-box ${isHot?'is-hotseat':''}">
+      <div class="team-box-head">
+        <span class="team-box-name">${escapeHtml(teamName(team))} ${isHot?'<span class="team-hs-tag">Hot Seat</span>':''}</span>
+        <span class="team-lifelines">
+          ${LIFELINE_DEFS.map(([key,label,icon])=>`<i class="ico ico-${icon} ll-mini ${ll[key]?'used':''}" title="${label}${ll[key]?' (used)':''}"></i>`).join('')}
+        </span>
+      </div>
+      <div class="player-chips">
+        ${players.length===0?'<span class="hint" style="margin:0;">No players — add them in Setup.</span>':players.map(p=>`
+          <button class="player-chip ${state.hotSeatPlayerId===p.id?'is-hot':''}" onclick="setHotSeatPlayer('${p.id}')" title="Make hot seat player">
+            ${escapeHtml(p.name)} <span class="chip-score">${p.score||0}</span>
+          </button>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function ladderStripHTML(editable){
+  let icons = '';
+  for(let l=1;l<=LADDER_SIZE;l++){
+    const won = state.ladderRevealed[l-1];
+    const current = state.ladderCurrent === l;
+    const special = state.levelTypes[l-1] !== 'trivia';
+    const prize = (state.ladderPrizeText[l-1]||'').trim() || `Prize ${l}`;
+    const icon = special ? '<i class="ico ico-puzzle-piece" style="font-size:10px;"></i>' : l;
+    icons += `<div class="lad-ic ${won?'won':''} ${current?'current':''} ${special?'special':''}" ${editable?`onclick="setCurrentLevel(${l})"`:''}>
+      ${won?'<i class="ico ico-check" style="font-size:11px;"></i>':icon}
+      <span class="tip">${l}. ${escapeHtml(prize)}${special?' · Puzzle':''}</span>
+    </div>`;
+  }
+  return `<div class="ladder-strip">
+    <div class="ladder-icons">${icons}</div>
+    ${editable?`<button class="next-btn" onclick="ladderNext()"><i class="ico ico-forward"></i> Next</button>`:''}
+  </div>`;
+}
+
+function flowCardHTML(){
+  const q = state.currentQuestion;
+  const f = state.flow;
+  const lvlType = currentLevelType();
+  // Puzzle level takes over
+  if(lvlType === 'puzzle' && !q){
+    if(state.puzzle.active){
+      return `<div class="flow-card">
+        <div class="flow-head">
+          <span class="flow-level-tag"><i class="ico ico-puzzle-piece"></i> Level ${state.ladderCurrent} — Word Puzzle</span>
+        </div>
+        ${state.puzzle.category?`<div class="category-tag">${escapeHtml(state.puzzle.category)}</div>`:''}
+        <div class="board-wrap">${buildBoardHTML(state.puzzle)}</div>
+        ${buildKeyboardHTML(state.puzzle)}
+        <div class="hint">Answer: <b style="color:var(--gold-300);">${escapeHtml(state.puzzle.phrase)}</b></div>
+        <div class="flow-controls">
+          <button class="flow-correct" onclick="puzzleSolved()"><i class="ico ico-check"></i> Solved — Next Level</button>
+          <button class="secondary-btn" onclick="requestConfirm('Abandon this puzzle? (You can re-trigger it.)', puzzleFailed)">Abandon</button>
+        </div>
+      </div>`;
+    }
+    return `<div class="flow-card">
+      <div class="flow-head"><span class="flow-level-tag"><i class="ico ico-puzzle-piece"></i> Level ${state.ladderCurrent} — Special: Word Puzzle</span></div>
+      <div class="flow-q" style="color:var(--muted);font-size:15px;">This level is the surprise word puzzle. Triggering it plays a fake glitch on the TV, then shows the board. Play it cool.</div>
+      <div class="flow-controls">
+        <button class="flow-primary" onclick="startPuzzleLevel()"><i class="ico ico-bolt"></i> Trigger the "Glitch"</button>
+        <button class="secondary-btn" onclick="hostDrawForCurrentLevel()">Use a trivia question instead</button>
+      </div>
+    </div>`;
+  }
+  if(!q){
+    const avail = (state.questionBank[state.ladderCurrent]||[]).filter(x=>!x.used).length;
+    return `<div class="flow-card">
+      <div class="flow-head"><span class="flow-level-tag">Level ${state.ladderCurrent}</span></div>
+      <div class="flow-q" style="color:var(--muted);font-size:15px;">No question drawn. ${avail} unused question${avail===1?'':'s'} available at this level.</div>
+      <div class="flow-controls">
+        <button class="flow-primary" onclick="hostDrawForCurrentLevel()"><i class="ico ico-dice"></i> Draw Question</button>
+      </div>
+    </div>`;
+  }
+  const optCount = q.options.length;
+  const isMC = optCount > 1;
+  const correctIdx = correctDisplayIdx(q);
+  const team = state.hotSeatTeam;
+  const ll = state.lifelines[team];
+  let optsHtml = '';
+  if(isMC){
+    optsHtml = '<div class="flow-opts">' + q.displayOrder.map((origIdx, dispIdx)=>{
+      const revealedToPlayers = (f.stage==='options'&&dispIdx<f.optionsRevealed) || f.stage==='ready' || f.stage==='answer';
+      const isCorrect = origIdx === 0;
+      return `<div class="flow-opt ${isCorrect?'correct':''} ${revealedToPlayers?'':'dim'}">
+        <span class="flow-opt-letter">${letterFor(dispIdx)})</span>${escapeHtml(q.options[origIdx])}
+        ${isCorrect?' <i class="ico ico-check" style="color:var(--green);margin-left:6px;"></i>':''}
+      </div>`;
+    }).join('') + '</div>';
+  } else {
+    optsHtml = `<div class="flow-answer-line"><i class="ico ico-key"></i> Answer: ${escapeHtml(q.options[0])} ${f.stage==='answer'?'(shown to players)':'(hidden from players)'}</div>`;
+  }
+  const showLifelines = f.stage==='ready' || f.stage==='options' || f.stage==='question';
+  const resolveButtons = f.stage==='answer';
+  const label = flowButtonLabel();
+  return `<div class="flow-card">
+    <div class="flow-head">
+      <span class="flow-level-tag">${q.isBomb?'<i class="ico ico-bomb"></i> BOMB — ':''}Level ${q.level} ${q.isBomb?'(no lifelines)':''}</span>
+      <span style="display:flex;gap:8px;">
+        <button class="secondary-btn small-btn" onclick="rerollQuestion()"><i class="ico ico-dice"></i> Reroll</button>
+      </span>
+    </div>
+    <div class="flow-q">${escapeHtml(q.text)}</div>
+    ${q.imageKey?`<div id="q-image-slot-host"></div>`:''}
+    ${optsHtml}
+    <div class="flow-controls">
+      ${label?`<button class="flow-primary" onclick="flowAdvance()">${label}</button>`:''}
+      ${resolveButtons?`
+        <button class="flow-correct" onclick="markCorrect()"><i class="ico ico-check"></i> Correct — Next Question</button>
+        <button class="flow-wrong" onclick="startSteal()"><i class="ico ico-hand"></i> Wrong — Steal Question</button>
+      `:''}
+    </div>
+    ${(showLifelines && !q.isBomb)?`<div class="lifeline-btns">
+      ${LIFELINE_DEFS.map(([key,lbl,icon])=>`
+        <button class="ll-btn" ${ll[key]?'disabled':''} onclick="useLifeline('${key}')"><i class="ico ico-${icon}"></i>${lbl}</button>
+      `).join('')}
+      <span class="hint" style="margin:0;align-self:center;">${escapeHtml(teamName(team))}'s lifelines</span>
+    </div>`:''}
+  </div>`;
+}
+
+function stealBoxHTML(){
+  const s = state.steal;
+  if(!s) return '';
+  const q = state.currentQuestion;
+  const panelTeam = opposingTeam();
+  const panelPlayers = state.players.filter(p=>p.team===panelTeam);
+  const correctIdx = q ? correctDisplayIdx(q) : -1;
+  if(state.wheel){
+    return `<div class="steal-box">
+      <div class="steal-title"><i class="ico ico-arrows-spin"></i> Tie-breaker wheel — multiple correct answers</div>
+      ${buildWheelHTML(state.wheel, 'host')}
+      <div class="flow-controls" style="justify-content:center;">
+        <button class="flow-primary" onclick="confirmWheelWinner()">Confirm Winner &amp; Hand Over Seat</button>
+      </div>
+    </div>`;
+  }
+  if(s.resolved && s.outcome === 'defended'){
+    return `<div class="steal-box">
+      <div class="steal-title"><i class="ico ico-shield"></i> Nobody stole it!</div>
+      <div style="font-size:14px;">No panel player got it right. ${escapeHtml(hotSeatPlayer()?hotSeatPlayer().name:'The hot seat player')} keeps the seat.</div>
+      <div class="flow-controls">
+        <button class="flow-primary" onclick="dismissDefendedSteal()">Continue — New Question, Same Level</button>
+      </div>
+    </div>`;
+  }
+  const voteRows = panelPlayers.map(p=>{
+    const v = s.votes[p.id];
+    const hasVoted = v !== undefined;
+    let choiceHtml = '<span class="vote-waiting">waiting…</span>';
+    if(hasVoted){
+      const cls = s.locked ? (v===correctIdx?'correct-vote':'wrong-vote') : '';
+      choiceHtml = `<span class="vote-choice ${cls}">${s.locked?letterFor(v):'locked in'}</span>`;
+    }
+    const manualBtns = (!s.locked && q) ? q.displayOrder.map((_,di)=>
+      `<button class="secondary-btn small-btn" onclick="hostSetVote('${p.id}',${di})">${letterFor(di)}</button>`).join('') : '';
+    return `<div class="vote-row">
+      <span>${escapeHtml(p.name)}</span>
+      <span style="display:flex;gap:5px;align-items:center;">${choiceHtml} ${manualBtns}</span>
+    </div>`;
+  }).join('');
+  return `<div class="steal-box">
+    <div class="steal-title"><i class="ico ico-hand"></i> Steal round — ${escapeHtml(teamName(panelTeam))} votes on the same question</div>
+    <div class="hint" style="margin:0 0 4px;">Players vote on their phones (or tap a letter here for them). Votes stay hidden until you lock.</div>
+    <div class="vote-rows">${voteRows}</div>
+    <div class="flow-controls">
+      <button class="flow-primary" onclick="resolveSteal()"><i class="ico ico-lock"></i> Lock Votes &amp; Resolve</button>
+      <button class="secondary-btn" onclick="requestConfirm('Cancel this steal round?', async()=>{ state.steal=null; await saveState(); renderHost(); })">Cancel Steal</button>
+    </div>
+  </div>`;
+}
+
+/* =================== Host: setup tab =================== */
+function setupTabHTML(){
+  const v = validateSetup();
+  const playersBody = `
+    <div class="row">
+      <div class="field" style="flex:2;"><label>Player name</label><input type="text" id="player-name-input" placeholder="Name"></div>
+      <div class="field" style="flex:1;"><label>Team</label><select id="player-team-input"><option value="A">${escapeHtml(teamName('A'))}</option><option value="B">${escapeHtml(teamName('B'))}</option></select></div>
+    </div>
+    <button class="primary-btn" onclick="addPlayer()">Add Player</button>
+    <div class="row" style="margin-top:12px;">
+      <div class="field"><label>Team A name</label><input type="text" id="setup-team-a" value="${escapeAttr(state.teamAName)}"></div>
+      <div class="field"><label>Team B name</label><input type="text" id="setup-team-b" value="${escapeAttr(state.teamBName)}"></div>
+    </div>
+    <div class="bank-list">
+      ${state.players.length===0?'<div class="hint" style="margin-top:0;">No players yet.</div>':state.players.map(p=>`
+        <div class="bank-row">
+          <div class="bank-row-text"><b>${escapeHtml(p.name)}</b><div class="bank-row-sub">${escapeHtml(teamName(p.team))} · ${p.score||0} pts</div></div>
+          <div class="bank-row-actions">
+            <button class="ghost-btn small-btn" onclick="togglePlayerTeam('${p.id}')">Switch Team</button>
+            <button class="secondary-btn small-btn" onclick="requestConfirm('Remove ${escapeAttr(p.name)}?', ()=>deletePlayer('${p.id}'))">✕</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+  const ladderBody = `
+    <div class="hint" style="margin:0 0 10px;">One shared ladder for the whole game. Prizes stay hidden as ??? on the TV until won. Toggle a level to Puzzle to make it a surprise word-puzzle level.</div>
+    ${Array.from({length:LADDER_SIZE},(_,i)=>i+1).map(l=>`
+      <div class="prize-setup-row">
+        <span class="prize-setup-num">${l}</span>
+        <input type="text" id="setup-prize-${l}" placeholder="Prize ${l}" value="${escapeAttr(state.ladderPrizeText[l-1]||'')}">
+        <button class="type-toggle ${state.levelTypes[l-1]==='puzzle'?'puzzle':''}" onclick="toggleLevelType(${l})">${state.levelTypes[l-1]==='puzzle'?'Puzzle':'Trivia'}</button>
+      </div>
+    `).join('')}
+  `;
+  const level = uiSelectedLevel;
+  const qBank = state.questionBank[level] || [];
+  const triviaBody = `
+    <div class="field">
+      <label>Level</label>
+      <select id="level-select" onchange="changeUiLevel(this.value)">
+        ${Array.from({length:LADDER_SIZE},(_,i)=>i+1).map(n=>`<option value="${n}" ${n===level?'selected':''}>Level ${n} (${(state.questionBank[n]||[]).filter(q=>!q.used).length} unused)</option>`).join('')}
+      </select>
+    </div>
+    <div class="field"><label>${editingQuestion?'Editing question':'New question'}</label><textarea id="q-text" rows="2" placeholder="Question text"></textarea></div>
+    <div class="field">
+      <label>Answers — <b style="color:var(--gold-300);">A is always the correct one</b>; the app shuffles the letters on screen. Fill only A for a hidden-answer question.</label>
+      <div class="options-grid">
+        <input type="text" id="q-opt-a" placeholder="A — correct answer">
+        <input type="text" id="q-opt-b" placeholder="B (optional)">
+        <input type="text" id="q-opt-c" placeholder="C (optional)">
+        <input type="text" id="q-opt-d" placeholder="D (optional)">
+      </div>
+    </div>
+    <div class="field"><label>Photo (optional)</label><input type="file" id="q-image" accept="image/*"></div>
+    <div class="row">
+      <button class="primary-btn" onclick="saveQuestionFromForm()">${editingQuestion?'Save Changes':'Add Question'}</button>
+      ${editingQuestion?'<button class="secondary-btn" onclick="cancelEditQuestion()">Cancel Edit</button>':''}
+    </div>
+    <div class="bank-list">
+      ${qBank.length===0?'<div class="hint" style="margin-top:0;">No questions for this level.</div>':qBank.map(q=>`
+        <div class="bank-row ${editingQuestion&&editingQuestion.id===q.id?'editing':''}">
+          <div class="bank-row-text">
+            <div>${escapeHtml(q.text)}</div>
+            <div class="bank-row-sub">Correct: ${escapeHtml((q.options||[])[0]||'')} · ${(q.options||[]).length} option${(q.options||[]).length===1?' (hidden answer)':'s'} ${q.imageKey?'· 📷':''}</div>
+          </div>
+          <div class="bank-row-actions">
+            ${q.used?'<span class="used-tag">Used</span>':''}
+            <button class="ghost-btn small-btn" onclick="startEditQuestion(${level},'${q.id}')">Edit</button>
+            <button class="secondary-btn small-btn" onclick="requestConfirm('Delete this question?', ()=>deleteQuestion(${level},'${q.id}'))">✕</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+    ${qBank.length>0?`<button class="secondary-btn small-btn" style="margin-top:10px;" onclick="resetQuestionBankUsed(${level})">Reset Used Flags (level ${level})</button>`:''}
+  `;
+  const phraseBody = `
+    <div class="row">
+      <div class="field" style="flex:1;"><label>Category (optional)</label><input type="text" id="phrase-cat" placeholder="e.g. Movie Title"></div>
+      <div class="field" style="flex:2;"><label>${editingPhrase?'Editing phrase':'Phrase'}</label><input type="text" id="phrase-text" placeholder="The full answer"></div>
+    </div>
+    <div class="row">
+      <button class="primary-btn" onclick="savePhraseFromForm()">${editingPhrase?'Save Changes':'Add Phrase'}</button>
+      ${editingPhrase?'<button class="secondary-btn" onclick="cancelEditPhrase()">Cancel Edit</button>':''}
+    </div>
+    <div class="bank-list">
+      ${state.phraseBank.length===0?'<div class="hint" style="margin-top:0;">No phrases yet.</div>':state.phraseBank.map(p=>`
+        <div class="bank-row ${editingPhrase===p.id?'editing':''}">
+          <div class="bank-row-text">
+            ${p.category?`<div class="bank-row-cat">${escapeHtml(p.category)}</div>`:''}
+            <div>${escapeHtml(p.phrase)}</div>
+          </div>
+          <div class="bank-row-actions">
+            ${p.used?'<span class="used-tag">Used</span>':''}
+            <button class="ghost-btn small-btn" onclick="startEditPhrase('${p.id}')">Edit</button>
+            <button class="secondary-btn small-btn" onclick="requestConfirm('Delete this phrase?', ()=>deletePhrase('${p.id}'))">✕</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+    ${state.phraseBank.length>0?`<button class="secondary-btn small-btn" style="margin-top:10px;" onclick="resetPhraseBankUsed()">Reset Used Flags</button>`:''}
+  `;
+  const bombBody = `
+    <div class="field"><label>${editingBomb?'Editing hard question':'New hard question'}</label><textarea id="bomb-text" rows="2" placeholder="Question text"></textarea></div>
+    <div class="field">
+      <label>Answers — A is correct; fill only A for hidden-answer</label>
+      <div class="options-grid">
+        <input type="text" id="bomb-opt-a" placeholder="A — correct answer">
+        <input type="text" id="bomb-opt-b" placeholder="B (optional)">
+        <input type="text" id="bomb-opt-c" placeholder="C (optional)">
+        <input type="text" id="bomb-opt-d" placeholder="D (optional)">
+      </div>
+    </div>
+    <div class="row">
+      <button class="primary-btn" onclick="saveBombFromForm()">${editingBomb?'Save Changes':'Add Question'}</button>
+      ${editingBomb?'<button class="secondary-btn" onclick="cancelEditBomb()">Cancel Edit</button>':''}
+    </div>
+    <div class="bank-list">
+      ${state.bombQuestions.length===0?'<div class="hint" style="margin-top:0;">Bomb pool is empty.</div>':state.bombQuestions.map(q=>`
+        <div class="bank-row ${editingBomb===q.id?'editing':''}">
+          <div class="bank-row-text">
+            <div>${escapeHtml(q.text)}</div>
+            <div class="bank-row-sub">Correct: ${escapeHtml((q.options||[])[0]||'')}</div>
+          </div>
+          <div class="bank-row-actions">
+            ${q.used?'<span class="used-tag">Used</span>':''}
+            <button class="ghost-btn small-btn" onclick="startEditBomb('${q.id}')">Edit</button>
+            <button class="secondary-btn small-btn" onclick="requestConfirm('Delete this hard question?', ()=>deleteBomb('${q.id}'))">✕</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+    ${state.bombQuestions.length>0?`<button class="secondary-btn small-btn" style="margin-top:10px;" onclick="resetBombUsed()">Reset Used Flags</button>`:''}
+  `;
+  const checklistBody = `
+    <div class="checklist">
+      ${v.checks.map(c=>`<div class="check-item"><i class="fa-solid ${c.level==='ok'?'fa-circle-check ok':c.level==='warn'?'fa-triangle-exclamation warn':'fa-circle-xmark bad'}"></i>${escapeHtml(c.text)}</div>`).join('')}
+    </div>
+    <button class="primary-btn" style="width:100%;" ${v.hardFail?'disabled':''} onclick="startHosting()">
+      <i class="ico ico-play"></i> ${state.gamePhase==='live'?'Return to Game':'Start Hosting'}
+    </button>
+    ${v.hardFail?'<div class="hint">Fix the red items above to start.</div>':''}
+  `;
+  return `
+    <div class="setup-grid">
+      <div>
+        ${panelWrap('su-players','users','Players & Teams','',playersBody)}
+        ${panelWrap('su-ladder','sack-dollar','Prize Ladder & Level Types','',ladderBody)}
+        ${panelWrap('su-env','envelope','Final Envelopes (Level 15)','',envelopesHTML(true))}
+      </div>
+      <div>
+        ${panelWrap('su-check','clipboard-check','Ready Check','',checklistBody)}
+        ${panelWrap('su-trivia','circle-question','Trivia Questions','',triviaBody)}
+        ${panelWrap('su-phrases','puzzle-piece','Puzzle Phrases','',phraseBody)}
+        ${panelWrap('su-bomb','bomb','Bomb — Hard Question Pool','',bombBody)}
+      </div>
+    </div>
+  `;
+}
+
+async function toggleLevelType(l){
+  state.levelTypes[l-1] = state.levelTypes[l-1] === 'puzzle' ? 'trivia' : 'puzzle';
+  await saveState();
+  renderHost();
+}
+function changeUiLevel(v){ uiSelectedLevel = parseInt(v,10); editingQuestion = null; renderHost(); }
+
+/* =================== Rules tab =================== */
+function rulesTabHTML(){
+  return `<div class="rules-body">
+    <h2>The Game</h2>
+    <p>Two teams. One player sits in the hot seat and climbs a shared 15-level prize ladder by answering questions. Everyone plays on the same ladder for the whole event — there are no restarts and no individual ladders. The prize upgrades with every correct answer, and the hot seat player only ever wins the <b>highest prize reached</b>, not everything below it.</p>
+    <h2>Turn Flow</h2>
+    <p>The host reveals the question, then the answer choices one at a time. The hot seat player has unlimited time and may use their team's lifelines before answering. Levels marked as special (like the surprise word puzzle) replace the trivia question for that level.</p>
+    <h2>Getting It Wrong — The Steal</h2>
+    <p>If the hot seat player answers wrong, the <b>same question</b> goes to the opposing team's panel. Every panel player locks in their answer secretly on their phone. Anyone who's right earns a point, and one of them takes the hot seat: if several are right, the wheel spins to pick. The new hot seat player continues from the <b>next level up</b> — the ladder keeps climbing no matter who's in the chair. If nobody on the panel gets it right, the original player keeps the seat and gets a fresh question at the same level.</p>
+    <h2>Lifelines (one set per team, per game)</h2>
+    ${LIFELINE_DEFS.map(([key,label,icon,desc])=>`
+      <div class="rules-ll"><i class="ico ico-${icon}"></i><div><b>${label}</b>${
+        key==='promote' ? 'Pick a teammate to take over the hot seat permanently. They stay there unless they answer wrong and lose it to a steal.' :
+        key==='doubleDip' ? 'The hot seat player gets two tries out loud. A wrong first answer triggers no steal — they simply try again. If the second answer is also wrong, normal steal rules apply.' :
+        key==='swap' ? 'Reject the current question and get a new one from the same level.' :
+        'Reject the current question; the host pulls a brutal replacement from the Bomb pool and fires it at the opposing team with no lifelines. If they get it right, they steal the seat. If they miss, the hot seat player climbs a level for free.'
+      }</div></div>
+    `).join('')}
+    <h2>Level 15 — The Envelopes</h2>
+    <p>No trivia at the top. The hot seat player picks one of four envelopes that have been visible all game. Prize inside: they win. Empty: the opposing team picks one of the remaining three. If they find it, they win it; if not, the top prize is gone. (The host may or may not have something evil planned.)</p>
+    <h2>Prizes</h2>
+    <p>The hot seat player at the end takes the highest prize revealed. The player with the most points (correct answers in the seat plus correct steal votes) wins an individual prize, and the team holding the hot seat at the end wins a team prize.</p>
+  </div>`;
+}
+
+/* =================== Host render =================== */
+function renderHost(){
+  if(mode !== 'host') return;
+  const root = document.getElementById('app-root');
+  const preserveIds = ['q-text','q-opt-a','q-opt-b','q-opt-c','q-opt-d','phrase-cat','phrase-text','bomb-text','bomb-opt-a','bomb-opt-b','bomb-opt-c','bomb-opt-d','player-name-input','setup-team-a','setup-team-b'];
+  for(let l=1;l<=LADDER_SIZE;l++) preserveIds.push('setup-prize-'+l);
+  const preserved = {};
+  preserveIds.forEach(id=>{ const el = document.getElementById(id); if(el) preserved[id] = el.value; });
+  const preservedTeamSel = document.getElementById('player-team-input') ? document.getElementById('player-team-input').value : null;
+
+  const syncWarning = hasCloudStorage ? '' : `<div class="sync-warning"><i class="ico ico-triangle-exclamation"></i> Running in single-device mode — Supabase not configured. Host + TV on this computer sync via localStorage. To enable phone voting, add your Supabase URL and anon key at the top of the file.</div>`;
+
+  const topbar = `
+    <div class="topbar">
+      <div class="topbar-left">
+        <span class="brand">Fortune &amp; Fortune</span>
+        <button class="ghost-btn" onclick="openPlayerWindow()"><i class="ico ico-tv"></i> Open Player Display</button>
+        ${hasCloudStorage?`<button class="ghost-btn" onclick="copyPhoneLink(this)"><i class="ico ico-mobile-screen"></i> Copy Phone Link</button>`:''}
+      </div>
+      <div class="tabs">
+        <button class="tab-btn ${hostTab==='game'?'active':''}" onclick="setHostTab('game')">Game</button>
+        <button class="tab-btn ${hostTab==='setup'?'active':''}" onclick="setHostTab('setup')">Setup</button>
+        <button class="tab-btn ${hostTab==='rules'?'active':''}" onclick="setHostTab('rules')">Rules</button>
+      </div>
+      <button class="ghost-btn danger-outline" style="margin-left:auto;" onclick="requestConfirm('Start a New Game? Resets ladder position and reveals, scores, lifelines, envelopes, and the current question. Keeps prizes, players, banks, and used flags.', newGame)"><i class="ico ico-rotate-right"></i> New Game</button>
+    </div>
+  `;
+
+  let body = '';
+  if(hostTab === 'rules'){
+    body = rulesTabHTML();
+  } else if(hostTab === 'setup' || state.gamePhase === 'setup'){
+    body = setupTabHTML();
+  } else {
+    body = `
+      <div class="game-strip">
+        ${teamBoxHTML('A')}
+        ${ladderStripHTML(true)}
+        ${teamBoxHTML('B')}
+      </div>
+      ${state.wheel || state.steal ? stealBoxHTML() : ''}
+      ${flowCardHTML()}
+      ${state.ladderCurrent === LADDER_SIZE ? panelWrap('h-env','envelope','Final Envelopes','',envelopesHTML(true)) : ''}
+    `;
+  }
+
+  root.innerHTML = topbar + syncWarning + body + `<div class="footer-note">Everything on the TV mirrors a control here. Phones: same link + #player.</div>`;
+
+  // wire setup inputs
+  if(hostTab==='setup' || state.gamePhase==='setup'){
+    const ta = document.getElementById('setup-team-a');
+    const tb = document.getElementById('setup-team-b');
+    if(ta) ta.addEventListener('input', debounce(e=>{ state.teamAName = e.target.value; saveState(); }, 400));
+    if(tb) tb.addEventListener('input', debounce(e=>{ state.teamBName = e.target.value; saveState(); }, 400));
+    for(let l=1;l<=LADDER_SIZE;l++){
+      const el = document.getElementById('setup-prize-'+l);
+      if(el) el.addEventListener('input', debounce(e=>{ state.ladderPrizeText[l-1] = e.target.value; saveState(); }, 400));
+    }
+    const nameInput = document.getElementById('player-name-input');
+    if(nameInput) nameInput.addEventListener('keydown', e=>{ if(e.key==='Enter') addPlayer(); });
+  }
+  // restore preserved values
+  preserveIds.forEach(id=>{ const el = document.getElementById(id); if(el && preserved[id] !== undefined) el.value = preserved[id]; });
+  if(preservedTeamSel){ const el = document.getElementById('player-team-input'); if(el) el.value = preservedTeamSel; }
+  // images
+  if(state.currentQuestion && state.currentQuestion.imageKey) injectImage(state.currentQuestion.imageKey, 'q-image-slot-host');
+  // wheel animation
+  if(state.wheel && state.wheel.spunAt !== lastWheelSeen){
+    lastWheelSeen = state.wheel.spunAt;
+    animateWheel(state.wheel, 'host');
+  } else if(state.wheel){
+    // re-render mid-spin: jump to final
+    const disc = document.getElementById('wheel-disc-host');
+    const winnerEl = document.getElementById('wheel-winner-host');
+    if(disc){
+      const n = state.wheel.names.length, seg = 360/n;
+      disc.style.transition = 'none';
+      disc.style.transform = `rotate(${360*5 + (360 - (state.wheel.winnerIdx*seg + seg/2))}deg)`;
+      if(winnerEl) winnerEl.textContent = state.wheel.names[state.wheel.winnerIdx] + ' takes the hot seat!';
+    }
+  }
+}
+
+function setHostTab(t){ hostTab = t; renderHost(); }
+function openPlayerWindow(){
+  const url = location.href.split('#')[0] + '#display';
+  showUrlModal('Player Display', url, 'Open this URL in another tab or window. Add #display to the end of this page URL.');
+}
+function copyPhoneLink(btn){
+  const url = location.href.split('#')[0] + '#player';
+  showUrlModal('Phone Link for Players', url, 'Text this link to your players. They tap it on their phones to vote during steal rounds.');
+}
+function showUrlModal(title, url, hint){
+  document.getElementById('confirm-message').innerHTML =
+    '<b>'+title+'</b><br><br>' +
+    '<input type="text" id="url-modal-input" readonly style="width:100%;margin:8px 0;font-size:12px;padding:8px;background:var(--navy-950);border:1px solid var(--gold-500);border-radius:6px;color:var(--ink);" value="'+url.replace(/"/g,'&quot;')+'">' +
+    '<div style="font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5;">'+hint+'<br><b>Tap/click the field above to select it, then copy.</b></div>';
+  document.getElementById('confirm-picker').style.display = 'none';
+  document.getElementById('confirm-yes-btn').style.display = 'none';
+  document.getElementById('confirm-overlay').classList.add('show');
+  setTimeout(()=>{ const el = document.getElementById('url-modal-input'); if(el) el.select(); }, 80);
+}
+
+/* =================== TV display render =================== */
+function renderDisplay(){
+  if(mode !== 'display') return;
+  const root = document.getElementById('app-root');
+  const q = state.currentQuestion;
+  const f = state.flow;
+  const hp = hotSeatPlayer();
+  const ll = state.lifelines[state.hotSeatTeam];
+  const isPuzzle = state.puzzle.active;
+
+  // Center content
+  let center = '';
+  if(state.wheel){
+    center = `<div class="tv-q-hero" style="align-items:center;">
+      <div class="tv-q-level">Tie-breaker</div>
+      ${buildWheelHTML(state.wheel, 'tv')}
+    </div>`;
+  } else if(isPuzzle){
+    const currentRevealed = new Set(state.puzzle.revealedLetters.map(l=>l.toUpperCase()));
+    center = `<div class="tv-q-hero" id="tv-glitch-target">
+      <div class="tv-q-level"><i class="ico ico-puzzle-piece"></i> Level ${state.ladderCurrent}</div>
+      ${state.puzzle.category?`<div class="category-tag">${escapeHtml(state.puzzle.category)}</div>`:''}
+      <div class="board-wrap" style="border:none;background:transparent;">${buildBoardHTML(state.puzzle, displayPrevRevealed)}</div>
+    </div>`;
+    displayPrevRevealed = currentRevealed;
+  } else if(q && f.stage !== 'idle'){
+    const optCount = q.options.length;
+    const isMC = optCount > 1;
+    let optsHtml = '';
+    if(isMC){
+      optsHtml = '<div class="tv-opts">' + q.displayOrder.map((origIdx, dispIdx)=>{
+        const shown = (f.stage==='options'&&dispIdx<f.optionsRevealed) || f.stage==='ready' || f.stage==='answer';
+        const isCorrect = origIdx === 0;
+        const answerCls = f.stage==='answer' ? (isCorrect?'is-answer':'not-answer') : '';
+        return `<div class="tv-opt ${shown?'shown':''} ${answerCls}"><span class="tv-opt-letter">${letterFor(dispIdx)})</span>${escapeHtml(q.options[origIdx])}</div>`;
+      }).join('') + '</div>';
+    } else if(f.stage === 'answer'){
+      optsHtml = `<div class="tv-answer-banner"><i class="ico ico-check"></i> ${escapeHtml(q.options[0])}</div>`;
+    }
+    center = `<div class="tv-q-hero">
+      <div class="tv-q-level">${q.isBomb?'<i class="ico ico-bomb"></i> BOMB — ':''}Question — Level ${q.level}</div>
+      <div class="tv-q-text">${escapeHtml(q.text)}</div>
+      ${q.imageKey?`<div id="q-image-slot-tv"></div>`:''}
+      ${optsHtml}
+    </div>`;
+  } else {
+    center = `<div class="tv-q-hero" style="align-items:center;justify-content:center;">
+      <div class="tv-q-waiting">Fortune &amp; Fortune</div>
+      <div style="color:var(--muted);font-size:14px;margin-top:10px;text-align:center;">Waiting for the host…</div>
+    </div>`;
+  }
+
+  // Steal banner
+  const stealBanner = (state.steal && !state.steal.resolved) ? (()=>{
+    const panelTeam = opposingTeam();
+    const panelPlayers = state.players.filter(p=>p.team===panelTeam);
+    const votedCount = panelPlayers.filter(p=>state.steal.votes[p.id] !== undefined).length;
+    return `<div class="tv-steal-banner"><i class="ico ico-hand"></i> STEAL — ${escapeHtml(teamName(panelTeam))}, lock in your answers! (${votedCount}/${panelPlayers.length} in)</div>`;
+  })() : '';
+
+  // Ladder strip (bottom)
+  let ladIcons = '';
+  for(let l=1;l<=LADDER_SIZE;l++){
+    const won = state.ladderRevealed[l-1];
+    const current = state.ladderCurrent === l;
+    const special = state.levelTypes[l-1] !== 'trivia';
+    ladIcons += `<div class="tv-lad-ic ${won?'won':''} ${current?'current':''} ${special?'special':''}">${won?'<i class="ico ico-check" style="font-size:12px;"></i>':(special?'<i class="ico ico-star" style="font-size:10px;"></i>':l)}</div>`;
+  }
+  const revealedPrizes = [];
+  for(let l=LADDER_SIZE;l>=1;l--){
+    if(state.ladderRevealed[l-1]){
+      revealedPrizes.push(`${l}: ${escapeHtml((state.ladderPrizeText[l-1]||'').trim() || 'Prize '+l)}`);
+      break; // highest only
+    }
+  }
+  const prizeLine = revealedPrizes.length ? `Current prize: ${revealedPrizes[0]}` : 'Prizes hidden — climb to reveal';
+
+  // Scores
+  const sorted = state.players.slice().sort((a,b)=>(b.score||0)-(a.score||0));
+  const scoresHtml = sorted.length ? sorted.map(p=>`<div class="tv-score-row"><span>${escapeHtml(p.name)}</span><span class="sc">${p.score||0}</span></div>`).join('') : '<div class="hint" style="margin:0;text-align:center;">No players yet</div>';
+
+  // Envelopes side panel only at 15
+  const envPanel = state.ladderCurrent === LADDER_SIZE ? `<div class="tv-panel"><div class="tv-panel-title">Final Envelopes</div>${envelopesHTML(false)}</div>` : '';
+
+  root.innerHTML = `
+    <div class="tv-header">
+      <span class="tv-brand">Fortune &amp; Fortune</span>
+      <div class="tv-hotseat">
+        <span class="tv-hs-badge">Hot Seat</span>
+        <span class="tv-hs-name">${hp?escapeHtml(hp.name):'—'}</span>
+        <span class="tv-hs-team">${escapeHtml(teamName(state.hotSeatTeam))}</span>
+      </div>
+    </div>
+    ${stealBanner}
+    <div class="tv-main">
+      <div class="tv-center">${center}</div>
+      <div class="tv-side">
+        <div class="tv-panel">
+          <div class="tv-panel-title">${escapeHtml(teamName(state.hotSeatTeam))} Lifelines</div>
+          <div class="tv-ll">
+            ${LIFELINE_DEFS.map(([key,label,icon,desc])=>`
+              <div class="tv-ll-item ${ll[key]?'used':''}">
+                <i class="ico ico-${icon}"></i>
+                <span class="ll-name">${label}</span>
+                <span class="ll-desc">${desc}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        <div class="tv-panel">
+          <div class="tv-panel-title">Scores</div>
+          <div class="tv-scores">${scoresHtml}</div>
+        </div>
+        ${envPanel}
+      </div>
+    </div>
+    <div class="tv-panel">
+      <div class="tv-ladder">${ladIcons}</div>
+      <div class="tv-prize-line">${prizeLine}</div>
+    </div>
+  `;
+
+  if(q && q.imageKey) injectImage(q.imageKey, 'q-image-slot-tv');
+  // glitch animation trigger
+  if(isPuzzle && state.puzzle.glitchAt && state.puzzle.glitchAt !== lastGlitchSeen){
+    lastGlitchSeen = state.puzzle.glitchAt;
+    if(Date.now() - state.puzzle.glitchAt < 8000){
+      const target = document.getElementById('tv-glitch-target');
+      if(target){ target.classList.add('glitching'); setTimeout(()=>target.classList.remove('glitching'), 1700); }
+    }
+  }
+  // wheel animation
+  if(state.wheel && state.wheel.spunAt !== lastWheelSeen){
+    lastWheelSeen = state.wheel.spunAt;
+    animateWheel(state.wheel, 'tv');
+  } else if(state.wheel){
+    const disc = document.getElementById('wheel-disc-tv');
+    const winnerEl = document.getElementById('wheel-winner-tv');
+    if(disc){
+      const n = state.wheel.names.length, seg = 360/n;
+      disc.style.transition = 'none';
+      disc.style.transform = `rotate(${360*5 + (360 - (state.wheel.winnerIdx*seg + seg/2))}deg)`;
+      if(winnerEl) winnerEl.textContent = state.wheel.names[state.wheel.winnerIdx] + ' takes the hot seat!';
+    }
+  }
+}
+
+/* =================== Phone player render =================== */
+function renderPlayer(){
+  if(mode !== 'player') return;
+  const root = document.getElementById('app-root');
+  if(!hasCloudStorage){
+    root.innerHTML = `<div class="ph-card"><div class="ph-title">Fortune &amp; Fortune</div>
+      <div class="ph-status">Phone voting needs the shared online version. Ask the host for the Claude artifact link — this copy is running as a local file and can't sync.</div></div>`;
+    return;
+  }
+  const me = myPlayerId ? playerById(myPlayerId) : null;
+  if(!me){
+    root.innerHTML = `<div class="ph-card">
+      <div class="ph-title">Fortune &amp; Fortune</div>
+      <div class="ph-status">Who are you?</div>
+      <div class="ph-claim-list">
+        ${state.players.length===0?'<div class="ph-status">No players set up yet. Wait for the host.</div>':state.players.map(p=>`
+          <button class="ph-vote-btn" onclick="claimPlayer('${p.id}')">${escapeHtml(p.name)} <span style="color:var(--muted);font-size:12px;">· ${escapeHtml(teamName(p.team))}</span></button>
+        `).join('')}
+      </div>
+    </div>`;
+    return;
+  }
+  const s = state.steal;
+  const q = state.currentQuestion;
+  const inSteal = s && !s.locked && !s.resolved;
+  const iAmPanel = me.team === opposingTeam();
+  let body = '';
+  if(inSteal && iAmPanel && q){
+    const voted = phoneVotedRound === s.roundId;
+    body = `
+      <div class="ph-status" style="color:#e8837a;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">Steal round — lock in your answer</div>
+      <div style="font-size:15px;font-weight:600;margin:12px 0;line-height:1.5;">${escapeHtml(q.text)}</div>
+      <div class="ph-vote-btns">
+        ${q.displayOrder.map((origIdx,dispIdx)=>`
+          <button class="ph-vote-btn ${voted && window._myVote===dispIdx ? 'picked':''}" ${voted?'disabled':''} onclick="phoneVote(${dispIdx})">
+            <span class="ph-vote-letter">${letterFor(dispIdx)})</span>${escapeHtml(q.options[origIdx])}
+          </button>
+        `).join('')}
+      </div>
+      ${voted?'<div class="ph-status" style="margin-top:12px;color:var(--green);font-weight:700;">Locked in! Watch the TV.</div>':''}
+    `;
+  } else if(inSteal && !iAmPanel){
+    body = `<div class="ph-status">A steal is happening — but your team has the hot seat, so sit tight.</div>`;
+  } else {
+    body = `<div class="ph-status">Nothing to vote on right now.<br>Watch the TV — you'll get buttons here when a steal round starts.</div>`;
+  }
+  root.innerHTML = `<div class="ph-card">
+    <div class="ph-title">Fortune &amp; Fortune</div>
+    <div class="ph-name">${escapeHtml(me.name)}</div>
+    <div class="ph-status" style="margin-bottom:6px;">${escapeHtml(teamName(me.team))} · ${me.score||0} pts</div>
+    ${body}
+    <button class="secondary-btn small-btn" style="margin-top:18px;" onclick="unclaimPlayer()">Not ${escapeHtml(me.name)}?</button>
+  </div>`;
+}
+
+function claimPlayer(pid){
+  myPlayerId = pid;
+  try{ localStorage.setItem('gs-my-player', pid); } catch(e){}
+  renderPlayer();
+}
+function unclaimPlayer(){
+  myPlayerId = null;
+  try{ localStorage.removeItem('gs-my-player'); } catch(e){}
+  renderPlayer();
+}
+async function phoneVote(dispIdx){
+  if(!state.steal || !myPlayerId) return;
+  window._myVote = dispIdx;
+  phoneVotedRound = state.steal.roundId;
+  await storageSet(`gsv:${state.steal.roundId}:${myPlayerId}`, String(dispIdx));
+  renderPlayer();
+}
+
+/* =================== Boot & polling =================== */
+function render(){
+  document.body.classList.toggle('mode-display', mode==='display');
+  document.body.classList.toggle('mode-player', mode==='player');
+  if(mode==='host') renderHost();
+  else if(mode==='display') renderDisplay();
+  else renderPlayer();
+}
+
+async function pollForUpdates(){
+  try{
+    const res = await storageGet(STORAGE_KEY);
+    if(res && res.value && res.value !== lastSavedJSON){
+      state = normalizeState(JSON.parse(res.value));
+      lastSavedJSON = res.value;
+      render();
+    }
+  } catch(e){}
+  if(mode === 'host' && state.steal && !state.steal.locked){
+    await pollStealVotes();
+  }
+}
+
+window.addEventListener('hashchange', ()=>{
+  mode = location.hash === '#display' ? 'display' : (location.hash === '#player' ? 'player' : 'host');
+  render();
+});
+
+(async function init(){
+  await loadState();
+  if(mode === 'host' && state.gamePhase === 'setup') hostTab = 'setup';
+  uiSelectedLevel = state.ladderCurrent || 1;
+  render();
+  pollTimer = setInterval(pollForUpdates, 1500);
+})();
+</script>
+</body>
+</html>
