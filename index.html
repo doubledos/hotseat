@@ -453,8 +453,8 @@ const LIFELINE_DEFS = [
 ];
 
 /* ===== SUPABASE CONFIG — paste your project details here ===== */
-const SUPABASE_URL = 'https://lmjluzxzxpbuhvantbwt.supabase.co';      // e.g. https://abcdefgh.supabase.co
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxtamx1enh6eHBidWh2YW50Ynd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwNzQyMzcsImV4cCI6MjA5OTY1MDIzN30.Qj0SZi_pBJNvLdDj5Hr9osh9ub3xRkhRyx-1AZjElKY'; // your project's anon/public key
+const SUPABASE_URL = 'https://lmjluzxzxpbuhvantbwt.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxtamx1enh6eHBidWh2YW50Ynd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwNzQyMzcsImV4cCI6MjA5OTY1MDIzN30.Qj0SZi_pBJNvLdDj5Hr9osh9ub3xRkhRyx-1AZjElKY';
 /* ============================================================= */
 
 const hasCloudStorage = !!(SUPABASE_URL && SUPABASE_ANON_KEY);
@@ -1734,12 +1734,6 @@ function setupTabHTML(){
       <i class="ico ico-play"></i> ${state.gamePhase==='live'?'Return to Game':'Start Hosting'}
     </button>
     ${v.hardFail?'<div class="hint">Fix the red items above to start.</div>':''}
-    <div style="margin-top:14px;padding-top:14px;border-top:1px dashed var(--navy-600);">
-      <button class="secondary-btn" style="width:100%;" onclick="requestConfirm('Load test data? This adds sample players, questions, prizes, phrases, and bomb questions without removing anything you already have.', loadTestData)">
-        ⚄ Load Test Data
-      </button>
-      <div class="hint">Adds 4 players, 2 questions per level, 4 puzzle phrases, 3 bomb questions, and sample prizes. Safe to run multiple times.</div>
-    </div>
   `;
   return `
     <div class="setup-grid">
@@ -1756,113 +1750,6 @@ function setupTabHTML(){
       </div>
     </div>
   `;
-}
-
-async function loadTestData(){
-  // Players
-  const testPlayers = [
-    {id:genId(),name:'Alice',team:'A',score:0},
-    {id:genId(),name:'Bob',team:'A',score:0},
-    {id:genId(),name:'Carol',team:'B',score:0},
-    {id:genId(),name:'Dave',team:'B',score:0},
-  ];
-  state.players = [...state.players, ...testPlayers];
-  state.teamAName = state.teamAName === 'Team A' ? 'The Brains' : state.teamAName;
-  state.teamBName = state.teamBName === 'Team B' ? 'The Brawns' : state.teamBName;
-
-  // Prizes
-  const prizes = ['$10 Gift Card','$25 Gift Card','Chocolate Box','Movie Tickets','Board Game','Bottle of Wine','$50 Gift Card','Weekend Bag','Dinner for Two','Spa Voucher','$100 Gift Card','Smart Speaker','Weekend Getaway','iPad Mini','Grand Prize: $500 Cash'];
-  prizes.forEach((p,i)=>{ if(!state.ladderPrizeText[i]) state.ladderPrizeText[i] = p; });
-
-  // Trivia questions — 2 per level for levels 1-15
-  const triviaByLevel = {
-    1:[
-      {text:'What color is a stop sign?', options:['Red','Blue','Green','Yellow']},
-      {text:'How many sides does a triangle have?', options:['3','4','5','6']},
-    ],
-    2:[
-      {text:'What planet is closest to the Sun?', options:['Mercury','Venus','Earth','Mars']},
-      {text:'How many legs does a spider have?', options:['8','6','4','10']},
-    ],
-    3:[
-      {text:'What is the capital of France?', options:['Paris','London','Berlin','Madrid']},
-      {text:'What gas do plants absorb from the air?', options:['Carbon dioxide','Oxygen','Nitrogen','Hydrogen']},
-    ],
-    4:[
-      {text:'Who painted the Mona Lisa?', options:['Leonardo da Vinci','Michelangelo','Raphael','Botticelli']},
-      {text:'How many keys does a standard piano have?', options:['88','76','92','64']},
-    ],
-    5:[
-      {text:'What is the chemical symbol for gold?', options:['Au','Ag','Fe','Cu']},
-      {text:'In what year did the Titanic sink?', options:['1912','1905','1920','1898']},
-    ],
-    6:[
-      {text:'What is the largest organ in the human body?', options:['Skin','Liver','Lungs','Heart']},
-      {text:'How many bones are in the adult human body?', options:['206','186','212','198']},
-    ],
-    7:[
-      {text:'What language has the most native speakers in the world?', options:['Mandarin Chinese','English','Spanish','Hindi']},
-      {text:'What is the smallest country in the world?', options:['Vatican City','Monaco','San Marino','Liechtenstein']},
-    ],
-    8:[
-      {text:'What is the speed of light in a vacuum (approximate)?', options:['300,000 km/s','150,000 km/s','500,000 km/s','1,000,000 km/s']},
-      {text:'Which element has atomic number 1?', options:['Hydrogen','Helium','Lithium','Carbon']},
-    ],
-    9:[
-      {text:'Who wrote Romeo and Juliet?', options:['William Shakespeare','Charles Dickens','Jane Austen','Mark Twain']},
-      {text:'What year did World War II end?', options:['1945','1943','1947','1950']},
-    ],
-    10:[
-      {text:'What is the longest river in the world?', options:['Nile','Amazon','Yangtze','Mississippi']},
-      {text:'What is the hardest natural substance on Earth?', options:['Diamond','Quartz','Topaz','Corundum']},
-    ],
-    11:[
-      {text:'What is the powerhouse of the cell?', options:['Mitochondria','Nucleus','Ribosome','Golgi apparatus']},
-      {text:'How many elements are on the periodic table (as of 2024)?', options:['118','108','112','124']},
-    ],
-    12:[
-      {text:'Who developed the theory of general relativity?', options:['Albert Einstein','Isaac Newton','Niels Bohr','Max Planck']},
-      {text:'What is the most abundant gas in Earth's atmosphere?', options:['Nitrogen','Oxygen','Argon','Carbon dioxide']},
-    ],
-    13:[
-      {text:'What ancient wonder was located in Alexandria?', options:['The Lighthouse','The Colossus','The Hanging Gardens','The Mausoleum']},
-      {text:'In what century was the printing press invented?', options:['15th','14th','16th','13th']},
-    ],
-    14:[
-      {text:'What is the derivative of sin(x)?', options:['cos(x)','-cos(x)','tan(x)','-sin(x)']},
-      {text:'What is the name of the particle that carries the electromagnetic force?', options:['Photon','Gluon','Boson','Graviton']},
-    ],
-    15:[
-      {text:'Which treaty ended World War I?', options:['Treaty of Versailles','Treaty of Paris','Treaty of Westphalia','Treaty of Utrecht']},
-      {text:'What is the Chandrasekhar limit?', options:['Maximum mass of a white dwarf','Minimum mass for a black hole','Speed of a neutron star','Radius of a neutron star']},
-    ],
-  };
-  for(let l=1;l<=15;l++){
-    if(!state.questionBank[l]) state.questionBank[l] = [];
-    (triviaByLevel[l]||[]).forEach(q=>{
-      state.questionBank[l].push({id:genId(), text:q.text, options:q.options, used:false});
-    });
-  }
-
-  // Puzzle phrases
-  const phrases = [
-    {category:'Movie Title', phrase:'THE WIZARD OF OZ'},
-    {category:'Famous Person', phrase:'ALBERT EINSTEIN'},
-    {category:'Place', phrase:'GREAT WALL OF CHINA'},
-    {category:'Phrase', phrase:'BETTER LATE THAN NEVER'},
-  ];
-  phrases.forEach(p=>{ state.phraseBank.push({id:genId(), category:p.category, phrase:p.phrase, used:false}); });
-
-  // Bomb questions
-  const bombs = [
-    {text:'What is the only country that borders both the Caspian Sea and the Persian Gulf?', options:['Iran','Iraq','Azerbaijan','Kazakhstan']},
-    {text:'In mathematics, what is a "Sophie Germain prime"?', options:['A prime p where 2p+1 is also prime','A prime that is the sum of two squares','A prime ending in 7','A prime greater than 10^100']},
-    {text:'What was the name of the ship that rescued survivors of the Titanic?', options:['Carpathia','Californian','Mauretania','Olympic']},
-  ];
-  bombs.forEach(q=>{ state.bombQuestions.push({id:genId(), text:q.text, options:q.options, used:false}); });
-
-  await saveState();
-  renderHost();
 }
 
 async function toggleLevelType(l){
@@ -1983,24 +1870,17 @@ function renderHost(){
 function setHostTab(t){ hostTab = t; renderHost(); }
 function openPlayerWindow(){
   const url = location.href.split('#')[0] + '#display';
-  window.open(url, '_blank');
+  showUrlModal('Player Display', url, 'Open this URL in another tab or window. Add #display to the end of this page URL.');
 }
 function copyPhoneLink(btn){
   const url = location.href.split('#')[0] + '#player';
-  navigator.clipboard.writeText(url).then(()=>{
-    const orig = btn.innerHTML;
-    btn.innerHTML = '✓ Copied!';
-    setTimeout(()=>{ btn.innerHTML = orig; }, 2000);
-  }).catch(()=>{
-    // fallback: show a selectable text box
-    showUrlModal('Phone Link', url, 'Text this link to your players. They open it on their phones to vote during steal rounds.');
-  });
+  showUrlModal('Phone Link for Players', url, 'Text this link to your players. They tap it on their phones to vote during steal rounds.');
 }
 function showUrlModal(title, url, hint){
   document.getElementById('confirm-message').innerHTML =
     '<b>'+title+'</b><br><br>' +
     '<input type="text" id="url-modal-input" readonly style="width:100%;margin:8px 0;font-size:12px;padding:8px;background:var(--navy-950);border:1px solid var(--gold-500);border-radius:6px;color:var(--ink);" value="'+url.replace(/"/g,'&quot;')+'">' +
-    '<div style="font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5;">'+hint+'</div>';
+    '<div style="font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5;">'+hint+'<br><b>Tap/click the field above to select it, then copy.</b></div>';
   document.getElementById('confirm-picker').style.display = 'none';
   document.getElementById('confirm-yes-btn').style.display = 'none';
   document.getElementById('confirm-overlay').classList.add('show');
