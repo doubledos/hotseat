@@ -735,9 +735,22 @@ async function flowAdvance(){
 async function hostSelectAnswer(di){
   state.flow.hotSeatAnswer=di;
   const correctIdx=correctDisplayIdx(state.currentQuestion);
-  // If correct go to revealed; if wrong skip straight to steal-peek
-  state.flow.stage=(di===correctIdx)?'revealed':'steal-peek';
-  state.flow.stealPeeked=(di!==correctIdx);
+  if(di===correctIdx){
+    state.flow.stage='revealed';
+  } else {
+    // Wrong — create steal record and go to steal-peek
+    state.flow.stage='steal-peek';
+    state.flow.stealPeeked=true;
+    state.stealRoundCounter++;
+    const panelTeam=opposingTeam();
+    const nextInLine=getNextInLine(panelTeam);
+    state.steal={
+      roundId:state.stealRoundCounter, panelTeam,
+      nextInLineId:nextInLine?nextInLine.id:null,
+      votes:{}, locked:false, resolved:false, outcome:null
+    };
+    state.wheel=null;
+  }
   await saveLobby(); renderHost();
 }
 async function revealHotSeatResult(){ state.flow.stage='revealed'; await saveLobby(); renderHost(); } // kept for safety
@@ -2301,6 +2314,7 @@ function submitPhoneWager(){
 function renderLobbyEntry(){
   return `<div class="center-screen">
     <div class="lobby-title">Fortune &amp; Fortune</div>
+    <div style="font-size:11px;color:var(--c-muted);">v3.1 &nbsp;·&nbsp; 2026-07-16 03:59 UTC</div>
     <div class="lobby-sub">Open the link your host shared to join automatically.</div>
   </div>`;
 }
@@ -2328,8 +2342,8 @@ function renderPlayerClaim(){
 function renderHostEntry(){
   return `<div class="center-screen" id="host-entry-screen">
     <div class="lobby-title">Fortune &amp; Fortune</div>
+    <div style="font-size:11px;color:var(--c-muted);">v3.1 &nbsp;·&nbsp; 2026-07-16 03:59 UTC</div>
     <div class="lobby-sub">Create a new game or open an existing one.</div>
-    <div style="font-size:11px;color:var(--c-muted);margin-top:-10px;">Last updated: July 16, 2026 03:42 UTC</div>
     <div class="card" style="width:100%;max-width:420px;display:flex;flex-direction:column;gap:12px;">
       <div class="field" style="margin:0;"><label>New lobby name</label>
         <input type="text" class="input" id="new-lobby-name" placeholder="e.g. Family Game Night" maxlength="50" onkeydown="if(event.key==='Enter')createNewLobby()"></div>
