@@ -723,7 +723,8 @@ async function rerollQuestion(){
 async function flowAdvance(){
   const f=state.flow; const q=state.currentQuestion; if(!q) return;
   const optCount=q.options.length; const isMC=optCount>1;
-  if(f.stage==='question'){ if(isMC){f.stage='options';f.optionsRevealed=1;}else{f.stage='selecting';} }
+  if(f.stage==='idle'){ f.stage='question'; }
+  else if(f.stage==='question'){ if(isMC){f.stage='options';f.optionsRevealed=1;}else{f.stage='selecting';} }
   else if(f.stage==='options'){ if(f.optionsRevealed<optCount) f.optionsRevealed++; if(f.optionsRevealed>=optCount) f.stage='selecting'; }
   await saveLobby(); renderHost();
 }
@@ -734,7 +735,8 @@ async function revealCorrectAnswer(){ state.flow.stealRevealed=true; await saveL
 
 function flowButtonLabel(){
   const f=state.flow; const q=state.currentQuestion; if(!q) return '';
-  if(f.stage==='question') return 'Reveal Question';
+  if(f.stage==='idle') return 'Reveal Question';
+  if(f.stage==='question') return q.options.length>1?'Reveal Option A':'Show Answer';
   if(f.stage==='options') return f.optionsRevealed<q.options.length?'Reveal Option '+letterFor(f.optionsRevealed):'';
   return '';
 }
