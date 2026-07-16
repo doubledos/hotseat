@@ -1670,14 +1670,13 @@ function renderFlowCard(isPuzzleLevel){
       if(f.stage==='selecting'){
         return `<button class="flow-opt" style="cursor:pointer;text-align:left;width:100%;" onclick="hostSelectAnswer(${di})">
           <span class="flow-opt-letter">${letterFor(di)})</span>${esc(q.options[origIdx])}
-          ${isCorrect?'<span style="float:right;font-size:10px;color:var(--c-muted);">✓</span>':''}
         </button>`;
       }
       let cls='flow-opt';
-      if(isHSPick&&f.stage==='revealing') cls+=' answer-flash';
-      if(showResult&&isHSPick) cls+=isCorrect?' correct':' wrong-pick';
-      if(showResult&&isCorrect&&!isHSPick&&f.stage==='steal-reveal') cls+=' correct';
-      if(f.stage==='revealed'&&!isHSPick) cls+=' dim';
+      if(isHSPick&&(f.stage==='revealing'||f.stage==='revealed'||f.stage==='steal-peek')) cls+=' answer-flash';
+      if(f.stage==='steal-reveal'&&isHSPick) cls+=isCorrect?' correct':' wrong-pick';
+      if(f.stage==='steal-reveal'&&isCorrect&&!isHSPick) cls+=' correct';
+      if((f.stage==='revealed'||f.stage==='steal-peek')&&!isHSPick) cls+=' dim';
       return `<div class="${cls}"><span class="flow-opt-letter">${letterFor(di)})</span>${esc(q.options[origIdx])}${isCorrect&&f.stage==='steal-reveal'?' ✓':''}</div>`;
     }).join('')+'</div>';
   } else {
@@ -2065,7 +2064,9 @@ function renderDisplay(){
     if(isMC&&showOpts){
       optsHtml='<div class="tv-opts">'+q.displayOrder.map((origIdx,di)=>{
         const isCorrect=origIdx===0; const isHSPick=f.hotSeatAnswer===di;
-        let cls='tv-opt shown';
+        // Only show options that have been revealed one by one
+        const isRevealed=(f.stage==='options'&&di<f.optionsRevealed)||['selecting','revealing','revealed','steal-peek','steal-reveal'].includes(f.stage);
+        let cls='tv-opt'+(isRevealed?' shown':'');
         if(showHSAnswer&&isHSPick) cls+=showCorrect?(isCorrect?' is-answer':' not-answer'):' is-answer';
         if(showCorrect&&isCorrect&&!isHSPick) cls+=' is-answer';
         if(showCorrect&&!isCorrect&&!isHSPick) cls+=' not-answer';
@@ -2093,7 +2094,7 @@ function renderDisplay(){
       ${isSetup&&playerUrl?`
         <div class="tv-waiting" style="font-size:clamp(20px,3.5vw,36px);margin-bottom:20px;">Join the Game</div>
         <div style="display:flex;flex-direction:column;align-items:center;gap:14px;">
-          <canvas id="tv-qr-canvas" width="200" height="200" style="background:#fff;border-radius:10px;padding:8px;"></canvas>
+          <div id="tv-qr-wrap" style="background:#fff;border-radius:10px;padding:8px;display:inline-block;"></div>
           <div style="font-size:clamp(13px,2vw,18px);color:var(--c-gold-light);font-weight:700;word-break:break-all;">${esc(playerUrl)}</div>
         </div>
       `:`
@@ -2127,12 +2128,13 @@ function renderDisplay(){
     </div>`;
 
   setTimeout(()=>{
-    const canvas=document.getElementById('tv-qr-canvas');
-    if(canvas&&typeof QRCode!=='undefined'){
-      try{ new QRCode(canvas,{text:currentLobbyCode?location.href.split('?')[0].split('#')[0]+'?lobby='+currentLobbyCode:location.href.split('#')[0],width:184,height:184,colorDark:'#07111f',colorLight:'#ffffff'}); }
-      catch(e){}
+    const wrap=document.getElementById('tv-qr-wrap');
+    if(wrap&&typeof QRCode!=='undefined'){
+      wrap.innerHTML='';
+      try{ new QRCode(wrap,{text:currentLobbyCode?location.href.split('?')[0].split('#')[0]+'?lobby='+currentLobbyCode:location.href.split('#')[0],width:184,height:184,colorDark:'#07111f',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.L}); }
+      catch(e){ wrap.innerHTML='<div style="color:#333;font-size:10px;padding:4px;">QR unavailable</div>'; }
     }
-  },150);
+  },300);
   if(puz.active&&puz.glitchAt&&puz.glitchAt!==lastGlitchSeen){
     lastGlitchSeen=puz.glitchAt;
     if(Date.now()-puz.glitchAt<10000){ const t=document.getElementById('tv-glitch-target'); if(t){ t.classList.add('glitching'); setTimeout(()=>t.classList.remove('glitching'),1900); } }
