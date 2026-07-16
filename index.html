@@ -130,6 +130,9 @@ select.input{cursor:pointer;}
 .flow-opt.wrong-pick{border-color:var(--c-red-light);box-shadow:inset 0 0 0 1px var(--c-red-light);}
 .flow-opt.answer-flash{border-color:var(--c-gold);background:rgba(212,168,67,0.1);}
 .flow-opt.dim{opacity:0.3;}
+.flow-reveal-btn{width:100%;text-align:left;padding:10px 13px;border-radius:8px;font-size:14px;font-weight:600;background:linear-gradient(135deg,var(--c-gold),#b8882a);color:#07111f;border:none;cursor:pointer;transition:opacity .15s;}
+.flow-reveal-btn:hover{opacity:0.85;}
+.flow-slot{margin-bottom:6px;}
 .flow-opt-letter{color:var(--c-gold);font-weight:700;margin-right:6px;}
 .flow-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:14px;}
 .flow-lifelines{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px dashed var(--c-border);}
@@ -1640,8 +1643,8 @@ function renderGameTab(){
     const hp=hotSeatPlayer();
   }
   // Wager active handled by renderWagerTab
-  // Normal question flow
-  if(!state.puzzle.active&&!(state.steal&&!state.steal.resolved)){
+  // Normal question flow - always show flow card unless puzzle active
+  if(!state.puzzle.active){
     html+=renderFlowCard(isPuzzleLevel);
   }
   return html;
@@ -1650,11 +1653,12 @@ function renderGameTab(){
 function renderFlowCard(isPuzzleLevel){
   const q=state.currentQuestion; const f=state.flow;
   const ll=state.lifelines[state.hotSeatTeam]; const s=state.steal;
+
   if(isPuzzleLevel&&!state.puzzle.active&&!q) return `<div class="flow-card">
     <div class="flow-level">🧩 Level ${state.ladderCurrent} — Puzzle Round</div>
-    <p style="font-size:14px;color:var(--c-muted);margin-bottom:16px;">Trigger the glitch to start.</p>
     <div class="flow-controls"><button class="btn btn-primary" onclick="triggerPuzzle()">⚡ Trigger the Glitch</button></div>
   </div>`;
+
   if(!q){
     const avail=state.questions.filter(x=>!x.used).length;
     return `<div class="flow-card">
@@ -1663,85 +1667,130 @@ function renderFlowCard(isPuzzleLevel){
       <div class="flow-controls"><button class="btn btn-primary" onclick="hostDrawQuestion()">🎲 Draw Question</button></div>
     </div>`;
   }
-  const isMC=q.options.length>1; const correctIdx=correctDisplayIdx(q);
-  // Options display
-  let optsHtml='';
+
+  const isMC=q.options.length>1;
+  const correctIdx=correctDisplayIdx(q);
+  const stage=f.stage;
+
+  // Determine what's visible/active at each stage
+  const qRevealed = stage!=='idle';
+  const optsRevealed = ['options','selecting','revealing','revealed','steal-peek','steal-reveal'].includes(stage);
+  const inPostAnswer = ['revealed','steal-pick','steal-peek','steal-reveal'].includes(stage);
+
+  // QUESTION SLOT
+  let questionSlot='';
+  if(stage==='idle'){
+    questionSlot=`<button class="flow-reveal-btn" onclick="flowAdvance()">▶ Reveal Question</button>`;
+  } else {
+    questionSlot=`<div class="flow-q" style="margin:0;">${esc(q.text)}</div>`;
+  }
+
+  // OPTIONS SLOTS — each slot is either a reveal button, a content div, or a tap-to-pick button
+  let optSlots='';
   if(isMC){
-    optsHtml='<div class="flow-opts">'+q.displayOrder.map((origIdx,di)=>{
-      const isCorrect=origIdx===0; const isHSPick=f.hotSeatAnswer===di;
-      const showResult=f.stage==='revealed'||f.stage==='steal-peek'||f.stage==='steal-reveal';
-      if(f.stage==='selecting'){
-        return `<button class="flow-opt" style="cursor:pointer;text-align:left;width:100%;" onclick="hostSelectAnswer(${di})">
+    optSlots='<div class="flow-opts" style="margin-top:10px;">'+q.displayOrder.map((origIdx,di)=>{
+      const isCorrect=origIdx===0;
+      const isHSPick=f.hotSeatAnswer===di;
+      const thisRevealed=(stage==='options'&&di<f.optionsRevealed)||optsRevealed;
+      const nextToReveal=stage==='options'&&di===f.optionsRevealed;
+      const nextIsFirst=stage==='question'; // first option reveal
+
+      if(!qRevealed){
+        // Q not revealed yet — options hidden
+        return `<div class="flow-opt dim" style="opacity:0.15;"></div>`;
+      }
+      if(!thisRevealed){
+        if(nextToReveal||nextIsFirst){
+          // This is the NEXT button to click
+          return `<button class="flow-reveal-btn" onclick="flowAdvance()">▶ Reveal ${letterFor(di)}</button>`;
+        }
+        return `<div class="flow-opt dim" style="opacity:0.15;height:44px;"></div>`;
+      }
+      // Option is revealed
+      if(stage==='selecting'){
+        // Tap to pick
+        let cls='flow-opt';
+        return `<button class="flow-opt" style="cursor:pointer;text-align:left;width:100%;border-color:var(--c-border2);" onclick="hostSelectAnswer(${di})">
           <span class="flow-opt-letter">${letterFor(di)})</span>${esc(q.options[origIdx])}
         </button>`;
       }
+      // Post-selection display
       let cls='flow-opt';
-      if(isHSPick&&(f.stage==='revealing'||f.stage==='revealed'||f.stage==='steal-peek')) cls+=' answer-flash';
-      if(f.stage==='steal-reveal'&&isHSPick) cls+=isCorrect?' correct':' wrong-pick';
-      if(f.stage==='steal-reveal'&&isCorrect&&!isHSPick) cls+=' correct';
-      if((f.stage==='revealed'||f.stage==='steal-peek')&&!isHSPick) cls+=' dim';
-      return `<div class="${cls}"><span class="flow-opt-letter">${letterFor(di)})</span>${esc(q.options[origIdx])}${isCorrect&&f.stage==='steal-reveal'?' ✓':''}</div>`;
+      if(isHSPick&&(stage==='revealing'||stage==='revealed'||stage==='steal-peek')) cls+=' answer-flash';
+      if(stage==='steal-reveal'&&isHSPick) cls+=isCorrect?' correct':' wrong-pick';
+      if(stage==='steal-reveal'&&isCorrect&&!isHSPick) cls+=' correct';
+      if((stage==='revealed'||stage==='steal-peek')&&!isHSPick) cls+=' dim';
+      return `<div class="${cls}"><span class="flow-opt-letter">${letterFor(di)})</span>${esc(q.options[origIdx])}${isCorrect&&stage==='steal-reveal'?' ✓':''}</div>`;
     }).join('')+'</div>';
-  } else {
-    optsHtml=`<div style="margin:10px 0;padding:10px 14px;background:var(--c-surface2);border:1px solid var(--c-border);border-radius:8px;font-size:14px;">
-      Hidden answer: ${f.stage==='steal-reveal'?`<b style="color:var(--c-green-light);">${esc(q.options[0])}</b>`:'<span style="color:var(--c-muted);">hidden until revealed</span>'}
+  } else if(qRevealed){
+    optSlots=`<div style="margin:10px 0;padding:10px 14px;background:var(--c-surface2);border:1px solid var(--c-border);border-radius:8px;font-size:14px;">
+      ${stage==='steal-reveal'?`<b style="color:var(--c-green-light);">${esc(q.options[0])}</b>`:'<span style="color:var(--c-muted);">Hidden answer</span>'}
     </div>`;
   }
-  // Steal info panel
+
+  // POST-OPTIONS ACTION SLOT
+  let actionSlot='';
+  const allOptsRevealed=!isMC||(stage!=='idle'&&stage!=='question'&&stage!=='options');
+  if(allOptsRevealed&&stage==='selecting'){
+    actionSlot=`<div style="font-size:13px;color:var(--c-muted);margin-top:6px;padding:8px;background:var(--c-surface2);border-radius:8px;text-align:center;">👆 Tap the answer the hot seat player said</div>`;
+  } else if(stage==='revealing'){
+    actionSlot=`<button class="flow-reveal-btn" style="margin-top:6px;" onclick="revealHotSeatResult()">▶ Reveal Result</button>`;
+  } else if(stage==='revealed'){
+    actionSlot=f.hotSeatAnswer===correctIdx
+      ?`<button class="btn btn-success btn-block" style="margin-top:6px;" onclick="markCorrect()">✓ Correct — Bank &amp; Advance</button>`
+      :`<button class="flow-reveal-btn" style="margin-top:6px;" onclick="revealStealGuess()">▶ Reveal Other Team's Guess</button>`;
+  } else if(stage==='steal-peek'){
+    actionSlot=`<button class="flow-reveal-btn" style="margin-top:6px;" onclick="revealCorrectAnswer()">▶ Reveal Correct Answer</button>`;
+  } else if(stage==='steal-reveal'){
+    const nil=getNextInLine(s?s.panelTeam:opposingTeam());
+    const theirVote=nil&&s?s.votes[nil.id]:undefined;
+    actionSlot=theirVote===correctIdx
+      ?`<button class="btn btn-success btn-block" style="margin-top:6px;" onclick="resolveSteal()">✓ Steal — Hand Over Seat</button>`
+      :`<button class="btn btn-error btn-block" style="margin-top:6px;" onclick="advanceLevelNoMoney()">Nobody Got It — Next Level</button>`;
+  }
+
+  // Steal info
   let stealInfo='';
-  if(s&&(f.stage==='steal-peek'||f.stage==='steal-reveal')){
+  if(s&&(stage==='steal-peek'||stage==='steal-reveal')){
     const nil=getNextInLine(s.panelTeam); const theirVote=nil?s.votes[nil.id]:undefined;
-    const isCorrect=theirVote===correctIdx; const showColor=f.stage==='steal-reveal';
-    stealInfo=`<div style="margin-top:12px;padding:12px 14px;background:var(--c-surface2);border:1px solid ${showColor?(isCorrect?'var(--c-green-light)':'var(--c-red-light)'):'var(--c-border)'};border-radius:8px;">
-      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--c-muted);margin-bottom:4px;">${esc(nil?nil.name:'Other team')} guessed</div>
-      <div style="font-size:16px;font-weight:700;">${theirVote!==undefined?letterFor(theirVote)+' — '+esc(q.options[q.displayOrder[theirVote]]):'No vote submitted'}</div>
-      ${showColor?`<div style="font-size:12px;font-weight:700;margin-top:3px;color:${isCorrect?'var(--c-green-light)':'var(--c-red-light)'};">${isCorrect?'✓ Correct — steal!':'✗ Wrong — nobody earns'}</div>`:''}
+    const isCorrect=theirVote===correctIdx; const showColor=stage==='steal-reveal';
+    stealInfo=`<div style="margin-top:8px;padding:10px 14px;background:var(--c-surface2);border:1px solid ${showColor?(isCorrect?'var(--c-green-light)':'var(--c-red-light)'):'var(--c-border)'};border-radius:8px;">
+      <div style="font-size:11px;color:var(--c-muted);margin-bottom:2px;">${esc(nil?nil.name:'Other team')} guessed</div>
+      <div style="font-size:15px;font-weight:700;">${theirVote!==undefined?letterFor(theirVote)+' — '+esc(q.options[q.displayOrder[theirVote]]):'No vote'}</div>
+      ${showColor?`<div style="font-size:12px;font-weight:700;color:${isCorrect?'var(--c-green-light)':'var(--c-red-light)'};">${isCorrect?'✓ Steal!':'✗ Nobody earns'}</div>`:''}
     </div>`;
   }
-  // Controls
-  const label=flowButtonLabel();
-  let controls=label?`<button class="btn btn-primary" onclick="flowAdvance()">${label}</button>`:'';
-  if(f.stage==='selecting') controls='<div style="font-size:13px;color:var(--c-muted);">Tap what the hot seat player said:</div>';
-  if(f.stage==='revealing') controls='<button class="btn btn-primary" onclick="revealHotSeatResult()">Reveal Result</button>';
-  if(f.stage==='revealed'){
-    controls=f.hotSeatAnswer===correctIdx
-      ?'<button class="btn btn-success" onclick="markCorrect()">✓ Correct — Bank &amp; Advance</button>'
-      :'<button class="btn btn-primary" onclick="revealStealGuess()">Reveal Other Team\'s Guess</button>';
-  }
-  if(f.stage==='steal-peek') controls='<button class="btn btn-primary" onclick="revealCorrectAnswer()">Reveal Correct Answer</button>';
-  if(f.stage==='steal-reveal'){
-    const nil=getNextInLine(s?s.panelTeam:opposingTeam()); const theirVote=nil&&s?s.votes[nil.id]:undefined;
-    controls=theirVote===correctIdx
-      ?'<button class="btn btn-success" onclick="resolveSteal()">✓ Steal Confirmed — Hand Over Seat</button>'
-      :'<button class="btn btn-error" onclick="advanceLevelNoMoney()">Nobody Got It — Next Level</button>';
-  }
+
   // Vote status
   let voteStatus='';
-  const isVotingStage=['question','options','selecting','revealing'].includes(f.stage);
-  if(isVotingStage&&s){
+  if(['question','options','selecting','revealing'].includes(stage)&&s){
     const nil=getNextInLine(s.panelTeam);
     if(nil){
       const voted=s.votes[nil.id]!==undefined;
-      voteStatus=`<div style="font-size:12px;color:var(--c-muted);padding:8px 0;border-top:1px dashed var(--c-border);margin-top:10px;">
-        📱 ${esc(nil.name)} (${esc(teamName(s.panelTeam))}) — ${voted?'<span style="color:var(--c-green-light);">vote locked in ✓</span>':'waiting for vote…'}
+      voteStatus=`<div style="font-size:12px;color:var(--c-muted);padding:6px 0;border-top:1px dashed var(--c-border);margin-top:8px;">
+        📱 ${esc(nil.name)} — ${voted?'<span style="color:var(--c-green-light);">locked in ✓</span>':'waiting…'}
       </div>`;
     }
   }
-  const showLL=['question','options','selecting'].includes(f.stage);
+
+  const showLL=['question','options','selecting'].includes(stage);
+
   return `<div class="flow-card">
     <div class="flow-level" style="display:flex;align-items:center;justify-content:space-between;">
       <span>${q.isBomb?'💣 BOMB — ':''}Level ${q.level} — ${diffPill(q.difficulty)}</span>
-      ${f.stage==='question'?`<button class="btn btn-ghost btn-sm" onclick="rerollQuestion()">🎲 Reroll</button>`:''}
+      ${stage==='idle'||stage==='question'?`<button class="btn btn-ghost btn-sm" onclick="rerollQuestion()">🎲 Reroll</button>`:''}
     </div>
-    <div class="flow-q">${esc(q.text)}</div>
-    ${optsHtml}${stealInfo}
-    <div class="flow-controls" style="margin-top:14px;">${controls}</div>
+    <div class="flow-slot">${questionSlot}</div>
+    ${optSlots}
+    ${stealInfo}
+    ${actionSlot}
     ${voteStatus}
-    ${showLL?`<div class="flow-lifelines">${LIFELINE_DEFS.map(({key,label,icon})=>
+    ${showLL?`<div class="flow-lifelines" style="margin-top:10px;">${LIFELINE_DEFS.map(({key,label,icon})=>
       `<button class="btn btn-ghost btn-sm" ${ll[key]?'disabled style="opacity:0.35;text-decoration:line-through;"':''} onclick="useLifeline('${key}')">${icon} ${label}</button>`
     ).join('')}</div>`:''}
   </div>`;
 }
+
 
 function renderStealBox(){
   const s=state.steal; const q=state.currentQuestion;
