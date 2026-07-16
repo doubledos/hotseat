@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fortune & Fortune</title>
+<title>The Hot Seat 🔥</title>
 <style>
 /* ===== Reset & tokens ===== */
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -1214,7 +1214,7 @@ async function deletePhrase(id){
 
 /* ===== Import/Export ===== */
 function exportQuestionsMarkdown(){
-  let md='# Fortune & Fortune — Questions\n\n';
+  let md='# 🔥 The Hot Seat — Questions\n\n';
   ['easy','medium','hard'].forEach(diff=>{
     const qs=state.questions.filter(q=>q.difficulty===diff);
     if(!qs.length) return;
@@ -2119,7 +2119,7 @@ function renderDisplay(){
       <div class="tv-team-bank">${money(state.teamABank)}</div>
     </div>
     <div class="tv-center-top">
-      <div class="tv-brand-sm">Fortune &amp; Fortune</div>
+      <div class="tv-brand-sm">🔥 The Hot Seat</div>
       <div class="tv-level-badge">${state.gamePhase==='wager'?'⚡ FINAL WAGER':(puz.active?'🧩 PUZZLE':('Level '+state.ladderCurrent+' — '+money(levelMoney(state.ladderCurrent))))}</div>
       ${(state.gamePhase==='live'||state.gamePhase==='wager')?'<div style="font-size:10px;color:var(--c-muted);margin-top:3px;display:flex;flex-direction:column;gap:1px;">'+buildNextInLineBadges()+'</div>':''}
     </div>
@@ -2370,8 +2370,8 @@ function submitPhoneWager(){
 
 function renderLobbyEntry(){
   return `<div class="center-screen">
-    <div class="lobby-title">Fortune &amp; Fortune</div>
-    <div style="font-size:11px;color:var(--c-muted);">v3.4 &nbsp;·&nbsp; 2026-07-16 04:31 UTC</div>
+    <div class="lobby-title">🔥 The Hot Seat</div>
+    <div style="font-size:11px;color:var(--c-muted);">v3.5 &nbsp;·&nbsp; 2026-07-16 15:08 UTC</div>
     <div class="lobby-sub">Open the link your host shared to join automatically.</div>
   </div>`;
 }
@@ -2398,8 +2398,8 @@ function renderPlayerClaim(){
 
 function renderHostEntry(){
   return `<div class="center-screen" id="host-entry-screen">
-    <div class="lobby-title">Fortune &amp; Fortune</div>
-    <div style="font-size:11px;color:var(--c-muted);">v3.4 &nbsp;·&nbsp; 2026-07-16 04:31 UTC</div>
+    <div class="lobby-title">🔥 The Hot Seat</div>
+    <div style="font-size:11px;color:var(--c-muted);">v3.5 &nbsp;·&nbsp; 2026-07-16 15:08 UTC</div>
     <div class="lobby-sub">Create a new game or open an existing one.</div>
     <div class="card" style="width:100%;max-width:420px;display:flex;flex-direction:column;gap:12px;">
       <div class="field" style="margin:0;"><label>New lobby name</label>
