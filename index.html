@@ -733,9 +733,9 @@ async function flowAdvance(){
   await saveLobby(); renderHost();
 }
 async function hostSelectAnswer(di){ state.flow.hotSeatAnswer=di; state.flow.stage='revealed'; await saveLobby(); renderHost(); }
-async function revealHotSeatResult(){ state.flow.stage='revealed'; await saveLobby(); renderHost(); }
-async function revealStealGuess(){ state.flow.stealPeeked=true; await saveLobby(); renderHost(); }
-async function revealCorrectAnswer(){ state.flow.stealRevealed=true; await saveLobby(); renderHost(); }
+async function revealHotSeatResult(){ state.flow.stage='revealed'; await saveLobby(); renderHost(); } // kept for safety
+async function revealStealGuess(){ state.flow.stage='steal-peek'; state.flow.stealPeeked=true; await saveLobby(); renderHost(); }
+async function revealCorrectAnswer(){ state.flow.stage='steal-reveal'; state.flow.stealRevealed=true; await saveLobby(); renderHost(); }
 
 function flowButtonLabel(){
   const f=state.flow; const q=state.currentQuestion; if(!q) return '';
