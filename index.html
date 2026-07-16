@@ -2076,6 +2076,26 @@ function copyPlayerLink(){
    Part 6: TV Display render
    ============================================================ */
 
+function playerNumber(playerId){
+  const p=playerById(playerId); if(!p) return '';
+  const teamPlayers=state.players.filter(x=>x.team===p.team);
+  const idx=teamPlayers.findIndex(x=>x.id===playerId);
+  return idx>=0?String(idx+1):'';
+}
+
+function buildNextInLineBadges(){
+  return ['A','B'].map(team=>{
+    const nil=getNextInLine(team); if(!nil) return '';
+    const num=playerNumber(nil.id);
+    const isHot=state.hotSeatTeam===team;
+    return '<div style="display:flex;align-items:center;gap:5px;font-size:11px;">'
+      +'<span style="color:var(--c-muted);text-transform:uppercase;letter-spacing:0.06em;">'+esc(teamName(team))+' next:</span>'
+      +'<span style="font-weight:700;color:'+(isHot?'var(--c-muted)':'var(--c-gold-light)')+';">'+esc(nil.name)+(num?' #'+num:'')+'</span>'
+      +'</div>';
+  }).join('');
+}
+
+
 function renderDisplay(){
   if(mode!=='display') return;
   document.body.classList.add('mode-display');
