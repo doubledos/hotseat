@@ -439,13 +439,14 @@ const LIFELINE_DEFS = [
   {key:'bomb', label:'Bomb', icon:'💣', desc:'Force a hard question on the opposing team — if they miss, you climb a level for free'},
 ];
 const PUZZLE_TIMER_MS = 20000;
-const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // no I/O confusion
+// Lobby slugs replace random codes
 
 /* ===== State schema ===== */
 function defaultState(){
   return {
     // Meta
     code: '',
+    lobbyName: '',
     gamePhase: 'setup', // setup | live | puzzle | wager | ended
     // Teams
     teamAName: 'Team A',
@@ -540,11 +541,15 @@ function detectMode(){
 
 /* ===== Utilities ===== */
 function genId(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
-function genCode(){
-  let c='';
-  for(let i=0;i<4;i++) c+=CODE_CHARS[Math.floor(Math.random()*CODE_CHARS.length)];
-  return c;
+
+function slugify(name){
+  return name.toLowerCase().trim()
+    .replace(/[^a-z0-9\s-]/g,'')
+    .replace(/\s+/g,'-')
+    .replace(/-+/g,'-')
+    .slice(0,40)||'game';
 }
+
 function esc(str){ return (str==null?'':String(str)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function money(n){ return '$'+(n||0).toLocaleString(); }
 function debounce(fn,delay){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),delay); }; }
@@ -604,24 +609,25 @@ async function saveLobby(){
   await dbSet(lobbyKey(), json);
 }
 
-async function createLobby(){
-  const code = genCode();
+async function createLobby(name){
+  const slug = slugify(name||'game-'+Date.now());
   state = defaultState();
-  state.code = code;
-  currentLobbyCode = code;
+  state.code = slug;
+  state.lobbyName = name||slug;
+  currentLobbyCode = slug;
   await saveLobby();
-  return code;
+  return slug;
 }
 
 async function listLobbies(){
   const keys = await dbList('lobby:');
   const lobbies = [];
-  for(const k of keys.slice(0,10)){
+  for(const k of keys.slice(0,20)){
     const res = await dbGet(k);
     if(res&&res.value){
       try{
         const s = JSON.parse(res.value);
-        lobbies.push({code:s.code||k.replace('lobby:',''), phase:s.gamePhase, playerCount:(s.players||[]).length, updated: res.updated_at||''});
+        lobbies.push({code:s.code||k.replace('lobby:',''), name:s.lobbyName||s.code||k.replace('lobby:',''), phase:s.gamePhase, playerCount:(s.players||[]).length});
       } catch(e){}
     }
   }
@@ -1502,7 +1508,7 @@ function renderHost(){
 
   const topbar=`<div class="topbar">
     <span class="topbar-brand">F&amp;F</span>
-    <span class="topbar-code">${esc(currentLobbyCode)}</span>
+    <span class="topbar-code">${esc(state.lobbyName||currentLobbyCode)}</span>
     <div class="team-strip">
       <span class="team-label">${esc(state.teamAName)}</span>
       <span class="money-sm">${money(state.teamABank)}</span>
@@ -2210,10 +2216,7 @@ function submitPhoneWager(){
 function renderLobbyEntry(){
   return `<div class="center-screen">
     <div class="lobby-title">Fortune &amp; Fortune</div>
-    <div class="lobby-sub">Enter the 4-letter lobby code from the host screen to join the game.</div>
-    <input type="text" class="input input-lg" id="lobby-code-input" placeholder="ABCD" maxlength="4" style="max-width:220px;text-transform:uppercase;"
-      oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')joinLobbyFromInput()">
-    <button class="btn btn-primary btn-xl" onclick="joinLobbyFromInput()">Join Game</button>
+    <div class="lobby-sub">Open the link your host shared to join the game automatically.</div>
     <div class="hint" id="lobby-error" style="color:var(--c-red-light);"></div>
   </div>`;
 }
@@ -2229,55 +2232,90 @@ function renderPlayerClaim(){
           <span class="lobby-item-info">${esc(teamName(p.team))}</span>
         </div>`).join('')}
     </div>
-    <button class="btn btn-ghost btn-sm" onclick="currentLobbyCode='';render()">← Change Lobby</button>
+    <div class="hint" style="margin-top:8px;">Wrong lobby? Ask your host for the correct link.</div>
   </div>`;
 }
 
-async function joinLobbyFromInput(){
-  const inp=document.getElementById('lobby-code-input');
-  const code=(inp?.value||'').trim().toUpperCase();
-  if(code.length!==4){ document.getElementById('lobby-error').textContent='Enter a 4-letter code.'; return; }
-  document.getElementById('lobby-error').textContent='Joining…';
-  const ok=await loadLobby(code);
-  if(!ok){ document.getElementById('lobby-error').textContent='Lobby not found. Check the code and try again.'; return; }
-  currentLobbyCode=code;
-  // Try to restore identity
-  try{ const saved=localStorage.getItem('gs-my-player-'+code); if(saved&&playerById(saved)) myPlayerId=saved; } catch(e){}
-  render();
-}
+// joinLobbyFromInput removed — players join via URL
 
 /* ============================================================
    Part 8: Host lobby entry + ending screen
    ============================================================ */
 
 function renderHostEntry(){
-  return `<div class="center-screen">
+  return `<div class="center-screen" id="host-entry-screen">
     <div class="lobby-title">Fortune &amp; Fortune</div>
-    <div class="lobby-sub">Host a new game or continue an existing one.</div>
-    <button class="btn btn-primary btn-xl" onclick="createNewLobby()">+ New Lobby</button>
-    <div class="lobby-sub" style="margin-top:8px;">or enter an existing code:</div>
-    <div style="display:flex;gap:8px;align-items:center;">
-      <input type="text" class="input input-lg" id="host-code-input" placeholder="ABCD" maxlength="4" style="max-width:160px;text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')joinHostLobby()">
-      <button class="btn btn-primary" onclick="joinHostLobby()">Open</button>
+    <div class="lobby-sub">Create a new game or open an existing one.</div>
+    <div class="card" style="width:100%;max-width:420px;display:flex;flex-direction:column;gap:12px;">
+      <div class="field" style="margin:0;">
+        <label>New lobby name</label>
+        <input type="text" class="input" id="new-lobby-name" placeholder="e.g. Family Game Night" maxlength="50" onkeydown="if(event.key==='Enter')createNewLobby()">
+      </div>
+      <div class="field" style="margin:0;">
+        <label>Host PIN (optional)</label>
+        <input type="text" class="input" id="new-lobby-pin" placeholder="e.g. 1234" maxlength="12" onkeydown="if(event.key==='Enter')createNewLobby()">
+      </div>
+      <button class="btn btn-primary btn-lg btn-block" onclick="createNewLobby()">+ Create Lobby</button>
+      <div class="hint" id="host-error" style="color:var(--c-red-light);min-height:16px;"></div>
     </div>
-    <div class="hint" id="host-error" style="color:var(--c-red-light);"></div>
-    ${!hasSupabase?`<div class="sync-warning" style="max-width:400px;">⚠ Supabase not configured. Phone voting requires Supabase. Single-device mode active.</div>`:''}
+    <div style="width:100%;max-width:420px;margin-top:14px;">
+      <div class="hint text-center" style="margin-bottom:8px;">or open an existing lobby:</div>
+      <div id="lobby-list-items" class="lobby-list"><div class="hint text-center">Loading…</div></div>
+    </div>
+    ${!hasSupabase?`<div class="sync-warning" style="max-width:420px;margin-top:12px;">⚠ Supabase not configured — single-device mode.</div>`:''}
   </div>`;
 }
 
-async function createNewLobby(){
-  const code=await createLobby();
-  hostTab='setup';
+async function loadAndRenderLobbyList(){
+  const wrap=document.getElementById('lobby-list-items');
+  if(!wrap) return;
+  const lobbies=await listLobbies();
+  if(!lobbies.length){ wrap.innerHTML='<div class="hint text-center">No lobbies yet.</div>'; return; }
+  wrap.innerHTML=lobbies.map(l=>`
+    <div class="lobby-item">
+      <div>
+        <div class="lobby-item-code" style="font-size:15px;letter-spacing:0.02em;">${esc(l.name||l.code)}</div>
+        <div class="lobby-item-info">${esc(l.phase||'')} · ${l.playerCount} player${l.playerCount===1?'':'s'}</div>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-ghost btn-sm" onclick="openExistingLobby('${esc(l.code)}')">Open</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteLobbyFromList('${esc(l.code)}')">Delete</button>
+      </div>
+    </div>`).join('');
+}
+
+async function openExistingLobby(slug){
+  const errEl=document.getElementById('host-error');
+  const ok=await loadLobby(slug);
+  if(!ok){ if(errEl) errEl.textContent='Lobby not found.'; return; }
+  let storedPin='';
+  try{ storedPin=localStorage.getItem('lobby-pin-'+slug)||''; } catch(e){}
+  if(storedPin){
+    const entered=prompt('Host PIN for this lobby:');
+    if(entered!==storedPin){ alert('Incorrect PIN.'); return; }
+  }
+  currentLobbyCode=slug;
+  setLobbyInUrl(slug);
   render();
 }
 
-async function joinHostLobby(){
-  const inp=document.getElementById('host-code-input');
-  const code=(inp?.value||'').trim().toUpperCase();
-  if(code.length!==4){ document.getElementById('host-error').textContent='Enter a 4-letter code.'; return; }
-  const ok=await loadLobby(code);
-  if(!ok){ document.getElementById('host-error').textContent='Lobby not found.'; return; }
-  currentLobbyCode=code;
+async function deleteLobbyFromList(slug){
+  if(!confirm('Delete this lobby? This cannot be undone.')) return;
+  await dbDelete('lobby:'+slug);
+  loadAndRenderLobbyList();
+}
+
+async function createNewLobby(){
+  const nameEl=document.getElementById('new-lobby-name');
+  const pinEl=document.getElementById('new-lobby-pin');
+  const errEl=document.getElementById('host-error');
+  const name=(nameEl?.value||'').trim();
+  if(!name){ if(errEl) errEl.textContent='Enter a lobby name.'; return; }
+  const pin=(pinEl?.value||'').trim();
+  const slug=await createLobby(name);
+  if(pin) try{ localStorage.setItem('lobby-pin-'+slug, pin); } catch(e){}
+  setLobbyInUrl(slug);
+  hostTab='setup';
   render();
 }
 
@@ -2344,20 +2382,45 @@ window.addEventListener('hashchange',()=>{
   }
   if(mode==='player'){
     const params=new URLSearchParams(location.search);
-    const code=params.get('lobby');
-    if(code){ const ok=await loadLobby(code); if(ok) currentLobbyCode=code; }
-    // Restore identity
+    const slug=params.get('lobby');
+    if(slug){ const ok=await loadLobby(slug); if(ok) currentLobbyCode=slug; }
     if(currentLobbyCode){
-      try{ const saved=localStorage.getItem('gs-my-player-'+currentLobbyCode); if(saved) myPlayerId=saved; } catch(e){}
+      try{ const saved=localStorage.getItem('gs-my-player-'+currentLobbyCode); if(saved&&playerById(saved)) myPlayerId=saved; } catch(e){}
     }
     render();
     pollTimer=setInterval(pollForUpdates,1500);
     return;
   }
-  // Host mode
+  // Host mode — check URL for lobby slug
+  const hParams=new URLSearchParams(location.search);
+  const hSlug=hParams.get('lobby');
+  if(hSlug){
+    // Check PIN before loading
+    let storedPin='';
+    try{ storedPin=localStorage.getItem('lobby-pin-'+hSlug)||''; } catch(e){}
+    if(storedPin){
+      const entered=prompt('Host PIN:');
+      if(entered!==storedPin){ alert('Incorrect PIN.'); }
+      else {
+        const ok=await loadLobby(hSlug);
+        if(ok) currentLobbyCode=hSlug;
+      }
+    } else {
+      const ok=await loadLobby(hSlug);
+      if(ok) currentLobbyCode=hSlug;
+    }
+  }
   render();
   pollTimer=setInterval(pollForUpdates,1500);
+  // Load lobby list after render
+  setTimeout(loadAndRenderLobbyList, 100);
 })();
+
+function setLobbyInUrl(slug){
+  const url=new URL(location.href);
+  url.searchParams.set('lobby',slug);
+  history.replaceState({},'',url.toString());
+}
 </script>
 </body>
 </html>
