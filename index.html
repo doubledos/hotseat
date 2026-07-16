@@ -2091,6 +2091,7 @@ function renderDisplay(){
     <div class="tv-center-top">
       <div class="tv-brand-sm">Fortune &amp; Fortune</div>
       <div class="tv-level-badge">${state.gamePhase==='wager'?'⚡ FINAL WAGER':(puz.active?'🧩 PUZZLE':('Level '+state.ladderCurrent+' — '+money(levelMoney(state.ladderCurrent))))}</div>
+      ${(state.gamePhase==='live'||state.gamePhase==='wager')?'<div style="font-size:10px;color:var(--c-muted);margin-top:3px;display:flex;flex-direction:column;gap:1px;">'+buildNextInLineBadges()+'</div>':''}
     </div>
     <div class="tv-team-box ${state.hotSeatTeam==='B'?'is-hot':''}">
       <div class="tv-team-name">${esc(state.teamBName)}</div>
@@ -2157,14 +2158,21 @@ function renderDisplay(){
       const nil=getNextInLine(s.panelTeam); const theirVote=nil?s.votes[nil.id]:undefined;
       if(theirVote!==undefined) stealGuessBanner=`<div class="tv-steal-banner" style="margin-top:14px;">${esc(nil?nil.name:'Other team')} guessed: ${letterFor(theirVote)}</div>`;
     }
-    // Result banner for correct/incorrect
+    // Result banner
     let resultBanner='';
+    const stealNilTV=s?getNextInLine(s.panelTeam):null;
+    const stealNilNum=stealNilTV?playerNumber(stealNilTV.id):'';
+    const stealNilLabel=stealNilTV?(esc(stealNilTV.name)+(stealNilNum?' #'+stealNilNum:'')):'Other team';
     if(f.stage==='revealed'&&f.hotSeatAnswer===correctIdx){
-      resultBanner=`<div style="margin-top:18px;padding:14px 20px;background:rgba(46,139,87,0.2);border:2px solid var(--c-green-light);border-radius:12px;font-size:clamp(20px,3vw,32px);font-weight:700;color:var(--c-green-light);text-align:center;">✓ CORRECT!</div>`;
-    } else if((f.stage==='steal-peek'||f.stage==='steal-reveal')&&!stealGuessBanner){
-      resultBanner=`<div style="margin-top:18px;padding:14px 20px;background:rgba(176,48,48,0.2);border:2px solid var(--c-red-light);border-radius:12px;font-size:clamp(18px,2.5vw,28px);font-weight:700;color:var(--c-red-light);text-align:center;">✗ Wrong — ${esc(teamName(s?s.panelTeam:opposingTeam()))} gets a chance to steal!</div>`;
-    } else if(f.stage==='steal-peek'||f.stage==='steal-reveal'){
-      resultBanner=`<div style="margin-top:18px;padding:10px 20px;background:rgba(176,48,48,0.15);border:1px solid var(--c-red-light);border-radius:10px;font-size:clamp(14px,2vw,20px);color:var(--c-red-light);text-align:center;">✗ Wrong — ${esc(teamName(s?s.panelTeam:opposingTeam()))} is guessing…</div>`;
+      resultBanner='<div style="margin-top:18px;padding:14px 20px;background:rgba(46,139,87,0.2);border:2px solid var(--c-green-light);border-radius:12px;font-size:clamp(20px,3vw,32px);font-weight:700;color:var(--c-green-light);text-align:center;">✓ CORRECT!</div>';
+    } else if(f.stage==='steal-peek'){
+      resultBanner='<div style="margin-top:14px;padding:12px 20px;background:rgba(176,48,48,0.15);border:1px solid var(--c-red-light);border-radius:10px;text-align:center;"><div style="font-size:clamp(14px,2vw,20px);font-weight:700;color:var(--c-red-light);">✗ Wrong!</div><div style="font-size:clamp(13px,1.8vw,18px);color:var(--c-ink);margin-top:4px;">'+stealNilLabel+' ('+esc(s?teamName(s.panelTeam):'')+')'+'</div></div>';
+    } else if(f.stage==='steal-reveal'){
+      const stealVoteTV=stealNilTV?s.votes[stealNilTV.id]:undefined;
+      const stealCorrect=stealVoteTV===correctIdx;
+      resultBanner=stealCorrect
+        ?'<div style="margin-top:14px;padding:14px 20px;background:rgba(46,139,87,0.2);border:2px solid var(--c-green-light);border-radius:12px;font-size:clamp(18px,2.5vw,28px);font-weight:700;color:var(--c-green-light);text-align:center;">✓ '+stealNilLabel+' steals the seat!</div>'
+        :'<div style="margin-top:14px;padding:14px 20px;background:rgba(176,48,48,0.2);border:2px solid var(--c-red-light);border-radius:12px;font-size:clamp(16px,2.2vw,24px);font-weight:700;color:var(--c-red-light);text-align:center;">✗ Nobody steals — '+(hp?esc(hp.name):'original player')+' keeps the seat</div>';
     }
     mainContent=`<div style="width:100%;max-width:900px;">
       <div class="tv-q-text">${esc(q.text)}</div>
@@ -2334,7 +2342,7 @@ function submitPhoneWager(){
 function renderLobbyEntry(){
   return `<div class="center-screen">
     <div class="lobby-title">Fortune &amp; Fortune</div>
-    <div style="font-size:11px;color:var(--c-muted);">v3.2 &nbsp;·&nbsp; 2026-07-16 04:08 UTC</div>
+    <div style="font-size:11px;color:var(--c-muted);">v3.3 &nbsp;·&nbsp; 2026-07-16 04:20 UTC</div>
     <div class="lobby-sub">Open the link your host shared to join automatically.</div>
   </div>`;
 }
@@ -2362,7 +2370,7 @@ function renderPlayerClaim(){
 function renderHostEntry(){
   return `<div class="center-screen" id="host-entry-screen">
     <div class="lobby-title">Fortune &amp; Fortune</div>
-    <div style="font-size:11px;color:var(--c-muted);">v3.2 &nbsp;·&nbsp; 2026-07-16 04:08 UTC</div>
+    <div style="font-size:11px;color:var(--c-muted);">v3.3 &nbsp;·&nbsp; 2026-07-16 04:20 UTC</div>
     <div class="lobby-sub">Create a new game or open an existing one.</div>
     <div class="card" style="width:100%;max-width:420px;display:flex;flex-direction:column;gap:12px;">
       <div class="field" style="margin:0;"><label>New lobby name</label>
