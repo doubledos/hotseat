@@ -226,6 +226,7 @@ body.mode-display .app{height:100vh;display:flex;flex-direction:column;overflow:
 .tv-opt{background:var(--c-surface);border:1px solid var(--c-border2);border-radius:10px;padding:clamp(10px,1.5vh,16px) clamp(12px,2vw,20px);font-size:clamp(15px,2.2vw,22px);font-weight:600;text-align:left;opacity:0;transform:translateY(8px);transition:all .4s;}
 .tv-opt.shown{opacity:1;transform:none;}
 .tv-opt.is-answer{border-color:var(--c-green-light);box-shadow:0 0 0 1px var(--c-green-light),0 0 16px rgba(74,190,122,0.25);}
+.tv-opt.hs-pick{border-color:var(--c-gold);box-shadow:0 0 0 1px var(--c-gold),0 0 16px rgba(212,168,67,0.3);}
 .tv-opt.not-answer{opacity:0.25;}
 .tv-opt-letter{color:var(--c-gold);font-weight:700;margin-right:8px;}
 .tv-bottom{background:rgba(7,17,31,0.9);border-top:1px solid var(--c-border);padding:10px 20px;}
@@ -1628,7 +1629,7 @@ function renderGameTab(){
   // Steal / wheel
   else if(state.wheel){
     html+=renderStealWheel();
-  } else if(state.steal&&!state.steal.resolved){
+  } else if(state.steal&&!state.steal.resolved&&['steal-peek','steal-reveal'].includes(state.flow.stage)){
     html+=renderStealBox();
   } else if(state.steal&&state.steal.outcome==='defended'){
     html+=`<div class="steal-box">
@@ -1744,30 +1745,20 @@ function renderFlowCard(isPuzzleLevel){
 
 function renderStealBox(){
   const s=state.steal; const q=state.currentQuestion;
-  const panelTeam=opposingTeam();
-  const panelPlayers=state.players.filter(p=>p.team===panelTeam);
-  const correctIdx=correctDisplayIdx(q);
-  const voteRows=panelPlayers.map(p=>{
-    const v=s.votes[p.id];
-    const hasVoted=v!==undefined;
-    let choiceHtml='<span style="color:var(--c-muted);font-style:italic;">waiting…</span>';
-    if(hasVoted){
-      const isCorrect=v===correctIdx;
-      choiceHtml=s.locked
-        ?`<span style="color:${isCorrect?'var(--c-green-light)':'var(--c-red-light)'};">${letterFor(v)}${isCorrect?' ✓':' ✗'}</span>`
-        :'<span style="color:var(--c-gold);">locked in</span>';
-    }
-    const manualBtns=(!s.locked&&q)?q.displayOrder.map((_,di)=>
-      `<button class="btn btn-ghost btn-sm" onclick="hostSetVote('${p.id}',${di})">${letterFor(di)}</button>`).join(''):'';
-    return `<div class="vote-row"><span>${esc(p.name)}</span><span style="display:flex;gap:5px;align-items:center;">${choiceHtml} ${manualBtns}</span></div>`;
-  }).join('');
+  if(!s||!q) return '';
+  const nil=getNextInLine(s.panelTeam);
+  const theirVote=nil?s.votes[nil.id]:undefined;
+  const hasVoted=theirVote!==undefined;
+  // Manual vote buttons for host (in case no phone)
+  const voteBtns=q.displayOrder.map((_,di)=>
+    `<button class="btn ${hasVoted&&theirVote===di?'btn-primary':'btn-ghost'} btn-sm" onclick="hostSetVote('${nil?nil.id:''}',${di})">${letterFor(di)}</button>`
+  ).join('');
   return `<div class="steal-box">
-    <div class="steal-title">✋ Steal Round — ${esc(teamName(panelTeam))} votes</div>
-    <p class="hint" style="margin-bottom:10px;">Panel votes on their phones or tap here. Votes hidden until you lock.</p>
-    ${voteRows}
-    <div class="flow-controls" style="margin-top:14px;">
-      <button class="btn btn-primary" onclick="resolveSteal()">🔒 Lock &amp; Resolve</button>
-      <button class="btn btn-ghost btn-sm" onclick="showModal('❓','Cancel this steal round?','Cancel',async()=>{ state.steal=null; await saveLobby(); renderHost(); })">Cancel Steal</button>
+    <div class="steal-title">✋ Other Team's Guess — ${esc(nil?nil.name:'Next in line')} (${esc(teamName(s.panelTeam))})</div>
+    <p class="hint" style="margin-bottom:10px;">Their answer comes in via phone, or tap it here manually.</p>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
+      ${voteBtns}
+      ${hasVoted?`<span style="color:var(--c-gold);font-weight:700;margin-left:6px;">${esc(nil?nil.name:'')} picked ${letterFor(theirVote)}</span>`:'<span style="color:var(--c-muted);">no vote yet</span>'}
     </div>
   </div>`;
 }
@@ -2069,7 +2060,7 @@ function renderDisplay(){
         // Only show options that have been revealed one by one
         const isRevealed=(f.stage==='options'&&di<f.optionsRevealed)||['selecting','revealing','revealed','steal-peek','steal-reveal'].includes(f.stage);
         let cls='tv-opt'+(isRevealed?' shown':'');
-        if(showHSAnswer&&isHSPick) cls+=showCorrect?(isCorrect?' is-answer':' not-answer'):' is-answer';
+        if(showHSAnswer&&isHSPick) cls+=showCorrect?(isCorrect?' is-answer':' not-answer'):' hs-pick';
         if(showCorrect&&isCorrect&&!isHSPick) cls+=' is-answer';
         if(showCorrect&&!isCorrect&&!isHSPick) cls+=' not-answer';
         if(f.stage==='revealed'&&!isHSPick) cls+=' not-answer';
@@ -2193,7 +2184,7 @@ function renderPlayer(){
     </div>`;
   }
   // Voting phase — I'm next-in-line and a question is active
-  else if(q&&iAmPanel&&s&&!s.locked&&['question','options','selecting','revealing'].includes(f.stage)){
+  else if(q&&iAmPanel&&s&&!s.locked&&['idle','question','options','selecting','revealing','revealed','steal-peek'].includes(f.stage)){
     const amNil=s.nextInLineId===myPlayerId; const voted=s.votes[myPlayerId]!==undefined;
     if(amNil){
       content=`<div class="card" style="border-color:var(--c-gold-dim);">
