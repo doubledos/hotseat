@@ -1674,8 +1674,8 @@ function renderFlowCard(isPuzzleLevel){
 
   // Determine what's visible/active at each stage
   const qRevealed = stage!=='idle';
-  const optsRevealed = ['options','selecting','revealing','revealed','steal-peek','steal-reveal'].includes(stage);
-  const inPostAnswer = ['revealed','steal-pick','steal-peek','steal-reveal'].includes(stage);
+  // optsRevealed means ALL options are shown (post-options stage)
+  const allOptsShown = ['selecting','revealing','revealed','steal-peek','steal-reveal'].includes(stage);
 
   // QUESTION SLOT
   let questionSlot='';
@@ -1691,20 +1691,19 @@ function renderFlowCard(isPuzzleLevel){
     optSlots='<div class="flow-opts" style="margin-top:10px;">'+q.displayOrder.map((origIdx,di)=>{
       const isCorrect=origIdx===0;
       const isHSPick=f.hotSeatAnswer===di;
-      const thisRevealed=(stage==='options'&&di<f.optionsRevealed)||optsRevealed;
-      const nextToReveal=stage==='options'&&di===f.optionsRevealed;
-      const nextIsFirst=stage==='question'; // first option reveal
+      // Is this option revealed yet?
+      const thisRevealed=(stage==='options'&&di<f.optionsRevealed)||allOptsShown;
+      // Is this the NEXT slot to reveal?
+      const nextToReveal=(stage==='options'&&di===f.optionsRevealed)||(stage==='question'&&di===0);
 
       if(!qRevealed){
-        // Q not revealed yet — options hidden
-        return `<div class="flow-opt dim" style="opacity:0.15;"></div>`;
+        return `<div class="flow-opt" style="opacity:0.1;height:44px;"></div>`;
       }
       if(!thisRevealed){
-        if(nextToReveal||nextIsFirst){
-          // This is the NEXT button to click
+        if(nextToReveal){
           return `<button class="flow-reveal-btn" onclick="flowAdvance()">▶ Reveal ${letterFor(di)}</button>`;
         }
-        return `<div class="flow-opt dim" style="opacity:0.15;height:44px;"></div>`;
+        return `<div class="flow-opt" style="opacity:0.1;height:44px;"></div>`;
       }
       // Option is revealed
       if(stage==='selecting'){
@@ -1730,8 +1729,7 @@ function renderFlowCard(isPuzzleLevel){
 
   // POST-OPTIONS ACTION SLOT
   let actionSlot='';
-  const allOptsRevealed=!isMC||(stage!=='idle'&&stage!=='question'&&stage!=='options');
-  if(allOptsRevealed&&stage==='selecting'){
+  if(allOptsShown&&stage==='selecting'){
     actionSlot=`<div style="font-size:13px;color:var(--c-muted);margin-top:6px;padding:8px;background:var(--c-surface2);border-radius:8px;text-align:center;">👆 Tap the answer the hot seat player said</div>`;
   } else if(stage==='revealing'){
     actionSlot=`<button class="flow-reveal-btn" style="margin-top:6px;" onclick="revealHotSeatResult()">▶ Reveal Result</button>`;
