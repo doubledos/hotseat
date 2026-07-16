@@ -734,7 +734,7 @@ async function revealCorrectAnswer(){ state.flow.stealRevealed=true; await saveL
 
 function flowButtonLabel(){
   const f=state.flow; const q=state.currentQuestion; if(!q) return '';
-  if(f.stage==='question') return q.options.length>1?'Reveal Option A':'Reveal Options';
+  if(f.stage==='question') return 'Reveal Question';
   if(f.stage==='options') return f.optionsRevealed<q.options.length?'Reveal Option '+letterFor(f.optionsRevealed):'';
   return '';
 }
