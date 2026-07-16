@@ -801,7 +801,7 @@ async function hostSetVote(playerId, displayIdx){
 async function hostSetStealVote(displayIdx){
   if(!state.steal) return;
   const nil=getNextInLine(state.steal.panelTeam);
-  if(nil) state.steal.votes[nil.id]=displayIdx;
+  if(nil){ state.steal.votes[nil.id]=displayIdx; }
   await saveLobby(); renderHost();
 }
 
@@ -1718,11 +1718,10 @@ function renderFlowCard(isPuzzleLevel){
         </button>`;
       }
       if(stage==='steal-peek'){
-        // Host taps which option the other team picked
-        const isSelected=f.hotSeatAnswer===di; // reuse hotSeatAnswer for steal guess temporarily? No — use steal vote
-        const theirVote=s?s.votes[s.nextInLineId]:undefined;
-        const isPicked=theirVote===di;
-        return `<button class="flow-opt${isPicked?' answer-flash':''}" style="cursor:pointer;text-align:left;width:100%;${isPicked?'':'border-color:var(--c-border2);'}" onclick="hostSetStealVote(${di})">
+        const stealNil=s?getNextInLine(s.panelTeam):null;
+        const stealVote=stealNil?s.votes[stealNil.id]:undefined;
+        const isPicked=stealVote===di;
+        return `<button class="flow-opt${isPicked?' answer-flash':''}" style="cursor:pointer;text-align:left;width:100%;${isPicked?'border-color:var(--c-gold);':'border-color:var(--c-border2);'}" onclick="hostSetStealVote(${di})">
           <span class="flow-opt-letter">${letterFor(di)})</span>${esc(q.options[origIdx])}
         </button>`;
       }
@@ -1747,17 +1746,22 @@ function renderFlowCard(isPuzzleLevel){
   } else if(stage==='revealing'){
     // skipped — hostSelectAnswer goes straight to revealed
   } else if(stage==='revealed'){
-    actionSlot=f.hotSeatAnswer===correctIdx
-      ?`<button class="btn btn-success btn-block" style="margin-top:6px;" onclick="markCorrect()">✓ Correct — Bank &amp; Advance</button>`
-      :`<button class="flow-reveal-btn" style="margin-top:6px;" onclick="revealStealGuess()">▶ Reveal Other Team's Guess</button>`;
+    if(f.hotSeatAnswer===correctIdx){
+      actionSlot=`<button class="btn btn-success btn-block" style="margin-top:6px;" onclick="markCorrect()">✓ Correct — Bank &amp; Advance</button>`;
+    } else {
+      // Auto-advance to steal-peek — host immediately picks other team's answer
+      // We call revealStealGuess inline so there's no extra button
+      if(!f.stealPeeked){ revealStealGuess(); return ''; }
+    }
   } else if(stage==='steal-peek'){
-    const nilVote=s?s.votes[s.nextInLineId]:undefined;
-    actionSlot=nilVote!==undefined
+    const stealNilA=s?getNextInLine(s.panelTeam):null;
+    const stealVoteA=stealNilA?s.votes[stealNilA.id]:undefined;
+    actionSlot=stealVoteA!==undefined
       ?`<button class="flow-reveal-btn" style="margin-top:6px;" onclick="revealCorrectAnswer()">▶ Reveal Correct Answer</button>`
-      :`<div style="font-size:13px;color:var(--c-muted);padding:8px;background:var(--c-surface2);border-radius:8px;text-align:center;margin-top:6px;">👆 Tap the other team's answer above</div>`;
+      :`<div style="font-size:13px;color:var(--c-muted);padding:8px;background:var(--c-surface2);border-radius:8px;text-align:center;margin-top:6px;">👆 Tap their answer above</div>`;
   } else if(stage==='steal-reveal'){
-    const nil=getNextInLine(s?s.panelTeam:opposingTeam());
-    const theirVote=nil&&s?s.votes[nil.id]:undefined;
+    const nil=s?getNextInLine(s.panelTeam):null;
+    const theirVote=nil?s.votes[nil.id]:undefined;
     actionSlot=theirVote===correctIdx
       ?`<button class="btn btn-success btn-block" style="margin-top:6px;" onclick="resolveSteal()">✓ Steal — Hand Over Seat</button>`
       :`<button class="btn btn-error btn-block" style="margin-top:6px;" onclick="advanceLevelNoMoney()">Nobody Got It — Next Level</button>`;
@@ -1766,7 +1770,7 @@ function renderFlowCard(isPuzzleLevel){
   // Steal info
   let stealInfo='';
   if(s&&(stage==='steal-peek'||stage==='steal-reveal')){
-    const nil=s.nextInLineId?playerById(s.nextInLineId):getNextInLine(s.panelTeam); const theirVote=nil?s.votes[nil.id]:undefined;
+    const nil=s?getNextInLine(s.panelTeam):null; const theirVote=nil?s.votes[nil.id]:undefined;
     const isCorrect=theirVote===correctIdx; const showColor=stage==='steal-reveal';
     stealInfo=`<div style="margin-top:8px;padding:10px 14px;background:var(--c-surface2);border:1px solid ${showColor?(isCorrect?'var(--c-green-light)':'var(--c-red-light)'):'var(--c-border)'};border-radius:8px;">
       <div style="font-size:11px;color:var(--c-muted);margin-bottom:2px;">${esc(nil?nil.name:'Other team')} guessed</div>
