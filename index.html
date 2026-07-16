@@ -732,7 +732,14 @@ async function flowAdvance(){
   else if(f.stage==='options'){ if(f.optionsRevealed<optCount) f.optionsRevealed++; if(f.optionsRevealed>=optCount) f.stage='selecting'; }
   await saveLobby(); renderHost();
 }
-async function hostSelectAnswer(di){ state.flow.hotSeatAnswer=di; state.flow.stage='revealed'; await saveLobby(); renderHost(); }
+async function hostSelectAnswer(di){
+  state.flow.hotSeatAnswer=di;
+  const correctIdx=correctDisplayIdx(state.currentQuestion);
+  // If correct go to revealed; if wrong skip straight to steal-peek
+  state.flow.stage=(di===correctIdx)?'revealed':'steal-peek';
+  state.flow.stealPeeked=(di!==correctIdx);
+  await saveLobby(); renderHost();
+}
 async function revealHotSeatResult(){ state.flow.stage='revealed'; await saveLobby(); renderHost(); } // kept for safety
 async function revealStealGuess(){ state.flow.stage='steal-peek'; state.flow.stealPeeked=true; await saveLobby(); renderHost(); }
 async function revealCorrectAnswer(){ state.flow.stage='steal-reveal'; state.flow.stealRevealed=true; await saveLobby(); renderHost(); }
@@ -1748,10 +1755,6 @@ function renderFlowCard(isPuzzleLevel){
   } else if(stage==='revealed'){
     if(f.hotSeatAnswer===correctIdx){
       actionSlot=`<button class="btn btn-success btn-block" style="margin-top:6px;" onclick="markCorrect()">✓ Correct — Bank &amp; Advance</button>`;
-    } else {
-      // Auto-advance to steal-peek — host immediately picks other team's answer
-      // We call revealStealGuess inline so there's no extra button
-      if(!f.stealPeeked){ revealStealGuess(); return ''; }
     }
   } else if(stage==='steal-peek'){
     const stealNilA=s?getNextInLine(s.panelTeam):null;
