@@ -779,6 +779,8 @@ async function markCorrect(){
 }
 async function advanceLevelNoMoney(){
   const lvl=state.ladderCurrent;
+  // Failed steal — rotate the panel team so next player gets a turn next time
+  if(state.steal) rotateQueue(state.steal.panelTeam);
   if(lvl<15) state.ladderCurrent=lvl+1;
   if(state.ladderCurrent===15&&!state.wager.resolved){ await startWager(); return; }
   state.currentQuestion=null; state.flow={stage:'idle',optionsRevealed:0,hotSeatAnswer:-1,stealPeeked:false,stealRevealed:false};
@@ -794,7 +796,12 @@ async function startSteal(){
 }
 function getNextInLine(team){
   const q=state.hotSeatQueue[team]||[];
-  return q.length?playerById(q[0]):state.players.find(p=>p.team===team)||null;
+  // Skip whoever is currently in the hot seat
+  for(let i=0;i<q.length;i++){
+    if(q[i]!==state.hotSeatPlayerId) return playerById(q[i])||null;
+  }
+  // All in queue are hot seat (shouldn't happen), fall back to first non-hotseat player
+  return state.players.find(p=>p.team===team&&p.id!==state.hotSeatPlayerId)||null;
 }
 function rotateQueue(team){ const q=state.hotSeatQueue[team]||[]; if(q.length>1) q.push(q.shift()); }
 
@@ -845,9 +852,13 @@ async function resolveSteal(){
 async function applyStealWinner(playerId){
   const p=playerById(playerId); if(!p) return;
   const lvl=state.ladderCurrent; const amt=levelMoney(lvl);
-  // team of new hot seat player gets the level money
   if(p.team==='A') state.teamABank=(state.teamABank||0)+amt;
   else state.teamBBank=(state.teamBBank||0)+amt;
+  const origTeam=state.hotSeatTeam;
+  // Rotate stealing team: winner (front) moves to back
+  rotateQueue(p.team);
+  // Rotate original team: advance to next player
+  rotateQueue(origTeam);
   state.hotSeatPlayerId=p.id; state.hotSeatTeam=p.team;
   state.ladderWon[lvl-1]=true;
   if(lvl<15) state.ladderCurrent=lvl+1;
@@ -2086,11 +2097,10 @@ function playerNumber(playerId){
 function buildNextInLineBadges(){
   return ['A','B'].map(team=>{
     const nil=getNextInLine(team); if(!nil) return '';
-    const num=playerNumber(nil.id);
     const isHot=state.hotSeatTeam===team;
     return '<div style="display:flex;align-items:center;gap:5px;font-size:11px;">'
       +'<span style="color:var(--c-muted);text-transform:uppercase;letter-spacing:0.06em;">'+esc(teamName(team))+' next:</span>'
-      +'<span style="font-weight:700;color:'+(isHot?'var(--c-muted)':'var(--c-gold-light)')+';">'+esc(nil.name)+(num?' #'+num:'')+'</span>'
+      +'<span style="font-weight:700;color:'+(isHot?'var(--c-muted)':'var(--c-gold-light)')+';">'+esc(nil.name)+'</span>'
       +'</div>';
   }).join('');
 }
@@ -2181,8 +2191,7 @@ function renderDisplay(){
     // Result banner
     let resultBanner='';
     const stealNilTV=s?getNextInLine(s.panelTeam):null;
-    const stealNilNum=stealNilTV?playerNumber(stealNilTV.id):'';
-    const stealNilLabel=stealNilTV?(esc(stealNilTV.name)+(stealNilNum?' #'+stealNilNum:'')):'Other team';
+    const stealNilLabel=stealNilTV?esc(stealNilTV.name):'Other team';
     if(f.stage==='revealed'&&f.hotSeatAnswer===correctIdx){
       resultBanner='<div style="margin-top:18px;padding:14px 20px;background:rgba(46,139,87,0.2);border:2px solid var(--c-green-light);border-radius:12px;font-size:clamp(20px,3vw,32px);font-weight:700;color:var(--c-green-light);text-align:center;">✓ CORRECT!</div>';
     } else if(f.stage==='steal-peek'){
@@ -2362,7 +2371,7 @@ function submitPhoneWager(){
 function renderLobbyEntry(){
   return `<div class="center-screen">
     <div class="lobby-title">Fortune &amp; Fortune</div>
-    <div style="font-size:11px;color:var(--c-muted);">v3.3 &nbsp;·&nbsp; 2026-07-16 04:20 UTC</div>
+    <div style="font-size:11px;color:var(--c-muted);">v3.4 &nbsp;·&nbsp; 2026-07-16 04:31 UTC</div>
     <div class="lobby-sub">Open the link your host shared to join automatically.</div>
   </div>`;
 }
@@ -2390,7 +2399,7 @@ function renderPlayerClaim(){
 function renderHostEntry(){
   return `<div class="center-screen" id="host-entry-screen">
     <div class="lobby-title">Fortune &amp; Fortune</div>
-    <div style="font-size:11px;color:var(--c-muted);">v3.3 &nbsp;·&nbsp; 2026-07-16 04:20 UTC</div>
+    <div style="font-size:11px;color:var(--c-muted);">v3.4 &nbsp;·&nbsp; 2026-07-16 04:31 UTC</div>
     <div class="lobby-sub">Create a new game or open an existing one.</div>
     <div class="card" style="width:100%;max-width:420px;display:flex;flex-direction:column;gap:12px;">
       <div class="field" style="margin:0;"><label>New lobby name</label>
