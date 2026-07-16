@@ -2157,11 +2157,20 @@ function renderDisplay(){
       const nil=getNextInLine(s.panelTeam); const theirVote=nil?s.votes[nil.id]:undefined;
       if(theirVote!==undefined) stealGuessBanner=`<div class="tv-steal-banner" style="margin-top:14px;">${esc(nil?nil.name:'Other team')} guessed: ${letterFor(theirVote)}</div>`;
     }
+    // Result banner for correct/incorrect
+    let resultBanner='';
+    if(f.stage==='revealed'&&f.hotSeatAnswer===correctIdx){
+      resultBanner=`<div style="margin-top:18px;padding:14px 20px;background:rgba(46,139,87,0.2);border:2px solid var(--c-green-light);border-radius:12px;font-size:clamp(20px,3vw,32px);font-weight:700;color:var(--c-green-light);text-align:center;">✓ CORRECT!</div>`;
+    } else if((f.stage==='steal-peek'||f.stage==='steal-reveal')&&!stealGuessBanner){
+      resultBanner=`<div style="margin-top:18px;padding:14px 20px;background:rgba(176,48,48,0.2);border:2px solid var(--c-red-light);border-radius:12px;font-size:clamp(18px,2.5vw,28px);font-weight:700;color:var(--c-red-light);text-align:center;">✗ Wrong — ${esc(teamName(s?s.panelTeam:opposingTeam()))} gets a chance to steal!</div>`;
+    } else if(f.stage==='steal-peek'||f.stage==='steal-reveal'){
+      resultBanner=`<div style="margin-top:18px;padding:10px 20px;background:rgba(176,48,48,0.15);border:1px solid var(--c-red-light);border-radius:10px;font-size:clamp(14px,2vw,20px);color:var(--c-red-light);text-align:center;">✗ Wrong — ${esc(teamName(s?s.panelTeam:opposingTeam()))} is guessing…</div>`;
+    }
     mainContent=`<div style="width:100%;max-width:900px;">
       <div class="tv-q-text">${esc(q.text)}</div>
       <div class="tv-hotseat-name">${hp?esc(hp.name):'—'}</div>
       <div class="tv-hotseat-team">${esc(teamName(state.hotSeatTeam))}</div>
-      ${optsHtml}${stealGuessBanner}
+      ${optsHtml}${stealGuessBanner}${resultBanner}
     </div>`;
   } else {
     const playerUrl=currentLobbyCode?(location.href.split('?')[0].split('#')[0]+'?lobby='+currentLobbyCode):'';
@@ -2270,17 +2279,28 @@ function renderPlayer(){
   else if(q&&iAmPanel&&s&&!s.locked&&['idle','question','options','selecting','revealing','revealed','steal-peek'].includes(f.stage)){
     const amNil=s.nextInLineId===myPlayerId; const voted=s.votes[myPlayerId]!==undefined;
     if(amNil){
-      content=`<div class="card" style="border-color:var(--c-gold-dim);">
-        <div style="font-size:13px;font-weight:700;color:var(--c-gold);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px;">🎯 Your Steal</div>
-        <div style="font-size:15px;font-weight:600;line-height:1.5;margin-bottom:14px;">${esc(q.text)}</div>
-        <div class="ph-vote-btns">
-          ${q.displayOrder.map((origIdx,di)=>`
-            <button class="ph-vote-btn ${voted&&window._myVote===di?'picked':''}" ${voted?'disabled':''} onclick="phoneVote(${di})">
-              <span class="ph-vote-letter">${letterFor(di)})</span>${esc(q.options[origIdx])}
-            </button>`).join('')}
-        </div>
-        ${voted?'<div class="ph-status" style="color:var(--c-green-light);font-weight:700;margin-top:12px;">✓ Locked in — watch the TV.</div>':'<div class="ph-status">Collaborate with your team and pick.</div>'}
-      </div>`;
+      if(voted){
+        const myVoteIdx=window._myVote!==undefined?window._myVote:-1;
+        const myVoteOrigIdx=myVoteIdx>=0?q.displayOrder[myVoteIdx]:-1;
+        content=`<div class="card" style="border-color:var(--c-gold-dim);text-align:center;">
+          <div style="font-size:13px;font-weight:700;color:var(--c-gold);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:16px;">🎯 Locked In</div>
+          <div style="font-size:clamp(32px,10vw,60px);font-weight:700;color:var(--c-gold-light);font-family:'Impact','Arial Black',system-ui,sans-serif;letter-spacing:0.05em;">${myVoteIdx>=0?letterFor(myVoteIdx)+')'+'':''}</div>
+          <div style="font-size:clamp(18px,5vw,28px);font-weight:600;color:var(--c-ink);margin-top:6px;">${myVoteOrigIdx>=0?esc(q.options[myVoteOrigIdx]):''}</div>
+          <div style="font-size:13px;color:var(--c-muted);margin-top:16px;">Watch the TV!</div>
+        </div>`;
+      } else {
+        content=`<div class="card" style="border-color:var(--c-gold-dim);">
+          <div style="font-size:13px;font-weight:700;color:var(--c-gold);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px;">🎯 Your Steal</div>
+          <div style="font-size:15px;font-weight:600;line-height:1.5;margin-bottom:14px;">${esc(q.text)}</div>
+          <div class="ph-vote-btns">
+            ${q.displayOrder.map((origIdx,di)=>`
+              <button class="ph-vote-btn" onclick="phoneVote(${di})">
+                <span class="ph-vote-letter">${letterFor(di)})</span>${esc(q.options[origIdx])}
+              </button>`).join('')}
+          </div>
+          <div class="ph-status">Collaborate with your team and pick.</div>
+        </div>`;
+      } // end else (not voted)
     } else {
       content=`<div class="card"><div class="ph-status">Your team's next-in-line is voting. Collaborate and watch the TV!</div></div>`;
     }
@@ -2314,7 +2334,7 @@ function submitPhoneWager(){
 function renderLobbyEntry(){
   return `<div class="center-screen">
     <div class="lobby-title">Fortune &amp; Fortune</div>
-    <div style="font-size:11px;color:var(--c-muted);">v3.1 &nbsp;·&nbsp; 2026-07-16 03:59 UTC</div>
+    <div style="font-size:11px;color:var(--c-muted);">v3.2 &nbsp;·&nbsp; 2026-07-16 04:08 UTC</div>
     <div class="lobby-sub">Open the link your host shared to join automatically.</div>
   </div>`;
 }
@@ -2342,7 +2362,7 @@ function renderPlayerClaim(){
 function renderHostEntry(){
   return `<div class="center-screen" id="host-entry-screen">
     <div class="lobby-title">Fortune &amp; Fortune</div>
-    <div style="font-size:11px;color:var(--c-muted);">v3.1 &nbsp;·&nbsp; 2026-07-16 03:59 UTC</div>
+    <div style="font-size:11px;color:var(--c-muted);">v3.2 &nbsp;·&nbsp; 2026-07-16 04:08 UTC</div>
     <div class="lobby-sub">Create a new game or open an existing one.</div>
     <div class="card" style="width:100%;max-width:420px;display:flex;flex-direction:column;gap:12px;">
       <div class="field" style="margin:0;"><label>New lobby name</label>
