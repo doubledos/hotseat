@@ -251,7 +251,7 @@ body.mode-display .app>*{position:relative;z-index:1;}
 .tv-center-top{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 20px;min-width:160px;}
 .tv-level-badge{font-size:11px;text-transform:uppercase;letter-spacing:0.14em;color:var(--tv-accent);font-weight:700;}
 .tv-brand-sm{font-size:15px;color:var(--tv-text-soft);font-family:var(--font-display);letter-spacing:0.08em;}
-.tv-main{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px 40px;text-align:center;overflow:hidden;}
+.tv-main{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px 40px;text-align:center;overflow-y:auto;position:relative;}
 .tv-waiting{font-size:clamp(28px,5vw,52px);color:var(--tv-text-soft);font-family:var(--font-display);letter-spacing:0.06em;}
 .tv-q-text{font-size:clamp(22px,4vw,46px);font-weight:700;line-height:1.25;color:var(--tv-text);margin-bottom:clamp(12px,2vh,24px);max-width:1000px;}
 .tv-hotseat-name{font-size:clamp(26px,4.5vw,52px);font-family:var(--font-display);color:var(--tv-accent);letter-spacing:0.04em;margin-bottom:clamp(10px,1.5vh,20px);}
@@ -413,6 +413,8 @@ body.mode-player .app{max-width:480px;margin:0 auto;padding:0;}
 const SUPABASE_URL = 'https://lmjluzxzxpbuhvantbwt.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxtamx1enh6eHBidWh2YW50Ynd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwNzQyMzcsImV4cCI6MjA5OTY1MDIzN30.Qj0SZi_pBJNvLdDj5Hr9osh9ub3xRkhRyx-1AZjElKY';
 const hasSupabase = !!(SUPABASE_URL && SUPABASE_ANON_KEY);
+const LOGO_EMBER_PNG = "https://raw.githubusercontent.com/doubledos/hotseat/main/hotseat-logotext-ember.png";
+const LOGO_WHITE_PNG = "https://raw.githubusercontent.com/doubledos/hotseat/main/hotseat-logotext.png";
 
 async function sbFetch(path, opts){
   const res = await fetch(SUPABASE_URL + path, {
@@ -1605,7 +1607,9 @@ function renderHost(){
   const activeHostTab=setupLocked&&hostTab!=='rules'?'setup':hostTab;
 
   const topbar=`<div class="topbar">
-    <span class="topbar-brand">🔥 The Hot Seat</span>
+    <span class="topbar-brand" style="display:inline-flex;align-items:center;gap:8px;">
+      <span style="width:26px;height:auto;flex-shrink:0;">${chairIconSVG()}</span>HOT SEAT
+    </span>
     <span class="topbar-code">${esc(state.lobbyName||currentLobbyCode)}</span>
     <div class="team-strip">
       <span class="team-label">${esc(state.teamAName)}</span>
@@ -2197,21 +2201,12 @@ function buildNextInLineBadges(){
 function chairIcon(x,y,scale){
   return `<g transform="translate(${x},${y}) scale(${scale})"><g transform="matrix(1,0,0,1,-667.582438,-140.32151)"><g transform="matrix(3.666797,0,0,3.666797,559.014417,96.800147)"><path d="M100.161,119.427C99.567,121.602 96.546,132.672 97.606,147.492C97.731,149.235 100.761,169.227 98.821,177.572C95.448,192.082 83.8,185.712 80.562,184.393C77.142,182.478 76.581,182.061 76.26,181.821C73.917,180.077 73.767,180.287 68.767,176.164C62.689,171.151 63.099,170.511 62.531,170.414C60.71,170.104 61.43,172.324 61.488,172.502C63.915,179.984 63.791,182.157 66.517,188.493C66.8,189.152 69.33,195.03 70.292,196.624C70.589,197.117 75.539,207.168 82.339,213.666C84.672,215.895 86.118,217.22 86.477,217.481C82.23,218.757 72.689,213.432 72.219,213.61C70.303,210.185 69.758,210.622 64.725,205.303C63.493,204.001 58.144,198.348 52.556,186.472C48.737,178.357 45.33,165.929 45.37,154.498C45.396,146.953 45.434,146.96 46.67,139.532C47.63,133.765 53.376,122.536 53.866,123.129C54.485,123.877 54.897,135.293 56.279,139.566C62.578,159.053 74.248,152.448 76.756,143.575C77.539,140.803 79.807,135.296 76.033,122.637C73.292,113.441 72.171,111.236 68.619,95.472C68.051,92.953 67.78,93.017 67.628,90.492C66.642,74.084 67.477,71.61 69.67,61.542C71.546,52.924 77.363,41.457 79.736,37.633C83.118,32.184 83.094,32.176 87.187,27.242C89.86,24.021 90.709,23.432 91.038,23.057C92.893,20.94 92.783,20.86 94.914,18.988C99.325,15.115 99.972,14.742 100.469,14.456C102.477,13.3 103.992,11.215 104.789,12.069C105.723,13.069 105.103,13.231 104.741,14.546C103.852,17.773 93.849,40.766 106.514,44.444C112.009,46.04 116.529,41.759 117.177,41.145C119.582,38.868 119.873,35.108 119.917,34.538C120.534,26.587 117.437,23.405 119.4,23.219C120.444,23.12 121.196,24.329 123.736,26.185C124.886,27.024 131.607,31.934 135.602,39.442C136.915,41.91 137.441,41.78 138.748,46.426C140.595,52.992 142.06,58.03 138.708,76.54C138.138,79.686 137.905,79.636 136.438,89.492C136.356,90.047 136.148,91.444 135.889,96.493C135.879,96.697 136.289,102.753 137.356,105.551C138.818,109.387 141.787,112.786 144.476,113.598C147.906,114.633 150.23,114.13 154.261,112.03C154.997,111.646 158.21,109.005 159.567,106.538C160.715,104.453 163.282,100.132 163.122,91.507C163.066,88.499 161.74,86.335 164.572,87.336C165.217,87.564 172.119,93.736 173.486,95.512C175.682,98.367 175.675,98.354 177.869,101.227C179.713,103.642 190.061,119.697 193.883,138.412C195.708,147.344 195.382,147.388 195.757,156.49C195.881,159.51 195.214,168.899 192.589,176.528C190.963,181.255 190.404,183.669 185.12,193.293C184.875,193.738 184.821,193.698 181.589,198.559C180.47,200.243 175.584,206.326 173.416,208.403C172.639,209.147 163.103,218.344 159.154,219.658C157.184,220.314 155.463,220.848 153.515,221.54C151.581,222.227 150.954,221.475 151.633,219.524C151.758,219.166 165.852,197.759 166.189,197.289C168.485,194.089 173.972,183.2 175.133,179.393C175.381,178.579 176.587,173.201 176.751,171.534C178.152,157.259 171.893,144.943 170.187,141.65C168.09,137.601 168.273,137.27 167.546,137.229C166.595,137.176 166.706,137.489 166.238,138.319C165.67,139.325 165.806,139.376 165.256,140.375C164.912,140.999 162.677,146.06 156.461,151.455C154.733,152.955 151.023,154.333 147.506,154.278C142.382,154.198 136.194,149.978 133.199,146.793C128.907,142.227 127.783,140.309 125.257,136.664C114.19,120.694 111.571,95.887 111.387,95.803C110.774,95.522 103.412,107.55 100.161,119.427Z" style="fill:rgb(218,32,35);"></path><path d="M168.639,268.5C168.68,226.102 168.364,226.034 169.626,220.527C171.919,210.514 181.341,208.667 186.563,207.915C190.838,207.299 196.572,208.281 199.419,209.67C203.02,211.427 207.006,214.891 208.844,219.363C212.054,227.174 211.35,234.197 208.056,238.127C202.272,245.028 191.962,243.793 190.789,244.818C189.998,245.509 190.21,245.725 190.204,269.5C190.2,283.114 190.431,288.924 183.59,291.711C179.915,293.208 171.952,293.242 159.515,293.038C147.5,292.841 147.526,292.451 135.498,292.403C99.944,292.26 61.624,292.809 58.609,292.078C49.458,289.86 50.578,283.82 50.554,266.5C50.525,246.48 50.748,246.418 50.335,245.575C49.496,243.859 43.926,244.566 37.421,241.685C36.048,241.077 29.544,238.52 29.609,228.502C29.627,225.755 30.947,212.65 43.589,208.769C49.885,206.836 55.939,207.83 61.447,209.652C71.865,213.099 71.502,223.428 71.981,227.442C72.432,231.22 71.985,270.614 72.198,271.579C72.544,273.154 73.529,272.854 82.495,272.913C93.215,272.983 104.459,272.715 110.511,273.079C113.145,273.237 113.131,273.073 143.498,273.277C155.56,273.358 159.333,273.057 164.502,273.468C164.795,273.491 167.478,273.704 168.161,273.115C168.846,272.524 168.651,269.705 168.639,268.5Z" style="fill:rgb(128,21,21);"></path><path d="M112.703,139.611C112.925,139.213 115.612,134.721 115.612,134.721C115.612,134.721 127.529,171.259 140.586,174.096C151.819,176.536 157.811,162.461 159.249,163.309C160.776,164.209 166.733,176.37 160.182,197.397C155.747,211.63 151.758,219.166 151.633,219.524C150.954,221.475 162.788,215.483 163.448,217.053C162.495,222.464 161.19,239 158.491,239.123C157.978,239.147 81.943,239.171 81.533,239.091C79.002,238.602 74.575,218.256 72.219,213.61C72.689,213.432 79.702,216.716 85.436,216.601C78.346,200.043 77.48,194.364 76.493,188.512C78.305,190.26 100.863,208.884 107.12,186.416C108.253,182.346 107.048,176.306 106.924,175.436C106.236,170.606 105.996,162.053 106.858,156.554C108.172,148.169 112.032,140.878 112.703,139.611Z" style="fill:rgb(127,22,22);"></path><path d="M96.496,246.906C101.03,246.77 113.328,246.803 156.499,246.844C156.735,246.844 159.35,246.846 159.447,246.875C161.607,247.512 160.912,248.239 160.886,250.503C160.732,264.219 161.176,264.538 160.243,265.126C159.765,265.429 159.713,265.421 136.5,265.436C126.493,265.442 126.509,265.544 116.504,265.694C112.148,265.759 87.385,265.705 84.502,265.721C84.258,265.722 81.82,265.735 81.456,265.618C79.783,265.08 80.533,264.421 80.023,258.538C79.479,252.256 79.839,247.932 79.942,247.704C80.294,246.925 81.382,246.873 81.525,246.866C85.506,246.676 95.299,246.881 96.496,246.906Z" style="fill:rgb(126,23,20);"></path><path d="M181.407,315.926C173.434,316.038 173.447,316.025 165.471,316.047C166.187,314.874 166.572,314.906 166.214,313.573C165.932,312.524 164.775,308.223 162.919,300.404C162.829,300.025 162.152,297.635 163.612,296.961C163.79,296.879 167.189,296.878 167.5,296.878C179.39,296.875 180.16,296.645 180.503,298.499C180.552,298.764 180.58,314.09 180.658,314.437C180.781,314.979 181.284,315.384 181.407,315.926Z" style="fill:rgb(125,24,20);"></path><path d="M74.372,315.911C73.179,315.945 69.071,316.061 59.457,316.026C60.186,314.536 60.221,314.559 60.244,314.417C60.28,314.187 60.156,314.192 60.104,311.508C59.907,301.369 59.873,301.378 59.875,300.497C59.883,298.171 59.278,297.426 61.54,296.862C61.676,296.829 76.325,296.842 76.451,296.865C78.198,297.18 77.957,297.768 77.554,299.512C77.442,299.997 75.75,308.205 74.403,313.479C73.957,315.224 74.377,315.511 74.372,315.911Z" style="fill:rgb(125,23,21);"></path></g></g></g>`;
 }
-function hotSeatBadgeSVG(color){
-  const c=color||'var(--ember)';
-  return `<svg viewBox="0 0 700 640" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;overflow:visible;">
-    <text x="6" y="205" textLength="688" lengthAdjust="spacingAndGlyphs" font-family="var(--font-display)" font-size="200" fill="${c}">THE</text>
-    <text x="6" y="410" textLength="470" lengthAdjust="spacingAndGlyphs" font-family="var(--font-display)" font-size="200" fill="${c}">HOT</text>
-    <text x="6" y="615" textLength="688" lengthAdjust="spacingAndGlyphs" font-family="var(--font-display)" font-size="200" fill="${c}">SEAT</text>
-    ${chairIcon(478,215,0.145)}
-  </svg>`;
+function chairIconSVG(style){
+  return `<svg viewBox="0 0 665 1116" xmlns="http://www.w3.org/2000/svg" style="${style||''}">${chairIcon(0,0,1)}</svg>`;
 }
-function hotSeatInlineSVG(color){
-  const c=color||'var(--ember)';
-  return `<svg viewBox="0 0 900 210" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;overflow:visible;">
-    ${chairIcon(6,-6,0.185)}
-    <text x="165" y="150" font-family="var(--font-display)" font-size="150" fill="${c}">HOT SEAT</text>
-  </svg>`;
+function hotSeatLogoImg(variant, style){
+  const src = variant==='white' ? LOGO_WHITE_PNG : LOGO_EMBER_PNG;
+  return `<img src="${src}" alt="THE HOT SEAT" style="${style||''}">`;
 }
 
 
@@ -2222,15 +2217,16 @@ function renderDisplay(){
   const q=state.currentQuestion; const f=state.flow; const hp=hotSeatPlayer();
   const puz=state.puzzle; const s=state.steal;
   const tvStage=puz.active?'green':((state.gamePhase==='setup'||!hp)?'gold':'maroon');
+  const isSetup=state.gamePhase==='setup'||!hp;
   root.className='app tv-stage-'+tvStage;
 
-  const topbar=`<div class="tv-topbar">
+  const topbar=isSetup?'':`<div class="tv-topbar">
     <div class="tv-team-box ${state.hotSeatTeam==='A'?'is-hot':''}">
       <div class="tv-team-name">${esc(state.teamAName)}</div>
       <div class="tv-team-bank">${money(state.teamABank)}</div>
     </div>
     <div class="tv-center-top">
-      <div style="width:150px;height:auto;aspect-ratio:900/210;">${hotSeatInlineSVG('var(--tv-wordmark)')}</div>
+      ${hotSeatLogoImg(tvStage==='gold'?'ember':'white','height:44px;width:auto;')}
       <div class="tv-level-badge">${state.gamePhase==='wager'?'⚡ FINAL WAGER':(puz.active?'🧩 PUZZLE':('Level '+state.ladderCurrent+' — '+money(levelMoney(state.ladderCurrent))))}</div>
       ${(state.gamePhase==='live'||state.gamePhase==='wager')?'<div style="font-size:10px;color:var(--c-muted);margin-top:3px;display:flex;flex-direction:column;gap:1px;">'+buildNextInLineBadges()+'</div>':''}
     </div>
@@ -2324,13 +2320,18 @@ function renderDisplay(){
     </div>`;
   } else {
     const playerUrl=currentLobbyCode?(location.href.split('?')[0].split('#')[0]+'?lobby='+currentLobbyCode):'';
-    const isSetup=state.gamePhase==='setup'||!hp;
-    mainContent=`<div style="text-align:center;width:100%;max-width:700px;">
+    mainContent=`<div style="text-align:center;width:100%;max-width:900px;">
       ${isSetup&&playerUrl?`
-        <div class="tv-waiting" style="font-size:clamp(20px,3.5vw,36px);margin-bottom:20px;">Join the Game</div>
-        <div style="display:flex;flex-direction:column;align-items:center;gap:14px;">
-          <div id="tv-qr-wrap" style="background:#fff;border-radius:10px;padding:8px;display:inline-block;"></div>
-          <div style="font-size:clamp(13px,2vw,18px);color:var(--c-gold-light);font-weight:700;word-break:break-all;">${esc(playerUrl)}</div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:clamp(10px,2.4vh,26px);max-height:100%;">
+          <div style="font:400 clamp(18px,3.4vh,42px)/1 var(--font-script);color:var(--tv-wordmark);">tonight, someone's in...</div>
+          ${hotSeatLogoImg('ember','height:clamp(130px,42vh,440px);width:auto;max-width:85%;')}
+        </div>
+        <div style="position:absolute;right:clamp(16px,3vw,48px);bottom:clamp(14px,3vh,36px);display:flex;flex-direction:column;align-items:center;gap:8px;">
+          <div id="tv-qr-wrap" style="background:#fff;border-radius:10px;padding:6px;display:inline-block;line-height:0;"></div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="height:clamp(16px,2.2vh,26px);width:auto;">${chairIconSVG('height:100%;width:auto;')}</span>
+            <div style="font:600 clamp(11px,1.4vh,16px) var(--font-heading);letter-spacing:0.06em;color:var(--tv-wordmark);">Scan to join!</div>
+          </div>
         </div>
       `:`
         <div class="tv-hotseat-name">${hp?esc(hp.name):'—'}</div>
@@ -2354,13 +2355,13 @@ function renderDisplay(){
     `<div style="position:absolute;bottom:6px;right:10px;font-size:9px;color:var(--c-muted);opacity:0.5;">${esc(location.href.split('?')[0].split('#')[0]+'?lobby='+currentLobbyCode)}</div>`:'';
 
   root.innerHTML=`${topbar}
-    <div style="padding:8px 20px 0;">${stealBanner}${wagerBanner}</div>
+    ${isSetup?'':`<div style="padding:8px 20px 0;">${stealBanner}${wagerBanner}</div>`}
     <div class="tv-main">${mainContent}</div>
-    <div class="tv-bottom" style="position:relative;">
+    ${isSetup?'':`<div class="tv-bottom" style="position:relative;">
       <div class="tv-player-banks">${playerBanks}</div>
       <div class="tv-ladder">${ladIcons}</div>
       ${joinBadge}
-    </div>`;
+    </div>`}`;
 
   setTimeout(()=>{
     const wrap=document.getElementById('tv-qr-wrap');
@@ -2483,7 +2484,7 @@ function submitPhoneWager(){
 
 function renderLobbyEntry(){
   return `<div class="center-screen">
-    <div style="width:min(340px,88vw);height:auto;aspect-ratio:700/620;">${hotSeatBadgeSVG()}</div>
+    ${hotSeatLogoImg('ember','width:min(340px,88vw);height:auto;')}
     <div class="lobby-sub">Open the link your host shared to join automatically.</div>
   </div>`;
 }
@@ -2510,7 +2511,7 @@ function renderPlayerClaim(){
 
 function renderHostEntry(){
   return `<div class="center-screen" id="host-entry-screen">
-    <div style="width:min(440px,90vw);height:auto;aspect-ratio:700/620;">${hotSeatBadgeSVG()}</div>
+    ${hotSeatLogoImg('ember','width:min(440px,90vw);height:auto;')}
     <div style="font-size:11px;color:var(--c-muted);">v4.0 &nbsp;·&nbsp; 2026-07-20 14:54 UTC</div>
     <div class="lobby-sub">Create a new game or open an existing one.</div>
     <div class="card" style="width:100%;max-width:420px;display:flex;flex-direction:column;gap:12px;">
