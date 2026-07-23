@@ -1607,8 +1607,8 @@ function renderHost(){
   const activeHostTab=setupLocked&&hostTab!=='rules'?'setup':hostTab;
 
   const topbar=`<div class="topbar">
-    <span class="topbar-brand" style="display:inline-flex;align-items:center;gap:8px;">
-      <span style="width:26px;height:auto;flex-shrink:0;">${chairIconSVG()}</span>HOT SEAT
+    <span class="topbar-brand" style="display:inline-flex;align-items:center;">
+      <span style="width:30px;height:auto;flex-shrink:0;">${chairIconSVG()}</span>
     </span>
     <span class="topbar-code">${esc(state.lobbyName||currentLobbyCode)}</span>
     <div class="team-strip">
