@@ -19,11 +19,11 @@
   --c-accent-hi:#f06a3d;
   --c-accent-dim:#a83618;
   /* gold reserved EXCLUSIVELY for money */
-  --c-gold:#e8a13c;
-  --c-gold-light:#f2b95c;
+  --c-gold:#8a5c0d;
+  --c-gold-light:#8f6014;
   --c-gold-dim:#b97e22;
   --c-ink:#3a1a12;
-  --c-muted:#8a6a4a;
+  --c-muted:#6e5439;
   --c-green:#1e7d43;
   --c-green-light:#2fa860;
   --c-red:#b8302f;
@@ -100,12 +100,6 @@ select.input{cursor:pointer;}
 .card{background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--r);padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.2);}
 .card-gold{border-color:var(--c-gold-dim);box-shadow:var(--shadow-gold);}
 .card-sm{padding:14px;}
-.panel{background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--r);overflow:hidden;}
-.panel-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;cursor:pointer;user-select:none;transition:background .12s;}
-.panel-header:hover{background:rgba(212,168,67,0.05);}
-.panel-title{display:flex;align-items:center;gap:8px;font-size:12px;text-transform:uppercase;letter-spacing:0.1em;color:var(--c-gold);font-weight:700;}
-.panel-body{padding:16px;}
-.panel+.panel{margin-top:12px;}
 
 /* ===== Tags / badges ===== */
 .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;}
@@ -134,11 +128,16 @@ select.input{cursor:pointer;}
 
 /* ===== Team chips in topbar ===== */
 .team-strip{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+/* ===== Reference strip — secondary info below the topbar (teams/scores, ladder, pacing) ===== */
+.ref-strip{padding:7px 20px;background:rgba(255,248,236,0.65);border-bottom:1px solid var(--c-border);display:flex;flex-direction:column;gap:6px;}
+.ref-strip-ladder{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.ref-strip-divider{width:1px;height:20px;background:var(--c-border);margin:0 4px;}
+.pacing-badge{margin-left:auto;font-size:11px;font-weight:700;color:var(--c-muted);white-space:nowrap;}
 .team-label{font-size:11px;color:var(--c-muted);font-weight:700;text-transform:uppercase;letter-spacing:0.08em;}
 .player-chip{display:inline-flex;align-items:center;gap:5px;background:var(--c-surface2);border:1px solid var(--c-border);border-radius:999px;padding:4px 10px;font-size:12px;font-weight:600;color:var(--c-ink);cursor:pointer;transition:all .12s;}
 .player-chip:hover{border-color:var(--c-gold);}
 .player-chip.is-hot{background:var(--c-gold);color:#07111f;border-color:var(--c-gold-light);}
-.chip-bank{font-size:10px;color:var(--c-muted);font-weight:700;}
+.chip-bank{font-size:10px;color:var(--c-muted);font-weight:700;font-variant-numeric:tabular-nums;}
 .player-chip.is-hot .chip-bank{color:rgba(7,17,31,0.6);}
 
 /* ===== Flow card ===== */
@@ -198,8 +197,8 @@ select.input{cursor:pointer;}
 
 /* ===== Money display ===== */
 .money{font-variant-numeric:tabular-nums;font-weight:700;}
-.money-lg{font-size:22px;color:var(--c-gold-light);}
-.money-sm{font-size:13px;color:var(--c-gold);}
+.money-lg{font-size:22px;color:var(--c-gold-light);font-variant-numeric:tabular-nums;font-weight:700;}
+.money-sm{font-size:13px;color:var(--c-gold);font-variant-numeric:tabular-nums;font-weight:700;}
 .money-pos{color:var(--c-green-light);}
 .money-neg{color:var(--c-red-light);}
 
@@ -212,8 +211,6 @@ select.input{cursor:pointer;}
 .lad-ic:hover .tip{display:block;}
 
 /* ===== Adjust panel ===== */
-.adjust-panel{background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--r);padding:16px;margin-bottom:14px;}
-.adjust-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;}
 
 /* ===== Question bank list ===== */
 .q-list{display:flex;flex-direction:column;gap:8px;max-height:320px;overflow-y:auto;margin-top:12px;padding-right:2px;}
@@ -228,7 +225,9 @@ select.input{cursor:pointer;}
 .wager-box{background:linear-gradient(135deg,rgba(90,45,138,0.2),var(--c-surface));border:1px solid var(--c-purple);border-radius:var(--r);padding:18px;}
 .wager-title{font-size:12px;text-transform:uppercase;letter-spacing:0.1em;color:#c070f0;font-weight:700;margin-bottom:12px;}
 .wager-rows{display:flex;flex-direction:column;gap:6px;margin:10px 0;}
-.wager-row{display:flex;align-items:center;justify-content:space-between;background:var(--c-surface2);border:1px solid var(--c-border);border-radius:7px;padding:8px 12px;font-size:13px;}
+.wager-row{display:flex;align-items:center;justify-content:space-between;background:var(--c-surface2);border:1px solid var(--c-border);border-radius:7px;padding:8px 12px;font-size:13px;font-variant-numeric:tabular-nums;}
+@keyframes voteFlash{0%{background:rgba(30,125,67,0.32);}100%{background:transparent;}}
+.vote-flash{animation:voteFlash 1.2s ease-out;border-radius:7px;}
 
 /* ===== TV Display ===== */
 body.mode-display{overflow:hidden;}
@@ -247,7 +246,7 @@ body.mode-display .app>*{position:relative;z-index:1;}
 .tv-team-box{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 16px;}
 .tv-team-box.is-hot{background:var(--tv-panel);}
 .tv-team-name{font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:var(--tv-text-soft);font-weight:700;}
-.tv-team-bank{font-size:26px;font-weight:700;color:var(--tv-text);font-family:var(--font-display);}
+.tv-team-bank{font-size:26px;font-weight:700;color:var(--tv-text);font-family:var(--font-display);font-variant-numeric:tabular-nums;}
 .tv-center-top{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 20px;min-width:160px;}
 .tv-level-badge{font-size:11px;text-transform:uppercase;letter-spacing:0.14em;color:var(--tv-accent);font-weight:700;}
 .tv-brand-sm{font-size:15px;color:var(--tv-text-soft);font-family:var(--font-display);letter-spacing:0.08em;}
@@ -267,7 +266,7 @@ body.mode-display .app>*{position:relative;z-index:1;}
 .tv-player-banks{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:8px;}
 .tv-player-bank{display:flex;flex-direction:column;align-items:center;gap:2px;}
 .tv-player-name{font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--tv-text-soft);}
-.tv-player-amount{font-size:14px;font-weight:700;color:var(--tv-accent);}
+.tv-player-amount{font-size:14px;font-weight:700;color:var(--tv-accent);font-variant-numeric:tabular-nums;}
 .tv-ladder{display:flex;gap:5px;justify-content:center;align-items:center;flex-wrap:wrap;}
 .tv-lad{width:32px;height:32px;border-radius:6px;border:1px solid var(--tv-border);background:var(--tv-panel);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--tv-text-soft);}
 .tv-lad.won{background:var(--c-green);border-color:var(--c-green);color:#fff;}
@@ -309,7 +308,7 @@ body.mode-player .app{max-width:480px;margin:0 auto;padding:0;}
 .ph-bank-hero{text-align:center;padding:20px;background:var(--c-surface);border:1px solid var(--c-border);border-radius:12px;}
 .ph-player-name{font-size:24px;font-weight:700;color:var(--c-ink);margin-bottom:4px;}
 .ph-team{font-size:12px;text-transform:uppercase;letter-spacing:0.1em;color:var(--c-muted);}
-.ph-amount{font-size:42px;font-weight:700;color:var(--c-gold-light);font-family:var(--font-display);letter-spacing:0.02em;margin:8px 0;}
+.ph-amount{font-size:42px;font-weight:700;color:var(--c-gold-light);font-family:var(--font-display);letter-spacing:0.02em;margin:8px 0;font-variant-numeric:tabular-nums;}
 .ph-status{font-size:14px;color:var(--c-muted);text-align:center;line-height:1.6;padding:8px 0;}
 .ph-vote-btns{display:flex;flex-direction:column;gap:10px;}
 .ph-vote-btn{background:var(--c-surface2);border:1px solid var(--c-border2);color:var(--c-ink);border-radius:10px;padding:16px;font-size:15px;font-weight:600;text-align:left;cursor:pointer;transition:all .15s;}
@@ -333,15 +332,19 @@ body.mode-player .app{max-width:480px;margin:0 auto;padding:0;}
 .end-trophy{font-size:clamp(48px,10vw,96px);margin-bottom:10px;}
 .end-title{font-size:clamp(28px,5vw,52px);font-family:var(--font-display);color:var(--c-gold);letter-spacing:0.05em;}
 .end-winner{font-size:clamp(32px,6vw,64px);font-weight:700;color:var(--c-ink);}
-.end-amount{font-size:clamp(22px,4vw,42px);color:var(--c-gold-light);font-weight:700;}
+.end-amount{font-size:clamp(22px,4vw,42px);color:var(--c-gold-light);font-weight:700;font-variant-numeric:tabular-nums;}
 .end-table{width:100%;max-width:480px;border-collapse:collapse;margin-top:16px;}
 .end-table th{font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--c-muted);padding:8px 12px;border-bottom:1px solid var(--c-border);text-align:left;}
-.end-table td{padding:10px 12px;border-bottom:1px solid var(--c-border);font-size:14px;}
+.end-table td{padding:10px 12px;border-bottom:1px solid var(--c-border);font-size:14px;font-variant-numeric:tabular-nums;}
 .end-table tr:first-child td{color:var(--c-gold-light);font-weight:700;}
 
-/* ===== Setup grid ===== */
-.setup-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;}
-@media(max-width:900px){.setup-grid{grid-template-columns:1fr;}}
+/* ===== Setup wizard ===== */
+.setup-steps{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:20px;}
+.setup-step-pill{display:inline-flex;align-items:center;gap:6px;background:var(--c-surface);border:1.5px solid var(--c-border2);color:var(--c-muted);padding:8px 16px;border-radius:999px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;}
+.setup-step-pill:hover{border-color:var(--c-accent);color:var(--c-ink);}
+.setup-step-pill.active{background:var(--c-accent);border-color:var(--c-accent);color:#fff8ec;}
+.setup-step-num{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,0.15);font-size:10px;}
+.setup-step-pill.active .setup-step-num{background:rgba(255,255,255,0.25);}
 .main-content{max-width:1400px;margin:0 auto;padding:16px 20px 60px;}
 
 /* ===== Checklist ===== */
@@ -375,6 +378,9 @@ body.mode-player .app{max-width:480px;margin:0 auto;padding:0;}
 
 /* ===== Misc ===== */
 .hint{font-size:12px;color:var(--c-muted);line-height:1.5;margin-top:6px;}
+.kb-hint{font-size:11px;color:var(--c-muted);text-align:right;margin-top:8px;letter-spacing:0.02em;}
+.btn-changepick{display:block;width:100%;background:none;border:none;padding:6px;margin-top:4px;font-size:11px;color:var(--c-muted);text-decoration:underline;cursor:pointer;text-align:center;}
+.btn-changepick:hover{color:var(--c-accent);}
 .spacer{flex:1;}
 .divider{border:none;border-top:1px solid var(--c-border);margin:14px 0;}
 .text-center{text-align:center;}
@@ -490,6 +496,7 @@ function defaultState(){
     code: '',
     lobbyName: '',
     gamePhase: 'setup', // setup | live | puzzle | wager | ended
+    hostingStartedAt: 0,
     // Teams
     teamAName: 'Team A',
     teamBName: 'Team B',
@@ -558,9 +565,9 @@ let state = defaultState();
 let currentLobbyCode = '';
 let mode = 'entry'; // entry | host | display | player
 let hostTab = 'game'; // game | setup | questions | rules
+let setupStep = 'players'; // players | questions | levels | ready
 let lastSavedJSON = '';
 let pollTimer = null;
-let uiCollapsed = {};
 let editingQuestion = null;
 let editingPhrase = null;
 let pendingModal = null;
@@ -570,6 +577,8 @@ let phoneWagerSubmitted = false;
 let displayPrevRevealed = new Set();
 let lastGlitchSeen = 0;
 let lastWheelSeen = 0;
+let lastVoteFlashKey = '';
+let seenWagerIds = new Set();
 let puzzleTimerRAF = null;
 
 // Detect hash-based routing
@@ -592,6 +601,7 @@ function slugify(name){
 }
 function esc(str){ return (str==null?'':String(str)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function money(n){ return '$'+(n||0).toLocaleString(); }
+function elapsedMinutes(){ return state.hostingStartedAt?Math.max(0,Math.floor((Date.now()-state.hostingStartedAt)/60000)):0; }
 function debounce(fn,delay){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),delay); }; }
 function shuffleArray(arr){ const a=arr.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]; } return a; }
 function letterFor(i){ return String.fromCharCode(65+i); }
@@ -795,6 +805,17 @@ async function hostSelectAnswer(di){
 async function retryDoubleDip(){
   state.flow.stage='selecting';
   state.flow.hotSeatAnswer=-1;
+  await saveLobby(); renderHost();
+}
+async function changeHotSeatPick(){
+  const f=state.flow;
+  if(f.stage==='revealed'||f.stage==='doubledip-miss'){
+    f.stage='selecting'; f.hotSeatAnswer=-1;
+  } else if(f.stage==='steal-peek'&&state.steal&&!state.steal.locked){
+    const nil=getNextInLine(state.steal.panelTeam);
+    const voted=nil&&state.steal.votes[nil.id]!==undefined;
+    if(!voted){ state.steal=null; f.stage='selecting'; f.hotSeatAnswer=-1; }
+  }
   await saveLobby(); renderHost();
 }
 async function revealHotSeatResult(){ state.flow.stage='revealed'; await saveLobby(); renderHost(); } // kept for safety
@@ -1095,6 +1116,7 @@ async function startWager(){
   const diff=levelDiff(15);
   const q=pickQuestion(diff);
   if(q) q.used=true;
+  seenWagerIds=new Set();
   state.wager={
     active:true,
     question:q?makeCurrentQuestion(q,15):null,
@@ -1157,6 +1179,8 @@ async function endGame(){
 async function newGame(){
   showModal('🔄','Start a new game? Resets scores, ladder, lifelines, and current question. Keeps questions and players.','New Game', async()=>{
     state.gamePhase='setup';
+    state.hostingStartedAt=0;
+    setupStep='players';
     state.teamABank=0; state.teamBBank=0;
     state.players.forEach(p=>p.personalBank=0);
     state.ladderCurrent=1;
@@ -1206,6 +1230,7 @@ async function setHotSeat(pid){
 }
 async function startHosting(){
   state.gamePhase='live';
+  state.hostingStartedAt=Date.now();
   if(!state.hotSeatPlayerId&&state.players.length){
     const first=state.players[0];
     state.hotSeatPlayerId=first.id; state.hotSeatTeam=first.team;
@@ -1422,18 +1447,6 @@ async function loadTestData(){
    Part 4: Render helpers — shared builders
    ============================================================ */
 
-function togglePanel(id){ uiCollapsed[id]=!uiCollapsed[id]; renderHost(); }
-
-function panelWrap(id, icon, title, bodyHtml, extra){
-  const collapsed=!!uiCollapsed[id];
-  return `<div class="panel">
-    <div class="panel-header" onclick="togglePanel('${id}')">
-      <div class="panel-title">${icon} ${esc(title)}</div>
-      <div style="display:flex;align-items:center;gap:8px;">${extra||''}<span style="color:var(--c-muted);font-size:12px;">${collapsed?'▼':'▲'}</span></div>
-    </div>
-    <div class="panel-body" style="${collapsed?'display:none;':''}">${bodyHtml}</div>
-  </div>`;
-}
 
 function buildBoardHTML(puzzle, prevSet){
   const phrase=puzzle.phrase||'';
@@ -1611,17 +1624,6 @@ function renderHost(){
       <span style="width:30px;height:auto;flex-shrink:0;">${chairIconSVG()}</span>
     </span>
     <span class="topbar-code">${esc(state.lobbyName||currentLobbyCode)}</span>
-    <div class="team-strip">
-      <span class="team-label">${esc(state.teamAName)}</span>
-      <span class="money-sm">${money(state.teamABank)}</span>
-      ${teamAPlayers.map(p=>`<button class="player-chip ${state.hotSeatPlayerId===p.id?'is-hot':''}" onclick="setHotSeat('${p.id}')">${esc(p.name)}<span class="chip-bank">${money(p.personalBank)}</span></button>`).join('')}
-    </div>
-    <div style="width:1px;height:28px;background:var(--c-border);margin:0 4px;"></div>
-    <div class="team-strip">
-      <span class="team-label">${esc(state.teamBName)}</span>
-      <span class="money-sm">${money(state.teamBBank)}</span>
-      ${teamBPlayers.map(p=>`<button class="player-chip ${state.hotSeatPlayerId===p.id?'is-hot':''}" onclick="setHotSeat('${p.id}')">${esc(p.name)}<span class="chip-bank">${money(p.personalBank)}</span></button>`).join('')}
-    </div>
     <div class="tabs">
       <button class="tab-btn ${activeHostTab==='setup'?'active':''}" onclick="setHostTab('setup')">1 · Setup</button>
       <button class="tab-btn ${activeHostTab==='game'?'active':''}" ${setupLocked?'disabled title="Finish setup and Start Hosting first"':''} onclick="setHostTab('game')">2 · Play</button>
@@ -1630,20 +1632,30 @@ function renderHost(){
     <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
       <button class="btn btn-ghost btn-sm" onclick="openDisplay()">📺 Display</button>
       <button class="btn btn-ghost btn-sm" onclick="copyPlayerLink()">📱 Players</button>
-      <button class="btn btn-danger btn-sm" onclick="newGame()">↺ New Game</button>
+      <div style="width:1px;height:22px;background:var(--c-border);margin:0 2px;"></div>
+      <button class="btn btn-ghost btn-sm btn-icon" onclick="openHostMoreMenu()" title="More">⋯</button>
     </div>
   </div>`;
 
-  // Ladder strip (below topbar)
+  // Reference strip — secondary info (teams/scores + ladder + pacing), not primary controls
   const ladderBar=state.gamePhase==='live'||state.gamePhase==='wager'||state.gamePhase==='puzzle'?
-    `<div style="padding:8px 20px;background:rgba(255,248,236,0.75);border-bottom:1px solid var(--c-border);display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;">
-      <span style="font-size:11px;color:var(--c-muted);text-transform:uppercase;letter-spacing:0.08em;font-weight:700;margin-right:4px;">Level</span>
-      ${ladderStripHTML()}
-      <span class="money-sm" style="margin-left:8px;">${money(levelMoney(state.ladderCurrent))} up</span>
+    `<div class="ref-strip">
+      <div class="team-strip" style="row-gap:6px;">
+        <span class="team-label">${esc(state.teamAName)}</span>
+        <span class="money-sm">${money(state.teamABank)}</span>
+        ${teamAPlayers.map(p=>`<button class="player-chip ${state.hotSeatPlayerId===p.id?'is-hot':''}" onclick="setHotSeat('${p.id}')">${esc(p.name)}<span class="chip-bank">${money(p.personalBank)}</span></button>`).join('')}
+        <div class="ref-strip-divider"></div>
+        <span class="team-label">${esc(state.teamBName)}</span>
+        <span class="money-sm">${money(state.teamBBank)}</span>
+        ${teamBPlayers.map(p=>`<button class="player-chip ${state.hotSeatPlayerId===p.id?'is-hot':''}" onclick="setHotSeat('${p.id}')">${esc(p.name)}<span class="chip-bank">${money(p.personalBank)}</span></button>`).join('')}
+      </div>
+      <div class="ref-strip-ladder">
+        <span style="font-size:11px;color:var(--c-muted);text-transform:uppercase;letter-spacing:0.08em;font-weight:700;margin-right:4px;">Level</span>
+        ${ladderStripHTML()}
+        <span class="money-sm" style="margin-left:8px;">${money(levelMoney(state.ladderCurrent))} up</span>
+        ${state.hostingStartedAt?`<span class="pacing-badge" title="Time since hosting started">⏱ ${elapsedMinutes()}m in</span>`:''}
+      </div>
     </div>`:'';
-
-  // Adjust tool (always visible in game)
-  const adjustTool=buildAdjustTool();
 
   let body='';
   if(hostTab==='rules'){
@@ -1661,7 +1673,6 @@ function renderHost(){
   root.innerHTML=`${topbar}${ladderBar}
     <div class="main-content">
       ${syncWarn}
-      ${(state.gamePhase==='live'||state.gamePhase==='wager')?adjustTool:''}
       ${body}
     </div>`;
 
@@ -1692,32 +1703,39 @@ function renderHost(){
   if(state.puzzle.active&&!state.puzzle.timerPaused) startPuzzleTimerRAF();
 }
 
-function buildAdjustTool(){
+function openAdjustModal(){
   const targets=[
     {label:`${esc(state.teamAName)} (team)`, value:'teamA'},
     {label:`${esc(state.teamBName)} (team)`, value:'teamB'},
     ...state.players.map(p=>({label:`${esc(p.name)} (personal)`, value:'player:'+p.id}))
   ];
-  return `<div class="adjust-panel">
-    <div style="font-size:12px;text-transform:uppercase;letter-spacing:0.1em;color:var(--c-gold);font-weight:700;margin-bottom:10px;">⚖ Manual Adjustment</div>
+  document.getElementById('modal-icon').textContent='⚖';
+  document.getElementById('modal-message').innerHTML='<b>Manual Adjustment</b>';
+  document.getElementById('modal-picker').style.display='none';
+  const wrap=document.getElementById('modal-input-wrap');
+  wrap.style.display='block';
+  wrap.innerHTML=`
+    <div class="field" style="text-align:left;margin-bottom:12px;">
+      <label>Target</label>
+      <select class="input" id="adjust-target">
+        ${targets.map(t=>`<option value="${esc(t.value)}">${t.label}</option>`).join('')}
+      </select>
+    </div>
     <div class="row">
-      <div class="field">
-        <label>Target</label>
-        <select class="input" id="adjust-target">
-          ${targets.map(t=>`<option value="${esc(t.value)}">${t.label}</option>`).join('')}
-        </select>
-      </div>
-      <div class="field" style="flex:0.5;">
+      <div class="field" style="text-align:left;flex:0.6;">
         <label>Amount</label>
         <input type="number" class="input" id="adjust-amount" placeholder="e.g. -100">
       </div>
-      <div class="field w2">
+      <div class="field w2" style="text-align:left;">
         <label>Reason (optional)</label>
         <input type="text" class="input" id="adjust-reason" placeholder="e.g. Shouted answer penalty">
       </div>
-    </div>
-    <button class="btn btn-ghost btn-sm" onclick="doAdjustment()">Apply</button>
-  </div>`;
+    </div>`;
+  const confirmBtn=document.getElementById('modal-confirm-btn');
+  confirmBtn.style.display='';
+  confirmBtn.textContent='Apply';
+  pendingModal=doAdjustment;
+  document.getElementById('modal-overlay').classList.add('show');
 }
 
 async function doAdjustment(){
@@ -1730,8 +1748,6 @@ async function doAdjustment(){
   } else {
     await applyAdjustment(target,null,amount,reason);
   }
-  document.getElementById('adjust-amount').value='';
-  document.getElementById('adjust-reason').value='';
 }
 
 function renderGameTab(){
@@ -1855,17 +1871,20 @@ function renderFlowCard(isPuzzleLevel){
     // skipped — hostSelectAnswer goes straight to revealed
   } else if(stage==='revealed'){
     if(f.hotSeatAnswer===correctIdx){
-      actionSlot=`<button class="btn btn-success btn-block" style="margin-top:6px;" onclick="markCorrect()">✓ Correct — Bank &amp; Advance</button>`;
+      actionSlot=`<button class="btn btn-success btn-block" style="margin-top:6px;" onclick="markCorrect()">✓ Correct — Bank &amp; Advance</button>
+      <button class="btn-changepick" onclick="changeHotSeatPick()">✎ Misheard? Change pick</button>`;
     }
   } else if(stage==='doubledip-miss'){
     actionSlot=`<div style="font-size:13px;color:var(--c-gold);margin-top:6px;padding:8px;background:var(--c-surface2);border-radius:8px;text-align:center;">🔁 Double Dip! One more guess — no steal risk yet.</div>
-      <button class="btn btn-primary btn-block" style="margin-top:6px;" onclick="retryDoubleDip()">Try Again</button>`;
+      <button class="btn btn-primary btn-block" style="margin-top:6px;" onclick="retryDoubleDip()">Try Again</button>
+      <button class="btn-changepick" onclick="changeHotSeatPick()">✎ Misheard? Change pick</button>`;
   } else if(stage==='steal-peek'){
     const stealNilA=s?getNextInLine(s.panelTeam):null;
     const stealVoteA=stealNilA?s.votes[stealNilA.id]:undefined;
-    actionSlot=stealVoteA!==undefined
+    actionSlot=(stealVoteA!==undefined
       ?`<button class="flow-reveal-btn" style="margin-top:6px;" onclick="revealCorrectAnswer()">▶ Reveal Correct Answer</button>`
-      :`<div style="font-size:13px;color:var(--c-muted);padding:8px;background:var(--c-surface2);border-radius:8px;text-align:center;margin-top:6px;">👆 Tap their answer above</div>`;
+      :`<div style="font-size:13px;color:var(--c-muted);padding:8px;background:var(--c-surface2);border-radius:8px;text-align:center;margin-top:6px;">👆 Tap their answer above</div>`)
+      +`<button class="btn-changepick" onclick="changeHotSeatPick()">✎ Misheard the original answer? Change pick</button>`;
   } else if(stage==='steal-reveal'){
     const nil=s?getNextInLine(s.panelTeam):null;
     const theirVote=nil?s.votes[nil.id]:undefined;
@@ -1879,14 +1898,17 @@ function renderFlowCard(isPuzzleLevel){
   if(s&&(stage==='steal-peek'||stage==='steal-reveal')){
     const nil=s?getNextInLine(s.panelTeam):null; const theirVote=nil?s.votes[nil.id]:undefined;
     const isCorrect=theirVote===correctIdx; const showColor=stage==='steal-reveal';
-    stealInfo=`<div style="margin-top:8px;padding:10px 14px;background:var(--c-surface2);border:1px solid ${showColor?(isCorrect?'var(--c-green-light)':'var(--c-red-light)'):'var(--c-border)'};border-radius:8px;">
+    const flashKey='steal-'+s.roundId+'-'+(nil?nil.id:'');
+    const justArrived=stage==='steal-peek'&&theirVote!==undefined&&flashKey!==lastVoteFlashKey;
+    if(theirVote!==undefined) lastVoteFlashKey=flashKey;
+    stealInfo=`<div class="${justArrived?'vote-flash':''}" style="margin-top:8px;padding:10px 14px;background:var(--c-surface2);border:1px solid ${showColor?(isCorrect?'var(--c-green-light)':'var(--c-red-light)'):'var(--c-border)'};border-radius:8px;">
       <div style="font-size:11px;color:var(--c-muted);margin-bottom:2px;">${esc(nil?nil.name:'Other team')} guessed</div>
       <div style="font-size:15px;font-weight:700;">${theirVote!==undefined?letterFor(theirVote)+' — '+esc(q.options[q.displayOrder[theirVote]]):'No vote'}</div>
       ${showColor?`<div style="font-size:12px;font-weight:700;color:${isCorrect?'var(--c-green-light)':'var(--c-red-light)'};">${isCorrect?'✓ Steal!':'✗ Nobody earns'}</div>`:''}
     </div>`;
   }
 
-  // Vote status
+  // Vote status (shown before a wrong pick creates the steal — placeholder line, no vote possible yet)
   let voteStatus='';
   if(['question','options','selecting','revealing'].includes(stage)&&s){
     const nil=getNextInLine(s.panelTeam);
@@ -1899,6 +1921,9 @@ function renderFlowCard(isPuzzleLevel){
   }
 
   const showLL=['question','options','selecting'].includes(stage);
+  const kbHints={idle:'⌨ Space to reveal',question:isMC?'⌨ Space for next option':'⌨ Space to reveal',options:'⌨ Space for next option',selecting:'⌨ 1–4 to pick',
+    revealed:(f.hotSeatAnswer===correctIdx?'⌨ Space to bank & advance':''),'doubledip-miss':'⌨ Space to try again','steal-peek':'⌨ 1–4 for their pick'};
+  const kbHint=kbHints[stage]||'';
 
   return `<div class="flow-card">
     <div class="flow-level" style="display:flex;align-items:center;justify-content:space-between;">
@@ -1913,6 +1938,7 @@ function renderFlowCard(isPuzzleLevel){
     ${showLL?`<div class="flow-lifelines" style="margin-top:10px;">${LIFELINE_DEFS.map(({key,label,icon})=>
       `<button class="btn btn-ghost btn-sm" ${ll[key]?'disabled style="opacity:0.35;text-decoration:line-through;"':''} onclick="useLifeline('${key}')">${icon} ${label}</button>`
     ).join('')}</div>`:''}
+    ${kbHint?`<div class="kb-hint">${kbHint}</div>`:''}
   </div>`;
 }
 
@@ -1980,7 +2006,9 @@ function renderWagerTab(){
   const allIn=state.players.every(p=>w.wagers[p.id]!==undefined);
   const wagerRows=state.players.map(p=>{
     const amount=w.wagers[p.id];
-    return `<div class="wager-row">
+    const justArrived=amount!==undefined&&!seenWagerIds.has(p.id);
+    if(amount!==undefined) seenWagerIds.add(p.id);
+    return `<div class="wager-row${justArrived?' vote-flash':''}">
       <span>${esc(p.name)} <span class="text-muted">(${money(p.personalBank)} available)</span></span>
       <span style="font-weight:700;color:${amount!==undefined?'var(--c-gold)':'var(--c-muted)'};">${amount!==undefined?money(amount):'waiting…'}</span>
     </div>`;
@@ -2073,18 +2101,35 @@ function renderSetupTab(){
     <hr class="divider">
     <button class="btn btn-ghost btn-block btn-sm" onclick="loadTestData()">⚄ Load Test Data</button>`;
 
-  return `<div class="setup-grid">
-    <div>
-      ${panelWrap('su-players','👥','Players & Teams',playersBody)}
-      ${panelWrap('su-levels','🎯','Level Types',levelBody)}
-    </div>
-    <div>
-      ${panelWrap('su-questions','❓','Question Bank',renderQuestionsTab())}
-      ${panelWrap('su-phrases','🧩','Puzzle Phrases',phraseBody)}
-      ${panelWrap('su-ready','✅','Ready Check',readyBody)}
-    </div>
+  const steps=[
+    {key:'players', num:1, icon:'👥', label:'Players & Teams', body:playersBody},
+    {key:'questions', num:2, icon:'❓', label:'Questions', body:renderQuestionsTab()},
+    {key:'levels', num:3, icon:'🎯', label:'Levels & Puzzles', body:levelBody+'<hr class="divider">'+phraseBody},
+    {key:'ready', num:4, icon:'✅', label:'Ready Check', body:readyBody},
+  ];
+  if(!steps.some(s=>s.key===setupStep)) setupStep='players';
+  const idx=steps.findIndex(s=>s.key===setupStep);
+  const cur=steps[idx];
+
+  const stepRail=`<div class="setup-steps">
+    ${steps.map(s=>`<button class="setup-step-pill ${s.key===setupStep?'active':''}" onclick="goSetupStep('${s.key}')">
+      <span class="setup-step-num">${s.num}</span>${s.icon} ${s.label}
+    </button>`).join('')}
   </div>`;
+
+  const prevBtn=idx>0?`<button class="btn btn-ghost" onclick="goSetupStep('${steps[idx-1].key}')">← Back</button>`:'<span></span>';
+  const nextBtn=idx<steps.length-1?`<button class="btn btn-primary" onclick="goSetupStep('${steps[idx+1].key}')">Next →</button>`:'<span></span>';
+
+  return `${stepRail}
+    <div class="card" style="max-width:760px;margin:0 auto;">
+      <div style="font-size:12px;text-transform:uppercase;letter-spacing:0.1em;color:var(--c-gold);font-weight:700;margin-bottom:14px;">${cur.icon} ${cur.label}</div>
+      ${cur.body}
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:16px;border-top:1px solid var(--c-border);">
+        ${prevBtn}${nextBtn}
+      </div>
+    </div>`;
 }
+function goSetupStep(step){ setupStep=step; renderHost(); }
 
 function renderQuestionsTab(){
   const byDiff={easy:[],medium:[],hard:[]};
@@ -2172,6 +2217,15 @@ function copyPlayerLink(){
   const url=new URL(location.href); url.searchParams.set('lobby',currentLobbyCode); url.hash='player';
   navigator.clipboard.writeText(url.toString()).then(()=>{}).catch(()=>{});
   showUrlModal('Player Link — send this to players', url.toString());
+}
+function openHostMoreMenu(){
+  showPicker('More actions', [
+    {label:'⚖ Manual Adjustment', value:'adjust'},
+    {label:'↺ New Game', value:'newgame'},
+  ], v=>{
+    if(v==='adjust') openAdjustModal();
+    else if(v==='newgame') newGame();
+  });
 }
 
 /* ============================================================
@@ -2542,7 +2596,7 @@ async function loadAndRenderLobbyList(){
 async function openExistingLobby(slug){
   const errEl=document.getElementById('host-error');
   const ok=await loadLobby(slug); if(!ok){ if(errEl) errEl.textContent='Lobby not found.'; return; }
-  currentLobbyCode=slug; setLobbyInUrl(slug); render();
+  currentLobbyCode=slug; setupStep='players'; setLobbyInUrl(slug); render();
 }
 async function deleteLobbyFromList(slug){
   if(!confirm('Delete this lobby? Cannot be undone.')) return;
@@ -2606,6 +2660,35 @@ window.addEventListener('hashchange',()=>{
   mode=detectMode();
   render();
 });
+
+/* ===== Keyboard shortcuts (host, live play only) ===== */
+function keyToOptionIndex(key){
+  const map={'1':0,'2':1,'3':2,'4':3,'a':0,'b':1,'c':2,'d':3,'A':0,'B':1,'C':2,'D':3};
+  return key in map ? map[key] : null;
+}
+function handleHostKeydown(e){
+  if(mode!=='host'||hostTab!=='game') return;
+  const active=document.activeElement;
+  const tag=active&&active.tagName?active.tagName.toLowerCase():'';
+  if(tag==='input'||tag==='textarea'||tag==='select'||(active&&active.isContentEditable)) return;
+  if(document.getElementById('modal-overlay')?.classList.contains('show')) return;
+
+  const f=state.flow; const q=state.currentQuestion;
+  const key=e.key;
+
+  const optIdx=keyToOptionIndex(key);
+  if(optIdx!==null&&q&&optIdx<q.options.length){
+    if(f.stage==='selecting'){ e.preventDefault(); hostSelectAnswer(optIdx); return; }
+    if(f.stage==='steal-peek'){ e.preventDefault(); hostSetStealVote(optIdx); return; }
+  }
+
+  if(key===' '||key==='Enter'){
+    if(['idle','question','options'].includes(f.stage)&&q){ e.preventDefault(); flowAdvance(); return; }
+    if(f.stage==='revealed'&&q&&f.hotSeatAnswer===correctDisplayIdx(q)){ e.preventDefault(); markCorrect(); return; }
+    if(f.stage==='doubledip-miss'){ e.preventDefault(); retryDoubleDip(); return; }
+  }
+}
+document.addEventListener('keydown', handleHostKeydown);
 
 (async function init(){
   mode=detectMode();
