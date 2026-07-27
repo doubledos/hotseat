@@ -288,8 +288,8 @@ body.mode-display .app>*{position:relative;z-index:1;}
 .tv-opt{background:var(--tv-panel-solid);color:var(--tv-text);border:1px solid var(--tv-border);border-radius:10px;padding:clamp(12px,1.8vh,20px) clamp(14px,2.2vw,24px);font-size:clamp(18px,2.5vw,26px);font-weight:600;text-align:left;opacity:0;transform:translateY(8px);transition:all .4s var(--tv-ease);box-shadow:0 4px 16px rgba(0,0,0,0.15);}
 .tv-opt.shown{opacity:1;transform:none;}
 .tv-opt.is-answer{border-color:var(--c-green-light);box-shadow:0 0 0 2px var(--c-green-light),0 0 20px rgba(74,190,122,0.3);}
-.tv-opt.hs-pick{border-color:var(--tv-accent);box-shadow:0 0 0 2px var(--tv-accent),0 0 20px rgba(212,168,67,0.35);}
-.tv-opt.steal-pick{border-color:var(--tv-accent);box-shadow:0 0 0 2px var(--tv-accent),0 0 20px rgba(212,168,67,0.35);border-style:dashed;}
+.tv-opt.pick-team-a{border-color:var(--team-a-mid);box-shadow:0 0 0 2px var(--team-a-mid),0 0 20px rgba(62,198,255,0.35);}
+.tv-opt.pick-team-b{border-color:var(--team-b-mid);box-shadow:0 0 0 2px var(--team-b-mid),0 0 20px rgba(255,141,199,0.35);}
 @keyframes tv-reveal-pop{0%{transform:scale(0.85);opacity:0;}60%{transform:scale(1.04);opacity:1;}100%{transform:scale(1);opacity:1;}}
 @keyframes tv-hero-enter{0%{transform:translateX(-16px);opacity:0;}100%{transform:translateX(0);opacity:1;}}
 #tv-result-banner.pop>*{animation:tv-reveal-pop .38s var(--tv-ease) both;}
@@ -702,11 +702,6 @@ function sndDoubleDip(){ tone(392,0,0.1,'sine',0.16); tone(392,0.14,0.1,'sine',0
 function sndFanfare(){
   [523.25,659.25,783.99,1046.5].forEach((f,i)=>tone(f,i*0.13,0.3,'sine',0.22));
 }
-function enableTvSound(btn){
-  getAudioCtx(); sndCorrect();
-  if(btn){ btn.innerHTML=tvIcon('speaker')+' Sound on'; btn.style.opacity='1'; btn.disabled=true; }
-}
-
 // Detect hash-based routing
 function detectMode(){
   const h = location.hash;
@@ -2592,8 +2587,8 @@ function renderDisplay(){
         // Only show options that have been revealed one by one
         const isRevealed=(f.stage==='options'&&di<f.optionsRevealed)||['selecting','revealing','revealed','steal-peek','steal-reveal'].includes(f.stage);
         let cls='tv-opt'+(isRevealed?' shown':'');
-        if(isStealPick) cls+=showCorrect?(isCorrect?' is-answer':' not-answer'):' steal-pick';
-        else if(showHSAnswer&&isHSPick) cls+=showCorrect?(isCorrect?' is-answer':' not-answer'):' hs-pick';
+        if(isStealPick) cls+=showCorrect?(isCorrect?' is-answer':' not-answer'):' pick-'+(s.panelTeam==='B'?'team-b':'team-a');
+        else if(showHSAnswer&&isHSPick) cls+=showCorrect?(isCorrect?' is-answer':' not-answer'):' pick-'+(state.hotSeatTeam==='B'?'team-b':'team-a');
         if(showCorrect&&isCorrect&&!isHSPick&&!isStealPick) cls+=' is-answer';
         if(showCorrect&&!isCorrect&&!isHSPick&&!isStealPick) cls+=' not-answer';
         if((f.stage==='revealed'||f.stage==='doubledip-miss')&&!isHSPick) cls+=' not-answer';
@@ -2644,7 +2639,6 @@ function renderDisplay(){
             <div style="font:600 clamp(11px,1.4vh,16px) var(--font-heading);letter-spacing:0.06em;color:var(--tv-wordmark);">Scan to join!</div>
           </div>
         </div>
-        <button onclick="enableTvSound(this)" style="position:absolute;left:clamp(14px,3vw,36px);bottom:clamp(14px,3vh,36px);background:none;border:1px solid var(--tv-border);border-radius:8px;padding:8px 12px;font:600 clamp(11px,1.4vh,14px) var(--font-heading);letter-spacing:0.04em;color:var(--tv-wordmark);opacity:0.7;cursor:pointer;display:flex;align-items:center;gap:6px;">${tvIcon('speaker')} Tap to enable sound</button>
       `:`
         <div class="tv-hotseat-name" style="color:${teamMidColor(state.hotSeatTeam)}">${hp?esc(hp.name):'—'}</div>
         <div class="tv-waiting" style="font-size:clamp(18px,3.5vw,38px);margin-top:20px;">Waiting for host…</div>
