@@ -31,6 +31,8 @@
   --c-red-light:#d6524f;
   --c-blue:#1a5fa8;
   --c-purple:#6b3fa0;
+  --c-steal:#3ec6ff;
+  --c-steal-dim:#1c8fc4;
   --r:12px;
   --shadow:0 8px 24px rgba(120,70,20,0.18);
   --shadow-gold:0 0 18px rgba(217,74,31,0.2);
@@ -269,16 +271,26 @@ body.mode-display .app>*{position:relative;z-index:1;}
 .tv-team-next b{color:var(--tv-accent);font-weight:700;}
 .tv-center-top{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 20px;min-width:180px;}
 .tv-level-badge{font-size:15px;text-transform:uppercase;letter-spacing:0.12em;color:var(--tv-accent);font-weight:700;text-shadow:var(--tv-text-shadow);margin-top:4px;}
-.tv-main{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px 40px;text-align:center;overflow-y:auto;position:relative;}
+.tv-main{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:safe center;padding:20px 40px;text-align:center;overflow-y:auto;position:relative;}
 .tv-waiting{font-size:clamp(28px,5vw,52px);color:var(--tv-text-soft);font-family:var(--font-display);letter-spacing:0.06em;text-shadow:var(--tv-text-shadow);}
 .tv-q-text{font-size:clamp(26px,4.6vw,54px);font-weight:700;line-height:1.25;color:var(--tv-text);margin-bottom:clamp(12px,2vh,24px);max-width:1100px;text-shadow:var(--tv-text-shadow);}
 .tv-hotseat-name{font-size:clamp(32px,5.4vw,64px);font-family:var(--font-display);color:var(--tv-accent);letter-spacing:0.04em;margin-bottom:clamp(10px,1.5vh,20px);text-shadow:var(--tv-text-shadow);}
 .tv-hotseat-team{font-size:clamp(14px,1.7vw,19px);color:var(--tv-text-soft);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:clamp(12px,2vh,24px);text-shadow:var(--tv-text-shadow);}
+.tv-prev-turn{display:flex;align-items:center;justify-content:center;gap:8px;font-size:clamp(13px,1.6vw,16px);color:var(--tv-text-soft);text-shadow:var(--tv-text-shadow);opacity:0.75;margin-bottom:clamp(10px,1.6vh,18px);}
+.tv-prev-turn b{color:var(--tv-text-soft);text-decoration:line-through;text-decoration-color:var(--c-red-light);font-weight:600;}
+.tv-steal-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:clamp(13px,1.7vw,17px);font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:var(--c-steal);text-shadow:0 2px 6px rgba(0,0,0,0.5);margin-bottom:clamp(8px,1.2vh,14px);}
+.tv-hotseat-name.is-steal{color:var(--c-steal);}
+.tv-hotseat-team.is-steal{color:var(--c-steal-dim);}
 .tv-opts{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:1000px;width:100%;margin:0 auto;}
 .tv-opt{background:var(--tv-panel-solid);color:var(--tv-text);border:1px solid var(--tv-border);border-radius:10px;padding:clamp(12px,1.8vh,20px) clamp(14px,2.2vw,24px);font-size:clamp(18px,2.5vw,26px);font-weight:600;text-align:left;opacity:0;transform:translateY(8px);transition:all .4s;box-shadow:0 4px 16px rgba(0,0,0,0.15);}
 .tv-opt.shown{opacity:1;transform:none;}
 .tv-opt.is-answer{border-color:var(--c-green-light);box-shadow:0 0 0 2px var(--c-green-light),0 0 20px rgba(74,190,122,0.3);}
 .tv-opt.hs-pick{border-color:var(--tv-accent);box-shadow:0 0 0 2px var(--tv-accent),0 0 20px rgba(212,168,67,0.35);}
+.tv-opt.steal-pick{border-color:var(--c-steal);box-shadow:0 0 0 2px var(--c-steal),0 0 20px rgba(62,198,255,0.35);}
+@keyframes tv-reveal-pop{0%{transform:scale(0.85);opacity:0;}60%{transform:scale(1.04);opacity:1;}100%{transform:scale(1);opacity:1;}}
+#tv-result-banner.pop>*{animation:tv-reveal-pop .38s cubic-bezier(.2,1.4,.4,1) both;}
+.tv-hotseat-name{position:relative;}
+.tv-hotseat-name::before{content:'';position:absolute;left:50%;top:50%;width:140%;height:280%;transform:translate(-50%,-50%);background:radial-gradient(ellipse at center,var(--tv-panel,rgba(255,255,255,0.1)) 0%,transparent 68%);z-index:-1;pointer-events:none;}
 .tv-opt.not-answer{opacity:0.25;}
 .tv-opt-letter{color:var(--tv-accent);font-weight:700;margin-right:8px;}
 .tv-bottom{background:transparent;border-top:1px solid var(--tv-border);padding:12px 20px;}
@@ -618,6 +630,44 @@ let lastWheelSeen = 0;
 let lastVoteFlashKey = '';
 let seenWagerIds = new Set();
 let puzzleTimerRAF = null;
+let lastFlowStage = '';
+let lastTimerTickSec = null;
+let lastEndedSeen = false;
+
+/* ===== Sound design — synthesized WebAudio stings, no audio files needed ===== */
+let audioCtx = null;
+function getAudioCtx(){
+  if(!audioCtx){
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(!AC) return null;
+    audioCtx = new AC();
+  }
+  if(audioCtx.state==='suspended') audioCtx.resume();
+  return audioCtx;
+}
+document.addEventListener('click', getAudioCtx, {once:false});
+function tone(freq, start, dur, type, peak){
+  const ctx=getAudioCtx(); if(!ctx) return;
+  const osc=ctx.createOscillator(); const gain=ctx.createGain();
+  osc.type=type||'sine'; osc.frequency.setValueAtTime(freq, ctx.currentTime+start);
+  gain.gain.setValueAtTime(0, ctx.currentTime+start);
+  gain.gain.linearRampToValueAtTime(peak!==undefined?peak:0.18, ctx.currentTime+start+0.01);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+start+dur);
+  osc.connect(gain); gain.connect(ctx.destination);
+  osc.start(ctx.currentTime+start); osc.stop(ctx.currentTime+start+dur+0.02);
+}
+function sndTick(urgent){ tone(urgent?1400:1000, 0, 0.08, 'square', urgent?0.14:0.08); }
+function sndCorrect(){ tone(523.25,0,0.14,'sine',0.2); tone(659.25,0.1,0.14,'sine',0.2); tone(783.99,0.2,0.28,'sine',0.22); }
+function sndWrong(){ tone(200,0,0.16,'sawtooth',0.16); tone(150,0.12,0.26,'sawtooth',0.16); }
+function sndSteal(){ tone(440,0,0.1,'triangle',0.16); tone(660,0.08,0.1,'triangle',0.16); tone(880,0.16,0.2,'triangle',0.18); }
+function sndDoubleDip(){ tone(392,0,0.1,'sine',0.16); tone(392,0.14,0.1,'sine',0.16); }
+function sndFanfare(){
+  [523.25,659.25,783.99,1046.5].forEach((f,i)=>tone(f,i*0.13,0.3,'sine',0.22));
+}
+function enableTvSound(btn){
+  getAudioCtx(); sndCorrect();
+  if(btn){ btn.textContent='🔊 Sound on'; btn.style.opacity='1'; btn.disabled=true; }
+}
 
 // Detect hash-based routing
 function detectMode(){
@@ -2388,6 +2438,27 @@ function renderDisplay(){
   const isSetup=state.gamePhase==='setup'||!hp;
   root.className='app tv-stage-'+tvStage;
 
+  const stageJustChanged=f.stage!==lastFlowStage;
+  if(stageJustChanged){
+    if(f.stage==='revealed'&&f.hotSeatAnswer===correctDisplayIdx(q)) sndCorrect();
+    else if(f.stage==='doubledip-miss') sndDoubleDip();
+    else if(f.stage==='steal-peek') sndWrong();
+    else if(f.stage==='steal-reveal'){
+      const nil=s?getNextInLine(s.panelTeam):null;
+      const theirVote=nil?s.votes[nil.id]:undefined;
+      if(theirVote===correctDisplayIdx(q)) sndSteal(); else sndWrong();
+    }
+    lastFlowStage=f.stage;
+  }
+  if(state.ended&&!lastEndedSeen){ sndFanfare(); lastEndedSeen=true; }
+  else if(!state.ended) lastEndedSeen=false;
+  if(puz.active&&(puz.timerStartedAt||puz.timerElapsed)){
+    const elapsed=puz.timerPaused?(puz.timerElapsed||0):(puz.timerElapsed||0)+(Date.now()-(puz.timerStartedAt||Date.now()));
+    const secs=Math.ceil(Math.max(0,PUZZLE_TIMER_MS-elapsed)/1000);
+    if(secs<=5&&secs>0&&secs!==lastTimerTickSec) sndTick(true);
+    lastTimerTickSec=secs;
+  } else { lastTimerTickSec=null; }
+
   const showNext=(state.gamePhase==='live'||state.gamePhase==='wager');
   const topbar=isSetup?'':`<div class="tv-topbar">
     <div class="tv-team-box ${state.hotSeatTeam==='A'?'is-hot':''}">
@@ -2444,49 +2515,56 @@ function renderDisplay(){
     const showOpts=['options','selecting','revealing','revealed','doubledip-miss','steal-peek','steal-reveal'].includes(f.stage);
     const showHSAnswer=['revealed','doubledip-miss','steal-peek','steal-reveal'].includes(f.stage);
     const showCorrect=f.stage==='steal-reveal';
+    const isSteal=(f.stage==='steal-peek'||f.stage==='steal-reveal')&&s;
+    const stealNilTV=s?getNextInLine(s.panelTeam):null;
+    const stealNilLabel=stealNilTV?esc(stealNilTV.name):'Other team';
     let optsHtml='';
     if(isMC&&showOpts){
+      const stealPickIdx=(isSteal&&stealNilTV)?s.votes[stealNilTV.id]:undefined;
       optsHtml='<div class="tv-opts">'+q.displayOrder.map((origIdx,di)=>{
         const isCorrect=origIdx===0; const isHSPick=f.hotSeatAnswer===di;
+        const isStealPick=isSteal&&stealPickIdx===di;
         // Only show options that have been revealed one by one
         const isRevealed=(f.stage==='options'&&di<f.optionsRevealed)||['selecting','revealing','revealed','steal-peek','steal-reveal'].includes(f.stage);
         let cls='tv-opt'+(isRevealed?' shown':'');
-        if(showHSAnswer&&isHSPick) cls+=showCorrect?(isCorrect?' is-answer':' not-answer'):' hs-pick';
-        if(showCorrect&&isCorrect&&!isHSPick) cls+=' is-answer';
-        if(showCorrect&&!isCorrect&&!isHSPick) cls+=' not-answer';
+        if(isStealPick) cls+=showCorrect?(isCorrect?' is-answer':' not-answer'):' steal-pick';
+        else if(showHSAnswer&&isHSPick) cls+=showCorrect?(isCorrect?' is-answer':' not-answer'):' hs-pick';
+        if(showCorrect&&isCorrect&&!isHSPick&&!isStealPick) cls+=' is-answer';
+        if(showCorrect&&!isCorrect&&!isHSPick&&!isStealPick) cls+=' not-answer';
         if((f.stage==='revealed'||f.stage==='doubledip-miss')&&!isHSPick) cls+=' not-answer';
         return `<div class="${cls}"><span class="tv-opt-letter">${letterFor(di)})</span>${esc(q.options[origIdx])}</div>`;
       }).join('')+'</div>';
     } else if(!isMC&&showCorrect){
       optsHtml=`<div style="margin-top:20px;font-size:clamp(18px,3vw,32px);font-weight:700;color:var(--c-green-light);">✓ ${esc(q.options[0])}</div>`;
     }
-    let stealGuessBanner='';
-    if(f.stage==='steal-peek'&&s){
-      const nil=getNextInLine(s.panelTeam); const theirVote=nil?s.votes[nil.id]:undefined;
-      if(theirVote!==undefined) stealGuessBanner=`<div class="tv-steal-banner" style="margin-top:14px;">${esc(nil?nil.name:'Other team')} guessed: ${letterFor(theirVote)}</div>`;
-    }
     // Result banner
     let resultBanner='';
-    const stealNilTV=s?getNextInLine(s.panelTeam):null;
-    const stealNilLabel=stealNilTV?esc(stealNilTV.name):'Other team';
     if(f.stage==='revealed'&&f.hotSeatAnswer===correctIdx){
       resultBanner='<div style="margin-top:18px;padding:14px 20px;background:rgba(46,139,87,0.2);border:2px solid var(--c-green-light);border-radius:12px;font-size:clamp(20px,3vw,32px);font-weight:700;color:var(--c-green-light);text-align:center;">✓ CORRECT!</div>';
     } else if(f.stage==='doubledip-miss'){
       resultBanner='<div style="margin-top:18px;padding:14px 20px;background:var(--tv-panel-solid);border:2px solid var(--tv-accent);border-radius:12px;font-size:clamp(18px,2.5vw,28px);font-weight:700;color:var(--tv-accent);text-shadow:var(--tv-text-shadow);text-align:center;">🔁 DOUBLE DIP — One more guess!</div>';
     } else if(f.stage==='steal-peek'){
-      resultBanner='<div style="margin-top:14px;padding:12px 20px;background:rgba(176,48,48,0.15);border:1px solid var(--c-red-light);border-radius:10px;text-align:center;"><div style="font-size:clamp(14px,2vw,20px);font-weight:700;color:var(--c-red-light);">✗ Wrong!</div><div style="font-size:clamp(13px,1.8vw,18px);color:var(--tv-text);text-shadow:var(--tv-text-shadow);margin-top:4px;">'+stealNilLabel+' ('+esc(s?teamName(s.panelTeam):'')+')'+'</div></div>';
+      const stealVoteTV=stealNilTV?s.votes[stealNilTV.id]:undefined;
+      if(stealVoteTV===undefined) resultBanner='<div style="margin-top:14px;padding:10px 20px;background:rgba(62,198,255,0.12);border:1px solid var(--c-steal-dim);border-radius:10px;font-size:clamp(14px,2vw,19px);font-weight:600;color:var(--c-steal);text-align:center;">Waiting for their guess…</div>';
     } else if(f.stage==='steal-reveal'){
       const stealVoteTV=stealNilTV?s.votes[stealNilTV.id]:undefined;
       const stealCorrect=stealVoteTV===correctIdx;
       resultBanner=stealCorrect
-        ?'<div style="margin-top:14px;padding:14px 20px;background:rgba(46,139,87,0.2);border:2px solid var(--c-green-light);border-radius:12px;font-size:clamp(18px,2.5vw,28px);font-weight:700;color:var(--c-green-light);text-align:center;">✓ '+stealNilLabel+' steals the seat!</div>'
-        :'<div style="margin-top:14px;padding:14px 20px;background:rgba(176,48,48,0.2);border:2px solid var(--c-red-light);border-radius:12px;font-size:clamp(16px,2.2vw,24px);font-weight:700;color:var(--c-red-light);text-align:center;">✗ Nobody steals — '+(hp?esc(hp.name):'original player')+' keeps the seat</div>';
+        ?'<div style="margin-top:14px;padding:14px 20px;background:rgba(46,139,87,0.2);border:2px solid var(--c-green-light);border-radius:12px;font-size:clamp(18px,2.5vw,28px);font-weight:700;color:var(--c-green-light);text-align:center;">✓ Steal successful — '+stealNilLabel+' takes the seat!</div>'
+        :'<div style="margin-top:14px;padding:14px 20px;background:rgba(176,48,48,0.2);border:2px solid var(--c-red-light);border-radius:12px;font-size:clamp(16px,2.2vw,24px);font-weight:700;color:var(--c-red-light);text-align:center;">✗ Steal missed — '+(hp?esc(hp.name):'original player')+' keeps the seat</div>';
     }
+    const heroBlock=isSteal
+      ? `<div class="tv-prev-turn">${esc(teamName(state.hotSeatTeam))}'s <b>${hp?esc(hp.name):'—'}</b> missed it</div>
+         <div class="tv-steal-eyebrow">🎯 Now stealing</div>
+         <div class="tv-hotseat-name is-steal">${stealNilLabel}</div>
+         <div class="tv-hotseat-team is-steal">${esc(s?teamName(s.panelTeam):'')}</div>`
+      : `<div class="tv-hotseat-name">${hp?esc(hp.name):'—'}</div>
+         <div class="tv-hotseat-team">${esc(teamName(state.hotSeatTeam))}</div>`;
+    const qTextStyle=isSteal?'font-size:clamp(16px,2.4vw,24px);opacity:0.7;margin-bottom:clamp(8px,1.2vh,14px);':'';
     mainContent=`<div style="width:100%;max-width:900px;">
-      <div class="tv-q-text">${esc(q.text)}</div>
-      <div class="tv-hotseat-name">${hp?esc(hp.name):'—'}</div>
-      <div class="tv-hotseat-team">${esc(teamName(state.hotSeatTeam))}</div>
-      ${optsHtml}${stealGuessBanner}${resultBanner}
+      <div class="tv-q-text" style="${qTextStyle}">${esc(q.text)}</div>
+      ${heroBlock}
+      ${optsHtml}<div id="tv-result-banner">${resultBanner}</div>
     </div>`;
   } else {
     const playerUrl=currentLobbyCode?(location.href.split('?')[0].split('#')[0]+'?lobby='+currentLobbyCode):'';
@@ -2503,6 +2581,7 @@ function renderDisplay(){
             <div style="font:600 clamp(11px,1.4vh,16px) var(--font-heading);letter-spacing:0.06em;color:var(--tv-wordmark);">Scan to join!</div>
           </div>
         </div>
+        <button onclick="enableTvSound(this)" style="position:absolute;left:clamp(14px,3vw,36px);bottom:clamp(14px,3vh,36px);background:none;border:1px solid var(--tv-border);border-radius:8px;padding:8px 12px;font:600 clamp(11px,1.4vh,14px) var(--font-heading);letter-spacing:0.04em;color:var(--tv-wordmark);opacity:0.7;cursor:pointer;">🔊 Tap to enable sound</button>
       `:`
         <div class="tv-hotseat-name">${hp?esc(hp.name):'—'}</div>
         <div class="tv-hotseat-team">${esc(teamName(state.hotSeatTeam))}</div>
@@ -2544,6 +2623,10 @@ function renderDisplay(){
   if(puz.active&&puz.glitchAt&&puz.glitchAt!==lastGlitchSeen){
     lastGlitchSeen=puz.glitchAt;
     if(Date.now()-puz.glitchAt<10000){ const t=document.getElementById('tv-glitch-target'); if(t){ t.classList.add('glitching'); setTimeout(()=>t.classList.remove('glitching'),1900); } }
+  }
+  if(stageJustChanged){
+    const rb=document.getElementById('tv-result-banner');
+    if(rb&&rb.innerHTML.trim()){ rb.classList.add('pop'); setTimeout(()=>rb.classList.remove('pop'),450); }
   }
   if(state.wheel&&state.wheel.spunAt!==lastWheelSeen){ lastWheelSeen=state.wheel.spunAt; animateWheel(state.wheel,'tv'); }
   else if(state.wheel){
