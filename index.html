@@ -31,8 +31,6 @@
   --c-red-light:#d6524f;
   --c-blue:#1a5fa8;
   --c-purple:#6b3fa0;
-  --c-steal:#3ec6ff;
-  --c-steal-dim:#1c8fc4;
   --r:12px;
   --shadow:0 8px 24px rgba(120,70,20,0.18);
   --shadow-gold:0 0 18px rgba(217,74,31,0.2);
@@ -252,9 +250,9 @@ body.mode-display .timer-label{font-size:20px;font-weight:600;color:var(--tv-tex
 /* ===== TV Display ===== */
 body.mode-display{overflow:hidden;}
 body.mode-display .app{height:100vh;width:100%;display:flex;flex-direction:column;overflow:hidden;position:relative;isolation:isolate;
-  background-color:var(--tv-bg);--tv-text-shadow:0 2px 8px rgba(0,0,0,0.35);--tv-panel-solid:rgba(0,0,0,0.12);}
-body.mode-display .app::before{content:'';position:absolute;inset:0;background-image:var(--tv-pattern);background-repeat:repeat;background-size:clamp(160px,22vw,420px) clamp(160px,22vw,420px);z-index:0;}
-body.mode-display .app::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at center, transparent 50%, var(--tv-bg) 88%);z-index:0;}
+  background-color:var(--tv-bg);--tv-text-shadow:0 2px 8px rgba(0,0,0,0.35);--tv-panel-solid:rgba(0,0,0,0.12);--tv-ease:cubic-bezier(.22,1,.36,1);}
+body.mode-display .app::before{content:'';position:absolute;inset:0;background-image:var(--tv-pattern);background-repeat:repeat;background-size:clamp(160px,22vw,420px) clamp(160px,22vw,420px);opacity:0.55;z-index:0;}
+body.mode-display .app::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at center, transparent 32%, var(--tv-bg) 82%);z-index:0;}
 body.mode-display .app>*{position:relative;z-index:1;}
 .tv-stage-gold{--tv-bg:#FFF931;--tv-panel:rgba(36,21,6,0.08);--tv-panel-solid:rgba(36,21,6,0.15);--tv-text:#241506;--tv-text-soft:#7F1515;--tv-accent:#7F1515;--tv-wordmark:#7F1515;--tv-border:rgba(36,21,6,0.3);--tv-text-shadow:0 1px 3px rgba(255,255,255,0.7),0 0 14px rgba(255,255,255,0.5);
   --tv-pattern:url("data:image/svg+xml,%3Csvg width='100%' height='100%' viewBox='0 0 2000 2000' version='1.1' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' xml:space='preserve' xmlns:serif='http://www.serif.com/' style='fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;'%3E%3Cg transform='matrix(1.002003,0,0,0.998501,2.004006,0.998501)'%3E%3Crect x='-2' y='-1' width='1996' height='2003' style='fill:rgb(255,249,49);'%3E%3C/rect%3E%3C/g%3E%3Cg transform='matrix(1.953125,0,0,1.953125,0,0)'%3E%3Cpath d='M784.109,386.483C776.147,467.522 731.423,484.649 748.872,532.379C767.132,582.328 845.591,599.209 837.57,517.492C834.205,483.199 788.488,404.668 835.737,348.714C854.015,327.068 868.574,326.876 867.559,329.512C850.907,372.761 851.459,401.218 905.087,467.831C980.699,561.752 896.762,631.19 886.083,640.024C840.921,677.386 788.952,711.653 813.52,780.494C817.675,792.136 704.368,835.371 626.895,767.002C549.641,698.826 596.182,592.281 600.751,555.53C605.874,514.33 588.312,511.331 594.515,510.75C594.922,510.712 612.498,513.334 624.322,524.67C663.423,562.159 631.758,637.712 634.223,663.524C640.305,727.208 761.742,720.113 706.716,607.392C686.847,566.688 635.22,526.739 692.957,448.817C696.78,443.658 762.884,375.693 712.134,298.779C703.108,285.1 690.924,278.65 695.277,279.084C756.355,285.174 784.569,319.197 784.109,386.483Z' style='fill:rgb(255,230,0);'%3E%3C/path%3E%3Cpath d='M623.5,0L703.5,0C707.32,16.902 747.66,20.6 751.5,0L822.5,0C819.823,7.47 800.828,26.598 794.137,55.412C775.778,134.466 840.468,154.78 857.034,110.335C869.604,76.609 842.016,57.78 873.5,0L918.5,0C926.218,48.951 940.286,53.183 911.726,93.654C868.703,154.617 917.178,191.617 867.027,247.079C825.975,292.478 753.447,257.141 756.996,253.987C788.246,226.212 749.487,178.903 689.767,220.902C687.153,222.741 628.778,277.534 569.848,230.087C492.931,168.156 578.745,72.47 523.202,8.757C522.98,8.502 519.875,4.941 521.604,4.846C605.513,0.236 589.479,104.088 590.503,122.5C595.113,205.452 703.671,162.982 659.173,82.673C640.946,49.778 621.151,48.666 623.5,0Z' style='fill:rgb(255,230,0);'%3E%3C/path%3E%3Cpath d='M353.105,628.546C336.608,545.809 277.179,558.712 245.296,499.613C207.694,429.914 261.445,361.472 262.117,360.285C275.597,336.483 266.343,320.836 270.475,322.684C308.696,339.779 287.967,393.657 282.996,415.593C268.508,479.52 322.788,492.105 342.426,477.392C381.618,448.028 339.41,382.075 333.825,369.361C296.774,285.008 344.645,249.327 354.702,219.566C369.165,176.766 346.39,153.064 357.653,161.256C421.183,207.464 408.62,245.457 393.847,324.578C373.59,433.079 464.192,430.656 467.778,373.508C470.242,334.252 409.032,204.537 507.638,169.994C513.291,168.014 508.808,172.365 506.27,178.414C473.121,257.416 551.094,291.846 541.99,369.551C531.227,461.406 442.939,456.312 436.712,555.509C429.892,664.149 342.909,690.343 345.145,683.464C350.721,666.31 356.372,666.275 353.105,628.546Z' style='fill:rgb(255,230,0);'%3E%3C/path%3E%3Cpath d='M0,1006.5L0,530.5C22.712,558.152 14.826,592.447 13.358,608.487C8.101,665.932 74.269,650.563 74.878,589.498C75.16,561.265 22.344,511.413 55.974,454.78C61.318,445.782 80.945,427.448 79.253,437.456C67.675,505.956 148.139,529.342 136.784,617.542C128.45,682.279 41.89,740.983 39.406,825.497C37.111,903.567 113.609,881.054 100.836,836.397C98.194,827.162 70.568,730.578 155.501,729.497C158.06,729.465 152.393,734.384 150.59,736.576C116.566,777.928 162.152,852.201 163.577,855.463C197.751,933.713 149.103,985.922 145.151,990.164C109.853,1028.038 49.074,1022.21 55.649,1018.728C58.195,1017.38 81.46,1005.059 70.101,985.741C53.736,957.908 14.626,997.332 0,1006.5Z' style='fill:rgb(255,230,0);'%3E%3C/path%3E%3Cpath d='M-0,474.5L0,296.5C12.924,283.381 1.34,253.013 0,249.5L0,120.5C3.115,118.367 22.109,94.63 29.011,74.327C30.58,69.715 39.307,44.044 23.079,13.714C16.815,2.006 42.116,15.587 43.572,16.368C98.903,46.069 55.844,106.566 44.213,152.417C17.697,256.942 92.054,245.879 100.674,212.548C106.168,191.299 100.647,173.481 99.27,164.537C91.365,113.199 135.502,99.562 111.439,55.526C108.624,50.375 135.142,59.504 140.82,83.429C149.925,121.791 127.572,126.75 147.992,174.276C165.793,215.708 153.276,217.133 129.915,255.745C92.975,316.801 137.913,331.311 158.368,320.261C184.556,306.112 186.555,269.06 187.402,263.487C197.841,194.836 240.494,201.104 253.318,209.787C264.132,217.108 242.383,214.308 234.376,237.457C226.004,261.663 245.294,382.536 199.443,427.445C151.732,474.174 106.557,412.928 104.286,410.712C44.975,352.816 -18.109,411.481 13.946,472.274C17.929,479.828 10.074,476.116 -0,474.5Z' style='fill:rgb(255,230,0);'%3E%3C/path%3E%3Cpath d='M1023.999,528.5L1023.999,1007.5C1011.028,1014.466 1003.231,1017.898 994.476,1018.213C939.406,1020.196 935.772,960.309 934.659,953.472C919.956,863.125 870.163,853.516 858.931,804.396C840.878,725.449 922.394,715.987 914.091,652.488C913.491,647.904 924.503,655.319 925.278,655.841C973.034,688.001 933.937,732.724 935.21,766.52C937.41,824.915 1034.949,819.416 1003.217,726.594C983.232,668.131 958.31,656.419 990.606,574.543C1007.289,532.249 981.055,503.806 985.519,504.715C1002.322,508.134 1012.112,516.539 1023.999,528.5Z' style='fill:rgb(255,230,0);'%3E%3C/path%3E%3Cpath d='M396.056,759.503C396.295,720.798 397.534,702.4 438.171,652.26C470.241,612.692 483.129,590.978 471.973,554.408C470.558,549.769 484.756,554.811 491.307,559.764C538.961,595.789 479.465,675.744 477.779,678.666C429.164,762.906 490.351,797.122 507.349,768.404C519.857,747.271 511.928,723.09 510.929,714.458C504.294,657.092 558.613,637.13 556.443,642.491C544.807,671.234 545.341,685.096 559.182,726.603C581.082,792.278 527.148,795.679 517.268,844.445C506.815,896.037 562.162,903.822 568.032,851.479C575.206,787.514 628.043,801.347 636.178,806C644.932,811.006 633.575,809.637 625.655,815.712C604.886,831.643 610.311,862.841 611.029,870.532C619.261,958.737 551.222,938.882 518.448,946.29C500.299,950.392 492.713,958.684 491.457,959.302C489.754,960.139 490.706,958.448 491.478,948.499C496.725,880.927 399.181,841.723 396.056,759.503Z' style='fill:rgb(255,230,0);'%3E%3C/path%3E%3Cpath d='M178.5,0L224.5,0C223.578,6.906 211.163,67.472 251.496,83.511C276.675,93.524 319.658,70.44 291.045,7.709C290.853,7.287 290.72,7.486 288.456,2.525C288.367,2.329 288.456,2.525 287.5,0L377.5,0C362.568,46.993 386.149,65.584 397.491,68.528C438.878,79.273 442.607,21.233 446.5,0L485.5,0C484.25,51.418 505.602,82.248 481.111,116.203C439.408,174.021 376.56,120.404 318.67,141.991C313.306,143.991 251.584,188.051 195.993,122.1C190.564,115.659 177.495,94.702 173.273,72.545C166.524,37.131 175.532,11.48 178.5,0Z' style='fill:rgb(255,230,0);'%3E%3C/path%3E%3Cpath d='M1023.999,299.5L1023.999,474.5C1021.765,474.02 950.182,464.902 913.916,397.282C873.751,322.393 915.604,270.494 925.705,241.581C951.119,168.834 888.837,148.653 946.898,97.951C975.982,72.554 963.278,64.693 968.518,59.514C970.762,57.297 991.583,79.737 969.029,112.183C937.393,157.696 982.716,159.31 981.912,205.512C981.51,228.669 944.365,274.553 971.777,302.219C982.604,313.146 1005.773,316.591 1019.362,303.36C1021.684,301.098 1021.678,301.432 1023.999,299.5Z' style='fill:rgb(255,230,0);'%3E%3C/path%3E%3Cpath d='M164.115,681.526C162.116,609.614 206.644,594.564 190.783,529.428C185.21,506.543 177.53,501.371 176.681,499.454C175.289,496.312 202.439,508.211 215.065,523.865C249.196,566.182 211.135,609.799 212.906,661.476C214.613,711.314 262.992,705.73 268.032,671.439C271.84,645.53 242.238,598.831 289.485,570.45C293.166,568.239 290.949,572.043 290.897,585.498C290.664,644.943 358.686,678.697 286.219,741.12C253.104,769.646 251.643,773.662 260.524,816.495C265.454,840.27 242.637,875.922 227.545,881.709C218.094,885.333 245.011,866.166 218.115,830.806C203.108,811.076 198.409,809.98 207.177,780.406C223.458,725.493 172.165,738.289 164.115,681.526Z' style='fill:rgb(255,230,0);'%3E%3C/path%3E%3Cpath d='M378.5,1023.999L286.5,1023.999C283.725,1016.713 283.101,1017.233 275.987,1006.202C233.698,940.625 278.051,906.235 291.007,885.178C310.553,853.413 296.904,836.326 303.404,842.644C337.862,876.129 308.676,905.156 305.186,938.461C299.467,993.036 372.286,1004.236 366.822,929.463C363.077,878.222 281.98,819.613 339.74,762.957C349.174,753.704 319.746,798.467 381.156,849.88C475.569,928.923 378.682,998.266 378.5,1023.999Z' style='fill:rgb(255,230,0);'%3E%3C/path%3E%3Cpath d='M549.023,568.296C546.191,568.602 518.567,535.327 527.152,489.426C539.927,421.121 607.332,404.981 595.812,339.441C587.198,290.43 544.586,274.258 555.489,275.397C573.764,277.308 611.131,279.499 633.12,322.672C643.643,343.332 639.872,344.287 638.761,367.46C638.447,374.011 663.428,352.086 657.748,311.463C655.921,298.396 686.731,331.705 679.595,372.517C662.247,471.746 551.934,444.012 549.023,568.296Z' style='fill:rgb(255,230,0);'%3E%3C/path%3E%3Cpath d='M825.5,1023.999L752.5,1023.999C770.142,965.926 689.994,932.342 769.904,871C799.798,848.052 803.377,846.428 810.801,825.621C812.445,821.015 838.238,848.539 808.097,885.16C805.644,888.14 764.474,926.268 799.761,946.047C825.561,960.508 847.181,937.829 840.793,915.426C835.62,897.284 825.357,881.383 841.904,860.881C846.036,855.76 840.661,871.984 854.897,890.181C861.34,898.416 912.448,945.903 851.078,1000.039C828.342,1020.094 827.661,1019.546 825.5,1023.999Z' style='fill:rgb(255,230,0);'%3E%3C/path%3E%3Cpath d='M701.5,1023.999L623.5,1023.999C624.001,1020.839 627.261,1000.279 634.712,985.609C666.894,922.241 669.014,915.025 653.354,872.516C652.062,869.01 678.651,874.929 689.008,891.78C709.337,924.857 681.775,969.832 701.5,1023.999Z' style='fill:rgb(255,230,0);'%3E%3C/path%3E%3Cpath d='M225.5,1023.999L179.5,1023.999C185.337,1000.545 199.892,970.745 199.879,937.503C199.864,900.356 179.308,892.56 190.528,895.14C257.937,910.639 227.669,1014.047 225.5,1023.999Z' style='fill:rgb(255,230,0);'%3E%3C/path%3E%3Cpath d='M1023.999,123.5L1023.999,245.5C1013.129,224.838 979.654,169.822 1023.999,123.5Z' style='fill:rgb(255,230,0);'%3E%3C/path%3E%3Cpath d='M486.5,1023.999L447.5,1023.999C452.251,999.616 463.303,981.621 506.53,979.386C514.159,978.992 494.84,982.694 487.734,1013.556C486.541,1018.737 485.959,1018.598 486.5,1023.999Z' style='fill:rgb(255,230,0);'%3E%3C/path%3E%3Cpath d='M918.5,1023.999L874.5,1023.999C896.375,990.262 923.825,993.666 923.95,994.345C924.707,998.448 916.542,1001.802 918.5,1023.999Z' style='fill:rgb(255,230,0);'%3E%3C/path%3E%3C/g%3E%3C/svg%3E");}
@@ -278,19 +276,24 @@ body.mode-display .app>*{position:relative;z-index:1;}
 .tv-hotseat-team{font-size:clamp(14px,1.7vw,19px);color:var(--tv-text-soft);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:clamp(12px,2vh,24px);text-shadow:var(--tv-text-shadow);}
 .tv-prev-turn{display:flex;align-items:center;justify-content:center;gap:8px;font-size:clamp(13px,1.6vw,16px);color:var(--tv-text-soft);text-shadow:var(--tv-text-shadow);opacity:0.75;margin-bottom:clamp(10px,1.6vh,18px);}
 .tv-prev-turn b{color:var(--tv-text-soft);text-decoration:line-through;text-decoration-color:var(--c-red-light);font-weight:600;}
-.tv-steal-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:clamp(13px,1.7vw,17px);font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:var(--c-steal);text-shadow:0 2px 6px rgba(0,0,0,0.5);margin-bottom:clamp(8px,1.2vh,14px);}
-.tv-hotseat-name.is-steal{color:var(--c-steal);}
-.tv-hotseat-team.is-steal{color:var(--c-steal-dim);}
+.tv-steal-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:clamp(13px,1.7vw,17px);font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:var(--tv-accent);text-shadow:var(--tv-text-shadow);margin-bottom:clamp(8px,1.2vh,14px);}
 .tv-opts{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:1000px;width:100%;margin:0 auto;}
-.tv-opt{background:var(--tv-panel-solid);color:var(--tv-text);border:1px solid var(--tv-border);border-radius:10px;padding:clamp(12px,1.8vh,20px) clamp(14px,2.2vw,24px);font-size:clamp(18px,2.5vw,26px);font-weight:600;text-align:left;opacity:0;transform:translateY(8px);transition:all .4s;box-shadow:0 4px 16px rgba(0,0,0,0.15);}
+.tv-opt{background:var(--tv-panel-solid);color:var(--tv-text);border:1px solid var(--tv-border);border-radius:10px;padding:clamp(12px,1.8vh,20px) clamp(14px,2.2vw,24px);font-size:clamp(18px,2.5vw,26px);font-weight:600;text-align:left;opacity:0;transform:translateY(8px);transition:all .4s var(--tv-ease);box-shadow:0 4px 16px rgba(0,0,0,0.15);}
 .tv-opt.shown{opacity:1;transform:none;}
 .tv-opt.is-answer{border-color:var(--c-green-light);box-shadow:0 0 0 2px var(--c-green-light),0 0 20px rgba(74,190,122,0.3);}
 .tv-opt.hs-pick{border-color:var(--tv-accent);box-shadow:0 0 0 2px var(--tv-accent),0 0 20px rgba(212,168,67,0.35);}
-.tv-opt.steal-pick{border-color:var(--c-steal);box-shadow:0 0 0 2px var(--c-steal),0 0 20px rgba(62,198,255,0.35);}
+.tv-opt.steal-pick{border-color:var(--tv-accent);box-shadow:0 0 0 2px var(--tv-accent),0 0 20px rgba(212,168,67,0.35);border-style:dashed;}
 @keyframes tv-reveal-pop{0%{transform:scale(0.85);opacity:0;}60%{transform:scale(1.04);opacity:1;}100%{transform:scale(1);opacity:1;}}
-#tv-result-banner.pop>*{animation:tv-reveal-pop .38s cubic-bezier(.2,1.4,.4,1) both;}
+@keyframes tv-hero-enter{0%{transform:translateX(-16px);opacity:0;}100%{transform:translateX(0);opacity:1;}}
+#tv-result-banner.pop>*{animation:tv-reveal-pop .38s var(--tv-ease) both;}
+#tv-hero-block.enter{animation:tv-hero-enter .5s var(--tv-ease) both;}
 .tv-hotseat-name{position:relative;}
 .tv-hotseat-name::before{content:'';position:absolute;left:50%;top:50%;width:140%;height:280%;transform:translate(-50%,-50%);background:radial-gradient(ellipse at center,var(--tv-panel,rgba(255,255,255,0.1)) 0%,transparent 68%);z-index:-1;pointer-events:none;}
+.tv-result-bar{margin-top:14px;padding:11px 20px;background:var(--tv-panel-solid);border-left:4px solid var(--tv-text-soft);border-radius:2px;font-size:clamp(17px,2.6vw,26px);font-weight:700;color:var(--tv-text);text-shadow:var(--tv-text-shadow);text-align:center;display:flex;align-items:center;justify-content:center;gap:10px;}
+.tv-result-bar.good{border-color:var(--c-green-light);color:var(--c-green-light);text-shadow:none;}
+.tv-result-bar.bad{border-color:var(--c-red-light);color:var(--c-red-light);text-shadow:none;}
+.tv-result-bar.accent{border-color:var(--tv-accent);color:var(--tv-accent);}
+.tv-result-bar.quiet{font-size:clamp(13px,1.9vw,17px);font-weight:600;opacity:0.85;}
 .tv-opt.not-answer{opacity:0.25;}
 .tv-opt-letter{color:var(--tv-accent);font-weight:700;margin-right:8px;}
 .tv-bottom{background:transparent;border-top:1px solid var(--tv-border);padding:12px 20px;}
@@ -302,8 +305,8 @@ body.mode-display .app>*{position:relative;z-index:1;}
 .tv-lad{width:38px;height:38px;border-radius:8px;border:1px solid var(--tv-border);background:var(--tv-panel-solid);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--tv-text-soft);}
 .tv-lad.won{background:var(--c-green);border-color:var(--c-green);color:#fff;}
 .tv-lad.current{background:var(--tv-accent);border-color:var(--tv-accent);color:#07111f;box-shadow:0 0 14px rgba(212,168,67,0.5);transform:scale(1.12);}
-.tv-steal-banner{background:linear-gradient(90deg,rgba(176,48,48,0.3),rgba(176,48,48,0.1));border:1px solid var(--c-red);border-radius:8px;padding:8px 18px;text-align:center;font-family:var(--font-display);font-size:clamp(16px,2.5vw,22px);color:#f0a0a0;letter-spacing:0.08em;margin-bottom:10px;}
-.tv-wager-banner{background:linear-gradient(90deg,rgba(90,45,138,0.3),rgba(90,45,138,0.1));border:1px solid var(--c-purple);border-radius:8px;padding:8px 18px;text-align:center;font-family:var(--font-display);font-size:clamp(16px,2.5vw,22px);color:#c070f0;letter-spacing:0.08em;margin-bottom:10px;}
+.tv-steal-banner,.tv-wager-banner{background:var(--tv-panel-solid);border-left:3px solid var(--tv-accent);border-radius:2px;padding:9px 18px;text-align:center;font-family:var(--font-body);font-weight:600;font-size:clamp(13px,1.8vw,17px);text-transform:uppercase;letter-spacing:0.08em;color:var(--tv-text);text-shadow:var(--tv-text-shadow);margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px;}
+.tv-steal-banner svg,.tv-wager-banner svg{color:var(--tv-accent);}
 
 /* ===== Glitch ===== */
 @keyframes glitch1{
@@ -656,17 +659,18 @@ function tone(freq, start, dur, type, peak){
   osc.connect(gain); gain.connect(ctx.destination);
   osc.start(ctx.currentTime+start); osc.stop(ctx.currentTime+start+dur+0.02);
 }
-function sndTick(urgent){ tone(urgent?1400:1000, 0, 0.08, 'square', urgent?0.14:0.08); }
+/* All stings are built from one key (C major, root 523.25/C5) so they read as one instrument. */
+function sndTick(urgent){ tone(urgent?1046.5:783.99, 0, 0.07, 'square', urgent?0.13:0.07); }
 function sndCorrect(){ tone(523.25,0,0.14,'sine',0.2); tone(659.25,0.1,0.14,'sine',0.2); tone(783.99,0.2,0.28,'sine',0.22); }
-function sndWrong(){ tone(200,0,0.16,'sawtooth',0.16); tone(150,0.12,0.26,'sawtooth',0.16); }
-function sndSteal(){ tone(440,0,0.1,'triangle',0.16); tone(660,0.08,0.1,'triangle',0.16); tone(880,0.16,0.2,'triangle',0.18); }
+function sndWrong(){ tone(493.88,0,0.16,'sawtooth',0.15); tone(466.16,0.12,0.26,'sawtooth',0.15); }
+function sndSteal(){ tone(659.25,0,0.1,'triangle',0.16); tone(783.99,0.08,0.1,'triangle',0.16); tone(1046.5,0.16,0.2,'triangle',0.18); }
 function sndDoubleDip(){ tone(392,0,0.1,'sine',0.16); tone(392,0.14,0.1,'sine',0.16); }
 function sndFanfare(){
   [523.25,659.25,783.99,1046.5].forEach((f,i)=>tone(f,i*0.13,0.3,'sine',0.22));
 }
 function enableTvSound(btn){
   getAudioCtx(); sndCorrect();
-  if(btn){ btn.textContent='🔊 Sound on'; btn.style.opacity='1'; btn.disabled=true; }
+  if(btn){ btn.innerHTML=tvIcon('speaker')+' Sound on'; btn.style.opacity='1'; btn.disabled=true; }
 }
 
 // Detect hash-based routing
@@ -2427,6 +2431,25 @@ function hotSeatLogoImg(variant, style){
   return `<img src="${src}" alt="THE HOT SEAT" style="${style||''}">`;
 }
 
+/* ===== Broadcast icon set — line-weight matched replacements for emoji ===== */
+const TV_ICON_PATHS={
+  puzzle:'M6 4h4a1 1 0 0 1 2 2 2 2 0 0 0 0 4 1 1 0 0 1-2 2v3H7v-3a2 2 0 0 0 0-4V4a1 1 0 0 1-1-1zM4 10a2 2 0 0 1 2-2v6H3a1 1 0 0 1-1-1V9a2 2 0 0 1 2 2h0z',
+  bolt:'M13 2 4 14h6l-1 8 9-12h-6l1-8z',
+  target:'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 4a6 6 0 1 1 0 12 6 6 0 0 1 0-12zm0 4a2 2 0 1 1 0 4 2 2 0 0 1 0-4z',
+  speaker:'M4 9v6h4l5 5V4L8 9H4zm12.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z',
+  trophy:'M6 3h12v2h2v3a4 4 0 0 1-4 4 5 5 0 0 1-3 3.9V19h3v2H8v-2h3v-3.1A5 5 0 0 1 8 12a4 4 0 0 1-4-4V5h2V3zm0 4H4v0a2 2 0 0 0 2 2V7zm12 0v2a2 2 0 0 0 2-2h-2z',
+  check:'M5 13l4 4L19 7',
+  cross:'M6 6l12 12M18 6L6 18',
+  refresh:'M4 12a8 8 0 0 1 13.66-5.66L20 8M4 12l2.34 5.66A8 8 0 0 0 20 12M4 8v4h4M20 16v-4h-4',
+  phone:'M7 2h10a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zm5 17a1 1 0 1 0 0 2 1 1 0 0 0 0-2z',
+  flame:'M12 2c1 3-2 4-2 7a2 2 0 0 0 4 0c1 1 2 2.5 2 4.5A5 5 0 0 1 7 18c0-2 1-3 1-5-1.5 1-2 3-2 4.5A7 7 0 0 0 12 22a7 7 0 0 0 6-10.5C16 8 12 6 12 2z'
+};
+function tvIcon(name, size, style){
+  const d=TV_ICON_PATHS[name]; if(!d) return '';
+  const filled=['puzzle','bolt','target','speaker','trophy','flame'].includes(name);
+  return `<svg viewBox="0 0 24 24" width="${size||'1em'}" height="${size||'1em'}" style="display:inline-block;vertical-align:-0.14em;flex-shrink:0;${style||''}" fill="${filled?'currentColor':'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
+}
+
 
 function renderDisplay(){
   if(mode!=='display') return;
@@ -2468,7 +2491,7 @@ function renderDisplay(){
     </div>
     <div class="tv-center-top">
       ${hotSeatLogoImg(tvStage==='gold'?'ember':'white','height:68px;width:auto;')}
-      <div class="tv-level-badge">${state.gamePhase==='wager'?'⚡ FINAL WAGER':(puz.active?'🧩 PUZZLE':('Level '+state.ladderCurrent+' — '+money(levelMoney(state.ladderCurrent))))}</div>
+      <div class="tv-level-badge">${state.gamePhase==='wager'?tvIcon('bolt')+' FINAL WAGER':(puz.active?tvIcon('puzzle')+' PUZZLE':('Level '+state.ladderCurrent+' — '+money(levelMoney(state.ladderCurrent))))}</div>
     </div>
     <div class="tv-team-box ${state.hotSeatTeam==='B'?'is-hot':''}">
       <div class="tv-team-name">${esc(state.teamBName)}</div>
@@ -2478,16 +2501,16 @@ function renderDisplay(){
   </div>`;
 
   const stealBanner=(s&&!s.locked&&(f.stage==='question'||f.stage==='options'||f.stage==='selecting'||f.stage==='revealing'))?
-    `<div class="tv-steal-banner">📱 ${esc(teamName(s.panelTeam))} — collaborate &amp; lock in your answer!</div>`:'';
+    `<div class="tv-steal-banner">${tvIcon('phone')} ${esc(teamName(s.panelTeam))} — collaborate &amp; lock in your answer!</div>`:'';
   const wagerBanner=(state.wager&&state.wager.active&&!state.wager.revealed)?
-    `<div class="tv-wager-banner">💜 FINAL WAGER — Enter your bet on your phone!</div>`:'';
+    `<div class="tv-wager-banner">${tvIcon('bolt')} FINAL WAGER — Enter your bet on your phone!</div>`:'';
 
   let mainContent='';
   if(state.ended){
-    mainContent=`<div class="tv-waiting">🏆 Game Over!</div>`;
+    mainContent=`<div class="tv-waiting">${tvIcon('trophy','0.85em')} Game Over!</div>`;
   } else if(state.wheel){
     mainContent=`<div style="display:flex;flex-direction:column;align-items:center;gap:16px;">
-      <div class="tv-hotseat-name" style="font-size:clamp(18px,3vw,28px);">${state.wheel.kind==='bomb'?'🙏 Hail Mary!':'Tie-breaker'}</div>
+      <div class="tv-hotseat-name" style="font-size:clamp(18px,3vw,28px);">${state.wheel.kind==='bomb'?tvIcon('flame')+' Hail Mary!':'Tie-breaker'}</div>
       ${buildWheelHTML(state.wheel,'tv')}
     </div>`;
   } else if(puz.active){
@@ -2535,35 +2558,35 @@ function renderDisplay(){
         return `<div class="${cls}"><span class="tv-opt-letter">${letterFor(di)})</span>${esc(q.options[origIdx])}</div>`;
       }).join('')+'</div>';
     } else if(!isMC&&showCorrect){
-      optsHtml=`<div style="margin-top:20px;font-size:clamp(18px,3vw,32px);font-weight:700;color:var(--c-green-light);">✓ ${esc(q.options[0])}</div>`;
+      optsHtml=`<div style="margin-top:20px;font-size:clamp(18px,3vw,32px);font-weight:700;color:var(--c-green-light);display:flex;align-items:center;justify-content:center;gap:8px;">${tvIcon('check')} ${esc(q.options[0])}</div>`;
     }
     // Result banner
     let resultBanner='';
     if(f.stage==='revealed'&&f.hotSeatAnswer===correctIdx){
-      resultBanner='<div style="margin-top:18px;padding:14px 20px;background:rgba(46,139,87,0.2);border:2px solid var(--c-green-light);border-radius:12px;font-size:clamp(20px,3vw,32px);font-weight:700;color:var(--c-green-light);text-align:center;">✓ CORRECT!</div>';
+      resultBanner=`<div class="tv-result-bar good">${tvIcon('check')} CORRECT!</div>`;
     } else if(f.stage==='doubledip-miss'){
-      resultBanner='<div style="margin-top:18px;padding:14px 20px;background:var(--tv-panel-solid);border:2px solid var(--tv-accent);border-radius:12px;font-size:clamp(18px,2.5vw,28px);font-weight:700;color:var(--tv-accent);text-shadow:var(--tv-text-shadow);text-align:center;">🔁 DOUBLE DIP — One more guess!</div>';
+      resultBanner=`<div class="tv-result-bar accent">${tvIcon('refresh')} DOUBLE DIP — One more guess!</div>`;
     } else if(f.stage==='steal-peek'){
       const stealVoteTV=stealNilTV?s.votes[stealNilTV.id]:undefined;
-      if(stealVoteTV===undefined) resultBanner='<div style="margin-top:14px;padding:10px 20px;background:rgba(62,198,255,0.12);border:1px solid var(--c-steal-dim);border-radius:10px;font-size:clamp(14px,2vw,19px);font-weight:600;color:var(--c-steal);text-align:center;">Waiting for their guess…</div>';
+      if(stealVoteTV===undefined) resultBanner=`<div class="tv-result-bar accent quiet">Waiting for their guess…</div>`;
     } else if(f.stage==='steal-reveal'){
       const stealVoteTV=stealNilTV?s.votes[stealNilTV.id]:undefined;
       const stealCorrect=stealVoteTV===correctIdx;
       resultBanner=stealCorrect
-        ?'<div style="margin-top:14px;padding:14px 20px;background:rgba(46,139,87,0.2);border:2px solid var(--c-green-light);border-radius:12px;font-size:clamp(18px,2.5vw,28px);font-weight:700;color:var(--c-green-light);text-align:center;">✓ Steal successful — '+stealNilLabel+' takes the seat!</div>'
-        :'<div style="margin-top:14px;padding:14px 20px;background:rgba(176,48,48,0.2);border:2px solid var(--c-red-light);border-radius:12px;font-size:clamp(16px,2.2vw,24px);font-weight:700;color:var(--c-red-light);text-align:center;">✗ Steal missed — '+(hp?esc(hp.name):'original player')+' keeps the seat</div>';
+        ?`<div class="tv-result-bar good">${tvIcon('check')} Steal successful — `+stealNilLabel+` takes the seat!</div>`
+        :`<div class="tv-result-bar bad">${tvIcon('cross')} Steal missed — `+(hp?esc(hp.name):'original player')+` keeps the seat</div>`;
     }
     const heroBlock=isSteal
       ? `<div class="tv-prev-turn">${esc(teamName(state.hotSeatTeam))}'s <b>${hp?esc(hp.name):'—'}</b> missed it</div>
-         <div class="tv-steal-eyebrow">🎯 Now stealing</div>
-         <div class="tv-hotseat-name is-steal">${stealNilLabel}</div>
-         <div class="tv-hotseat-team is-steal">${esc(s?teamName(s.panelTeam):'')}</div>`
+         <div class="tv-steal-eyebrow">${tvIcon('target')} Now stealing</div>
+         <div class="tv-hotseat-name">${stealNilLabel}</div>
+         <div class="tv-hotseat-team">${esc(s?teamName(s.panelTeam):'')}</div>`
       : `<div class="tv-hotseat-name">${hp?esc(hp.name):'—'}</div>
          <div class="tv-hotseat-team">${esc(teamName(state.hotSeatTeam))}</div>`;
     const qTextStyle=isSteal?'font-size:clamp(16px,2.4vw,24px);opacity:0.7;margin-bottom:clamp(8px,1.2vh,14px);':'';
     mainContent=`<div style="width:100%;max-width:900px;">
       <div class="tv-q-text" style="${qTextStyle}">${esc(q.text)}</div>
-      ${heroBlock}
+      <div id="tv-hero-block">${heroBlock}</div>
       ${optsHtml}<div id="tv-result-banner">${resultBanner}</div>
     </div>`;
   } else {
@@ -2581,7 +2604,7 @@ function renderDisplay(){
             <div style="font:600 clamp(11px,1.4vh,16px) var(--font-heading);letter-spacing:0.06em;color:var(--tv-wordmark);">Scan to join!</div>
           </div>
         </div>
-        <button onclick="enableTvSound(this)" style="position:absolute;left:clamp(14px,3vw,36px);bottom:clamp(14px,3vh,36px);background:none;border:1px solid var(--tv-border);border-radius:8px;padding:8px 12px;font:600 clamp(11px,1.4vh,14px) var(--font-heading);letter-spacing:0.04em;color:var(--tv-wordmark);opacity:0.7;cursor:pointer;">🔊 Tap to enable sound</button>
+        <button onclick="enableTvSound(this)" style="position:absolute;left:clamp(14px,3vw,36px);bottom:clamp(14px,3vh,36px);background:none;border:1px solid var(--tv-border);border-radius:8px;padding:8px 12px;font:600 clamp(11px,1.4vh,14px) var(--font-heading);letter-spacing:0.04em;color:var(--tv-wordmark);opacity:0.7;cursor:pointer;display:flex;align-items:center;gap:6px;">${tvIcon('speaker')} Tap to enable sound</button>
       `:`
         <div class="tv-hotseat-name">${hp?esc(hp.name):'—'}</div>
         <div class="tv-hotseat-team">${esc(teamName(state.hotSeatTeam))}</div>
@@ -2598,7 +2621,7 @@ function renderDisplay(){
   let ladIcons='';
   for(let l=1;l<=15;l++){
     const won=state.ladderWon[l-1]; const cur=state.ladderCurrent===l;
-    ladIcons+=`<div class="tv-lad ${won?'won':''} ${cur?'current':''}">${won?'✓':l}</div>`;
+    ladIcons+=`<div class="tv-lad ${won?'won':''} ${cur?'current':''}">${won?tvIcon('check','0.75em'):l}</div>`;
   }
   const joinBadge=state.gamePhase==='live'&&currentLobbyCode?
     `<div style="position:absolute;bottom:6px;right:10px;font-size:11px;color:var(--tv-text-soft);text-shadow:var(--tv-text-shadow);opacity:0.7;">${esc(location.href.split('?')[0].split('#')[0]+'?lobby='+currentLobbyCode)}</div>`:'';
@@ -2627,6 +2650,10 @@ function renderDisplay(){
   if(stageJustChanged){
     const rb=document.getElementById('tv-result-banner');
     if(rb&&rb.innerHTML.trim()){ rb.classList.add('pop'); setTimeout(()=>rb.classList.remove('pop'),450); }
+    if(f.stage==='steal-peek'&&s){
+      const hb=document.getElementById('tv-hero-block');
+      if(hb){ hb.classList.add('enter'); setTimeout(()=>hb.classList.remove('enter'),550); }
+    }
   }
   if(state.wheel&&state.wheel.spunAt!==lastWheelSeen){ lastWheelSeen=state.wheel.spunAt; animateWheel(state.wheel,'tv'); }
   else if(state.wheel){
