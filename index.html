@@ -212,10 +212,26 @@ body.mode-display .timer-label{font-size:20px;font-weight:600;color:var(--tv-tex
 
 /* ===== Wheel ===== */
 .wheel-wrap{display:flex;flex-direction:column;align-items:center;gap:14px;}
-.wheel-outer{position:relative;width:240px;height:240px;}
-.wheel-pointer{position:absolute;top:-10px;left:50%;transform:translateX(-50%);z-index:5;width:0;height:0;border-left:11px solid transparent;border-right:11px solid transparent;border-top:22px solid var(--c-gold);filter:drop-shadow(0 2px 4px rgba(0,0,0,0.6));}
-.wheel-disc{width:100%;height:100%;border-radius:50%;border:4px solid var(--c-gold);box-shadow:0 0 24px rgba(212,168,67,0.3),inset 0 0 20px rgba(0,0,0,0.4);transition:transform 4s cubic-bezier(0.1,0.6,0.05,1);}
-.wheel-result{font-size:18px;font-weight:700;color:var(--c-gold-light);font-family:var(--font-display);letter-spacing:0.04em;text-align:center;}
+.wheel-crop{overflow:hidden;border-radius:18px;box-shadow:0 10px 34px rgba(0,0,0,0.5);}
+.wheel-outer{position:relative;}
+.wheel-pointer{position:absolute;top:-15px;left:50%;transform:translateX(-50%) rotate(0deg);transform-origin:top center;z-index:6;width:0;height:0;border-left:15px solid transparent;border-right:15px solid transparent;border-top:30px solid var(--c-gold);filter:drop-shadow(0 3px 6px rgba(0,0,0,0.7));transition:transform .16s cubic-bezier(.32,1.9,.5,1);}
+.wheel-pointer.impact{transform:translateX(-50%) rotate(-16deg);}
+.wheel-disc{width:100%;height:100%;border-radius:50%;border:7px solid var(--c-gold);box-shadow:0 0 34px rgba(212,168,67,0.4),inset 0 0 28px rgba(0,0,0,0.55);position:relative;}
+.wheel-hub{position:absolute;top:50%;left:50%;width:14%;height:14%;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle at 35% 30%,#f5da8f,#b97e22 60%,#6e4c15 100%);border:3px solid #3a2306;box-shadow:0 2px 10px rgba(0,0,0,0.5);z-index:4;}
+.wheel-bulb{position:absolute;top:50%;left:50%;width:10px;height:10px;margin:-5px;border-radius:50%;transform-origin:center center;background:#fff3b0;box-shadow:0 0 7px 2px rgba(255,221,51,0.8);animation:wheel-bulb-chase 1.1s steps(1) infinite;z-index:3;}
+@keyframes wheel-bulb-chase{0%,49%{opacity:1;background:#fff3b0;box-shadow:0 0 9px 3px rgba(255,221,51,0.95);}50%,100%{opacity:0.32;background:#7a5a1a;box-shadow:none;}}
+.wheel-slice{position:absolute;top:50%;left:50%;text-align:center;transform-origin:top center;}
+.wheel-slice-inner{display:flex;flex-direction:column;align-items:center;gap:2px;}
+.wheel-slice-icon svg{width:1.3em;height:1.3em;color:#fff;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.85));}
+.wheel-slice-text{font-family:var(--font-display);font-weight:400;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.9);letter-spacing:0.01em;white-space:nowrap;}
+.wheel-slice-inner.dark .wheel-slice-text{color:#2b1a02;text-shadow:0 1px 1px rgba(255,255,255,0.4);}
+.wheel-slice-inner.dark .wheel-slice-icon svg{color:#2b1a02;}
+.wheel-slice-inner.mystery .wheel-slice-text{font-size:1.7em;}
+.wheel-result{font-size:19px;font-weight:700;color:var(--c-gold-light);font-family:var(--font-display);letter-spacing:0.04em;text-align:center;min-height:1.3em;}
+.tv-wheel-flash{position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:0;}
+.tv-wheel-flash.fire{animation:tv-wheel-flash-pulse 1.15s ease-out;}
+@keyframes tv-wheel-flash-pulse{0%{opacity:0;}8%{opacity:1;}100%{opacity:0;}}
+@media (prefers-reduced-motion:reduce){.wheel-bulb{animation:none;opacity:0.85;}.tv-wheel-flash.fire{animation:none;opacity:0;}.wheel-pointer{transition:none;}}
 
 /* ===== Money display ===== */
 .money{font-variant-numeric:tabular-nums;font-weight:700;}
@@ -601,7 +617,7 @@ const LIFELINE_DEFS = [
   {key:'promote', label:'Promote', icon:'', desc:'Swap a teammate into the hot seat permanently'},
   {key:'doubleDip', label:'Double Dip', icon:'', desc:'Two attempts; first miss triggers no steal'},
   {key:'swap', label:'Swap It Out', icon:'', desc:'Discard this question, draw a new one'},
-  {key:'bomb', label:'Hail Mary', icon:'', desc:'Skip the question — spin the chance wheel for cash, bankruptcy, or a seat swap'},
+  {key:'bomb', label:'Wildcard', icon:'', desc:'Skip the question — spin the chance wheel for cash, bankruptcy, or a seat swap'},
 ];
 const PUZZLE_TIMER_MS = 20000;
 // Lobby uses named slugs
@@ -739,6 +755,14 @@ function sndDoubleDip(){ tone(392,0,0.1,'sine',0.16); tone(392,0.14,0.1,'sine',0
 function sndFanfare(){
   [523.25,659.25,783.99,1046.5].forEach((f,i)=>tone(f,i*0.13,0.3,'sine',0.22));
 }
+function sndWheelTick(){ tone(1500,0,0.03,'square',0.06); }
+function sndWheelWin(big){
+  if(big) [523.25,659.25,783.99,1046.5,1318.5].forEach((f,i)=>tone(f,i*0.09,0.24,'sine',0.2));
+  else { tone(659.25,0,0.12,'sine',0.18); tone(880,0.09,0.2,'sine',0.18); }
+}
+function sndWheelBankrupt(){ tone(220,0,0.22,'sawtooth',0.18); tone(174.6,0.16,0.35,'sawtooth',0.16); tone(130.8,0.32,0.5,'sawtooth',0.14); }
+function sndWheelSwap(){ tone(783.99,0,0.1,'triangle',0.16); tone(659.25,0.08,0.14,'triangle',0.14); }
+function sndWheelMystery(){ tone(392,0,0.5,'sine',0.08); tone(415.3,0.15,0.5,'sine',0.06); tone(440,0.3,0.6,'sine',0.05); }
 // Detect hash-based routing
 function detectMode(){
   const h = location.hash;
@@ -1153,9 +1177,10 @@ async function confirmWheelWinner(){
 
 async function confirmBombWheel(){
   if(!state.wheel||state.wheel.kind!=='bomb') return;
-  const outcome=state.wheel.outcomes[state.wheel.winnerIdx];
+  let outcome=state.wheel.outcomes[state.wheel.winnerIdx];
+  if(outcome.type==='mystery') outcome=outcome.resolved;
   const lvl=state.ladderCurrent; const hp=hotSeatPlayer();
-  if(outcome.type==='win'){
+  if(outcome.type==='win'||outcome.type==='vacation'){
     if(hp) hp.personalBank=(hp.personalBank||0)+outcome.amount;
     if(state.hotSeatTeam==='A') state.teamABank=(state.teamABank||0)+outcome.amount;
     else state.teamBBank=(state.teamBBank||0)+outcome.amount;
@@ -1204,16 +1229,12 @@ async function useLifeline(key){
   if(key==='bomb'){
     if(state.gameMode==='race') return; // Hail Mary is a money mechanic — not available in Race Mode
     state.lifelines[team].bomb=true;
-    const lvl=state.ladderCurrent; const base=levelMoney(lvl);
-    const amounts=[Math.round(base*0.5),base,Math.round(base*1.5),base*2];
-    const names=[money(amounts[0]),money(amounts[1]),money(amounts[2]),money(amounts[3]),'BANKRUPT','SWAP SEAT'];
-    const outcomes=[{type:'win',amount:amounts[0]},{type:'win',amount:amounts[1]},{type:'win',amount:amounts[2]},{type:'win',amount:amounts[3]},{type:'bankrupt'},{type:'swap'}];
-    const order=shuffleArray(outcomes.map((_,i)=>i));
+    const outcomes=buildBombWheelOutcomes();
     state.wheel={
       kind:'bomb',
-      names:order.map(i=>names[i]),
-      outcomes:order.map(i=>outcomes[i]),
-      winnerIdx:Math.floor(Math.random()*order.length),
+      names:outcomes.map(wheelOutcomeLabel),
+      outcomes:outcomes,
+      winnerIdx:Math.floor(Math.random()*outcomes.length),
       spunAt:Date.now()
     };
     state.currentQuestion=null;
@@ -1741,22 +1762,112 @@ function puzzleTimerHTML(puzzle, idSuffix){
   </div>`;
 }
 
-function buildWheelHTML(wheel, idSuffix){
+/* ===== Wheel — outcome pool, visuals, physics-driven spin ===== */
+function wheelMoneyLabel(n){
+  if(n>=1000000) return '$'+(n/1000000).toFixed(n%1000000===0?0:1)+'M';
+  if(n>=1000) return '$'+Math.round(n/1000)+'K';
+  return money(n);
+}
+function buildBombWheelOutcomes(){
+  const lvl=state.ladderCurrent; const base=levelMoney(lvl);
+  const amounts=[Math.round(base*0.5), base, Math.round(base*1.5), base*2];
+  const pool=[];
+  const pushWin=(tier,count)=>{ for(let i=0;i<count;i++) pool.push({type:'win',amount:amounts[tier],tier}); };
+  pushWin(0,2); pushWin(1,3); pushWin(2,2); pushWin(3,1);
+  for(let i=0;i<3;i++) pool.push({type:'bankrupt'});
+  for(let i=0;i<2;i++) pool.push({type:'swap'});
+  for(let i=0;i<2;i++) pool.push({type:'vacation',amount:Math.round(base*0.75)});
+  for(let i=0;i<1;i++){
+    const roll=Math.random();
+    const resolved = roll<0.34 ? {type:'bankrupt'} : roll<0.67 ? {type:'swap'} : {type:'win',amount:amounts[Math.floor(Math.random()*4)]};
+    pool.push({type:'mystery', resolved});
+  }
+  return shuffleArray(pool);
+}
+function wheelOutcomeLabel(o){
+  if(o.type==='win') return money(o.amount);
+  if(o.type==='bankrupt') return 'BANKRUPT';
+  if(o.type==='swap') return 'SWAP SEAT';
+  if(o.type==='vacation') return 'VACATION';
+  if(o.type==='mystery') return 'MYSTERY';
+  return '';
+}
+function wheelSliceColor(o){
+  if(!o) return '#8a5c0d';
+  if(o.type==='win') return ['#8a5c0d','#d94a1f','#f06a3d','#ffd700'][o.tier||0];
+  if(o.type==='bankrupt') return '#0a0a0a';
+  if(o.type==='swap') return '#6b3fa0';
+  if(o.type==='vacation') return '#178a72';
+  if(o.type==='mystery') return '#241242';
+  return '#8a5c0d';
+}
+function wheelSliceVisual(o){
+  if(o.type==='win') return {icon:'', text:wheelMoneyLabel(o.amount), dark:o.tier===3, cls:''};
+  if(o.type==='bankrupt') return {icon:'cross', text:'BUST', dark:false, cls:''};
+  if(o.type==='swap') return {icon:'shuffle', text:'SWAP', dark:false, cls:''};
+  if(o.type==='vacation') return {icon:'sun', text:'TRIP', dark:false, cls:''};
+  if(o.type==='mystery') return {icon:'', text:'?', dark:false, cls:'mystery'};
+  return {icon:'', text:'', dark:false, cls:''};
+}
+function wheelOutcomeResultText(o){
+  if(!o) return '';
+  if(o.type==='win') return `${money(o.amount)}!`;
+  if(o.type==='vacation') return `Vacation Package! ${money(o.amount)}`;
+  if(o.type==='bankrupt') return 'BANKRUPT!';
+  if(o.type==='swap') return 'Seat Swap!';
+  return '';
+}
+function resolvedOutcomeFor(wheel){
+  if(!wheel||!wheel.outcomes) return null;
+  const o=wheel.outcomes[wheel.winnerIdx];
+  return o&&o.type==='mystery' ? o.resolved : o;
+}
+function buildWheelBulbs(size){
+  const n=26; const r=size/2+7;
+  let html='';
+  for(let i=0;i<n;i++){
+    const deg=i*(360/n);
+    const delay=(i%6)*0.15;
+    html+=`<div class="wheel-bulb" style="transform:rotate(${deg}deg) translateY(-${r}px);animation-delay:${delay}s;"></div>`;
+  }
+  return html;
+}
+function buildWheelHTML(wheel, idSuffix, opts){
+  opts=opts||{};
+  const cropped=!!opts.cropped;
+  const size=opts.size||(idSuffix==='tv'?440:290);
   const n=wheel.names.length;
   const seg=360/n;
-  const cols=['#d4a843','#1a5fa8','#b8882a','#2e5fa8','#e8c66b','#254880','#f0da9c','#122844'];
-  const stops=wheel.names.map((_,i)=>`${cols[i%cols.length]} ${i*seg}deg ${(i+1)*seg}deg`).join(', ');
+  const outcomes=wheel.outcomes||[];
+  const stops=outcomes.length
+    ? outcomes.map((o,i)=>`${wheelSliceColor(o)} ${i*seg}deg ${(i+1)*seg}deg`).join(', ')
+    : wheel.names.map((_,i)=>`${['#8a5c0d','#d94a1f','#f06a3d','#b97e22'][i%4]} ${i*seg}deg ${(i+1)*seg}deg`).join(', ');
+  const r=size/2;
+  const labelR=r*0.76;
+  const labelW=Math.max(38, Math.round(2*Math.PI*labelR*(seg/360)*0.92));
+  const iconSize=size>=380?'1.1em':'0.95em';
   const labels=wheel.names.map((name,i)=>{
+    const o=outcomes[i];
     const angle=i*seg+seg/2;
-    return `<div style="position:absolute;top:50%;left:50%;width:74px;margin-left:-37px;text-align:center;transform:rotate(${angle}deg) translateY(-84px);transform-origin:top center;font-size:11px;font-weight:800;line-height:1.15;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.9);word-break:break-word;">${esc(name)}</div>`;
+    const vis=o?wheelSliceVisual(o):{icon:'',text:name,dark:false,cls:''};
+    const fontSize=vis.cls==='mystery'?Math.round(size*0.09):Math.round(size*0.045);
+    return `<div class="wheel-slice" style="width:${labelW}px;margin-left:-${labelW/2}px;transform:rotate(${angle}deg) translateY(-${labelR}px);">
+      <div class="wheel-slice-inner ${vis.dark?'dark':''} ${vis.cls}">
+        ${vis.icon?`<div class="wheel-slice-icon">${tvIcon(vis.icon,iconSize)}</div>`:''}
+        <div class="wheel-slice-text" style="font-size:${fontSize}px;">${esc(vis.text)}</div>
+      </div>
+    </div>`;
   }).join('');
-  return `<div class="wheel-wrap">
-    <div class="wheel-outer">
-      <div class="wheel-pointer"></div>
-      <div class="wheel-disc" id="wheel-disc-${idSuffix}" style="background:conic-gradient(${stops});">
+  const discMarkup=`<div class="wheel-outer" style="width:${size}px;height:${size}px;">
+      ${buildWheelBulbs(size)}
+      <div class="wheel-pointer" id="wheel-pointer-${idSuffix}"></div>
+      <div class="wheel-disc" id="wheel-disc-${idSuffix}" style="background:conic-gradient(from 0deg, ${stops});">
         <div style="position:relative;width:100%;height:100%;">${labels}</div>
       </div>
-    </div>
+      <div class="wheel-hub"></div>
+    </div>`;
+  return `<div class="wheel-wrap">
+    ${cropped?`<div class="wheel-crop" style="width:${size}px;height:${Math.round(size*0.44)}px;">${discMarkup}</div>`:discMarkup}
     <div class="wheel-result" id="wheel-result-${idSuffix}"></div>
   </div>`;
 }
@@ -1765,15 +1876,75 @@ function wheelResultText(wheel){
   return wheel.kind==='bomb' ? wheel.names[wheel.winnerIdx] : wheel.names[wheel.winnerIdx]+' takes the hot seat!';
 }
 
+function flashWheelResult(baseHex, glowHex){
+  let el=document.getElementById('tv-wheel-flash');
+  if(!el){
+    el=document.createElement('div');
+    el.id='tv-wheel-flash';
+    el.className='tv-wheel-flash';
+    document.body.appendChild(el);
+  }
+  el.style.background=`radial-gradient(circle at 50% 40%, ${glowHex} 0%, ${baseHex} 65%)`;
+  el.classList.remove('fire'); void el.offsetWidth; el.classList.add('fire');
+}
+
+function revealWheelOutcome(outcome, wheel, resultEl, isTV){
+  const text=wheel.outcomes ? wheelOutcomeResultText(outcome) : wheelResultText(wheel);
+  if(resultEl) resultEl.textContent=text;
+  if(!outcome||!isTV) return;
+  if(outcome.type==='win'){ sndWheelWin(outcome.tier===3); flashWheelResult('#3a2306','#ffdd33'); }
+  else if(outcome.type==='vacation'){ sndWheelWin(false); flashWheelResult('#0c3d33','#39d6b0'); }
+  else if(outcome.type==='bankrupt'){ sndWheelBankrupt(); flashWheelResult('#000000','#ff5c4d'); }
+  else if(outcome.type==='swap'){ sndWheelSwap(); flashWheelResult('#241040','#c070f0'); }
+}
+
+function onWheelLanded(wheel, idSuffix, resultEl){
+  const outcome=wheel.outcomes ? wheel.outcomes[wheel.winnerIdx] : null;
+  const isTV=idSuffix==='tv';
+  if(outcome&&outcome.type==='mystery'){
+    if(resultEl) resultEl.textContent='Unlocking the mystery box…';
+    if(isTV){ sndWheelMystery(); flashWheelResult('#241242','#a06bff'); }
+    setTimeout(()=>revealWheelOutcome(outcome.resolved, wheel, resultEl, isTV), 1300);
+  } else {
+    revealWheelOutcome(outcome, wheel, resultEl, isTV);
+  }
+}
+
 function animateWheel(wheel, idSuffix){
   const disc=document.getElementById('wheel-disc-'+idSuffix);
-  const result=document.getElementById('wheel-result-'+idSuffix);
+  const resultEl=document.getElementById('wheel-result-'+idSuffix);
+  const pointerEl=document.getElementById('wheel-pointer-'+idSuffix);
   if(!disc) return;
   const n=wheel.names.length; const seg=360/n;
   const winCenter=wheel.winnerIdx*seg+seg/2;
-  const finalDeg=360*6+(360-winCenter);
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{ disc.style.transform=`rotate(${finalDeg}deg)`; }));
-  setTimeout(()=>{ if(result) result.textContent=wheelResultText(wheel); },4300);
+  const isTV=idSuffix==='tv';
+  const extraSpins=isTV?9:7;
+  const finalDeg=extraSpins*360+(360-winCenter);
+  const duration=isTV?6200:5200;
+  const startTime=performance.now();
+  const ease=t=>1-Math.pow(1-t,4.2);
+  let lastTickAt=0, lastSeg=-1;
+  function frame(now){
+    const t=Math.min(1,(now-startTime)/duration);
+    const deg=finalDeg*ease(t);
+    disc.style.transform=`rotate(${deg}deg)`;
+    const curSeg=Math.floor(deg/seg);
+    if(curSeg!==lastSeg){
+      lastSeg=curSeg;
+      if(now-lastTickAt>32){
+        lastTickAt=now;
+        if(isTV) sndWheelTick();
+        if(!isTV&&navigator.vibrate) navigator.vibrate(9);
+      }
+    }
+    if(t<1){ requestAnimationFrame(frame); }
+    else {
+      disc.style.transform=`rotate(${finalDeg}deg)`;
+      if(pointerEl){ pointerEl.classList.add('impact'); setTimeout(()=>pointerEl.classList.remove('impact'),260); }
+      onWheelLanded(wheel, idSuffix, resultEl);
+    }
+  }
+  requestAnimationFrame(frame);
 }
 
 function ladderStripHTML(team){
@@ -1940,7 +2111,7 @@ function renderHost(){
     const disc=document.getElementById('wheel-disc-host');
     if(disc){ const n=state.wheel.names.length,seg=360/n; disc.style.transition='none'; disc.style.transform=`rotate(${360*6+(360-(state.wheel.winnerIdx*seg+seg/2))}deg)`; }
     const res=document.getElementById('wheel-result-host');
-    if(res) res.textContent=wheelResultText(state.wheel);
+    if(res) res.textContent=state.wheel.outcomes?wheelOutcomeResultText(resolvedOutcomeFor(state.wheel)):wheelResultText(state.wheel);
   }
 
   // Puzzle timer RAF
@@ -2259,7 +2430,7 @@ function renderStealWheel(){
 
 function renderBombWheel(){
   return `<div class="steal-box" style="border-color:var(--c-purple);">
-    <div class="steal-title" style="color:#c070f0;">Hail Mary — Spin the Chance Wheel</div>
+    <div class="steal-title" style="color:#c070f0;">Wildcard — Spin the Chance Wheel</div>
     ${buildWheelHTML(state.wheel,'host')}
     <div class="flow-controls" style="justify-content:center;margin-top:14px;">
       <button class="btn btn-primary" onclick="confirmBombWheel()">Confirm Result</button>
@@ -2625,13 +2796,15 @@ const TV_ICON_PATHS={
   trophy:'M6 3h12v2h2v3a4 4 0 0 1-4 4 5 5 0 0 1-3 3.9V19h3v2H8v-2h3v-3.1A5 5 0 0 1 8 12a4 4 0 0 1-4-4V5h2V3zm0 4H4v0a2 2 0 0 0 2 2V7zm12 0v2a2 2 0 0 0 2-2h-2z',
   check:'M5 13l4 4L19 7',
   cross:'M6 6l12 12M18 6L6 18',
-  refresh:'M4 12a8 8 0 0 1 13.66-5.66L20 8M4 12l2.34 5.66A8 8 0 0 0 20 12M4 8v4h4M20 16v-4h-4',
+  refresh:'M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8 M21 3v5h-5 M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16 M8 16H3v5',
   phone:'M7 2h10a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zm5 17a1 1 0 1 0 0 2 1 1 0 0 0 0-2z',
-  flame:'M12 2c1 3-2 4-2 7a2 2 0 0 0 4 0c1 1 2 2.5 2 4.5A5 5 0 0 1 7 18c0-2 1-3 1-5-1.5 1-2 3-2 4.5A7 7 0 0 0 12 22a7 7 0 0 0 6-10.5C16 8 12 6 12 2z',
-  promote:'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM8 12l4-4 4 4M12 16V8',
-  shuffle:'M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5'
+  flame:'M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z',
+  promote:'M12 2a10 10 0 0 1 0 20 10 10 0 0 1 0-20z M16 12l-4-4-4 4 M12 16V8',
+  shuffle:'M18 14l4 4-4 4 M18 2l4 4-4 4 M2 18h1.973a4 4 0 0 0 3.3-1.7l5.454-8.6a4 4 0 0 1 3.3-1.7H22 M2 6h1.972a4 4 0 0 1 3.6 2.2 M22 18h-6.041a4 4 0 0 1-3.3-1.8l-.359-.45',
+  card:'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z M12 7l1.2 3.6L17 12l-3.8 1.4L12 17l-1.2-3.6L7 12l3.8-1.4L12 7z',
+  sun:'M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10z M12 1v2 M12 21v2 M4.22 4.22l1.42 1.42 M18.36 18.36l1.42 1.42 M1 12h2 M21 12h2 M4.22 19.78l1.42-1.42 M18.36 5.64l1.42-1.42'
 };
-const LIFELINE_ICONS = {promote:'promote', doubleDip:'refresh', swap:'shuffle', bomb:'flame'};
+const LIFELINE_ICONS = {promote:'promote', doubleDip:'refresh', swap:'shuffle', bomb:'card'};
 function tvIcon(name, size, style){
   const d=TV_ICON_PATHS[name]; if(!d) return '';
   const filled=['puzzle','bolt','target','speaker','trophy','flame'].includes(name);
@@ -2700,8 +2873,8 @@ function renderDisplay(){
       : `<div class="tv-waiting">${tvIcon('trophy','0.85em')} Game Over!</div>`;
   } else if(state.wheel){
     mainContent=`<div style="display:flex;flex-direction:column;align-items:center;gap:16px;">
-      <div class="tv-hotseat-name" style="font-size:clamp(18px,3vw,28px);">${state.wheel.kind==='bomb'?tvIcon('flame')+' Hail Mary!':'Tie-breaker'}</div>
-      ${buildWheelHTML(state.wheel,'tv')}
+      <div class="tv-hotseat-name" style="font-size:clamp(18px,3vw,28px);">${state.wheel.kind==='bomb'?tvIcon('card')+' Wildcard!':'Tie-breaker'}</div>
+      ${buildWheelHTML(state.wheel,'tv',{cropped:true})}
     </div>`;
   } else if(puz.active){
     const curRevSet=new Set((puz.revealedLetters||[]).map(l=>l.toUpperCase()));
@@ -2870,7 +3043,7 @@ function renderDisplay(){
     const disc=document.getElementById('wheel-disc-tv');
     if(disc){ const n=state.wheel.names.length,seg=360/n; disc.style.transition='none'; disc.style.transform=`rotate(${360*6+(360-(state.wheel.winnerIdx*seg+seg/2))}deg)`; }
     const res=document.getElementById('wheel-result-tv');
-    if(res) res.textContent=wheelResultText(state.wheel);
+    if(res) res.textContent=state.wheel.outcomes?wheelOutcomeResultText(resolvedOutcomeFor(state.wheel)):wheelResultText(state.wheel);
   }
   if(puz.active&&!puz.timerPaused) startPuzzleTimerRAF();
 }
