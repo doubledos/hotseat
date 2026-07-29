@@ -286,10 +286,18 @@ body.mode-display .app>*{position:relative;z-index:1;}
 .tv-team-bank{font-size:26px;font-weight:700;color:var(--tv-text);font-family:var(--font-display);font-variant-numeric:tabular-nums;text-shadow:var(--tv-text-shadow);opacity:0.85;}
 .tv-team-block.is-hot .tv-team-bank{opacity:1;}
 .tv-roster{display:flex;flex-wrap:wrap;gap:clamp(10px,1.5vw,18px);justify-content:center;margin-top:8px;}
+.tv-ll-bar{display:flex;gap:clamp(32px,5.5vw,76px);justify-content:center;margin-top:clamp(18px,3vh,32px);flex-wrap:wrap;}
+.tv-ll-item{display:flex;flex-direction:column;align-items:center;gap:10px;}
+.tv-ll-icon{position:relative;width:clamp(56px,8vw,88px);height:clamp(56px,8vw,88px);border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid rgba(255,251,242,0.25);background:rgba(0,0,0,0.2);color:var(--tv-text-soft);transition:all .3s var(--tv-ease);flex-shrink:0;}
+.tv-ll-icon svg{width:46%;height:46%;}
+.tv-ll-item.used .tv-ll-icon{opacity:0.35;}
+.tv-ll-item.used .tv-ll-label{opacity:0.45;}
+.tv-ll-slash{position:absolute;left:15%;right:15%;top:50%;height:2px;background:currentColor;transform:rotate(-45deg);opacity:0.9;}
+.tv-ll-label{font-family:var(--font-body);font-size:clamp(12px,1.6vw,16px);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--tv-text);text-shadow:var(--tv-text-shadow);}
 .tv-roster-p{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:56px;}
 .tv-roster-flame{width:20px;height:29px;flex-shrink:0;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.4));}
 .tv-roster-name{font-size:13.5px;text-transform:uppercase;letter-spacing:0.04em;color:var(--tv-text-soft);text-shadow:var(--tv-text-shadow);font-weight:600;}
-.tv-roster-next{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--tv-accent);text-shadow:var(--tv-text-shadow);}
+.tv-roster-next{margin-top:2px;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.09em;color:var(--tv-stage-ink,#241506);background:var(--tv-accent);padding:2px 8px;border-radius:999px;text-shadow:none;line-height:1.4;}
 .tv-main{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:safe center;padding:16px clamp(16px,3vw,40px);text-align:center;overflow-x:hidden;overflow-y:auto;position:relative;}
 .tv-waiting{font-size:clamp(28px,5vw,52px);color:var(--tv-text-soft);font-family:var(--font-display);letter-spacing:0.06em;text-shadow:var(--tv-text-shadow);}
 .tv-waiting-bounce span{display:inline-block;animation:tv-letter-bounce 1.1s ease-in-out infinite;}
@@ -2574,6 +2582,20 @@ function buildTeamRoster(team){
   }).join('')+'</div>';
 }
 
+function buildLifelinesBar(team){
+  const ll=state.lifelines[team]||{};
+  const defs=LIFELINE_DEFS.filter(({key})=>!(state.gameMode==='race'&&(key==='bomb'||key==='doubleDip')));
+  if(!defs.length) return '';
+  return '<div class="tv-ll-bar">'+defs.map(({key,label})=>{
+    const used=!!ll[key];
+    const style=used?'':`color:${teamMidColor(team)};border-color:${teamMidColor(team)};box-shadow:0 0 18px ${teamMidColor(team)}77, inset 0 0 10px ${teamMidColor(team)}33;`;
+    return `<div class="tv-ll-item ${used?'used':'avail'}">
+      <div class="tv-ll-icon" style="${style}">${tvIcon(LIFELINE_ICONS[key],'1em')}${used?`<span class="tv-ll-slash"></span>`:''}</div>
+      <div class="tv-ll-label">${esc(label)}</div>
+    </div>`;
+  }).join('')+'</div>';
+}
+
 
 /* ===== Hot Seat logo — real brand assets: hotseat-chair.svg emblem + live-text wordmark ===== */
 function chairIcon(x,y,scale){
@@ -2605,8 +2627,11 @@ const TV_ICON_PATHS={
   cross:'M6 6l12 12M18 6L6 18',
   refresh:'M4 12a8 8 0 0 1 13.66-5.66L20 8M4 12l2.34 5.66A8 8 0 0 0 20 12M4 8v4h4M20 16v-4h-4',
   phone:'M7 2h10a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zm5 17a1 1 0 1 0 0 2 1 1 0 0 0 0-2z',
-  flame:'M12 2c1 3-2 4-2 7a2 2 0 0 0 4 0c1 1 2 2.5 2 4.5A5 5 0 0 1 7 18c0-2 1-3 1-5-1.5 1-2 3-2 4.5A7 7 0 0 0 12 22a7 7 0 0 0 6-10.5C16 8 12 6 12 2z'
+  flame:'M12 2c1 3-2 4-2 7a2 2 0 0 0 4 0c1 1 2 2.5 2 4.5A5 5 0 0 1 7 18c0-2 1-3 1-5-1.5 1-2 3-2 4.5A7 7 0 0 0 12 22a7 7 0 0 0 6-10.5C16 8 12 6 12 2z',
+  promote:'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM8 12l4-4 4 4M12 16V8',
+  shuffle:'M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5'
 };
+const LIFELINE_ICONS = {promote:'promote', doubleDip:'refresh', swap:'shuffle', bomb:'flame'};
 function tvIcon(name, size, style){
   const d=TV_ICON_PATHS[name]; if(!d) return '';
   const filled=['puzzle','bolt','target','speaker','trophy','flame'].includes(name);
@@ -2747,11 +2772,19 @@ function renderDisplay(){
          <div class="tv-steal-eyebrow">${tvIcon('target')} Now stealing</div>
          <div class="tv-name-tag" style="color:${teamMidColor(s?s.panelTeam:state.hotSeatTeam)}">${stealNilLabel}</div>`
       : `<div class="tv-name-tag" style="color:${teamMidColor(state.hotSeatTeam)}">${hp?esc(hp.name):'—'}</div>`;
-    mainContent=`<div style="width:100%;max-width:900px;">
-      <div id="tv-hero-block">${heroBlock}</div>
-      <div class="tv-q-text">${esc(q.text)}</div>
-      ${optsHtml}<div id="tv-result-banner">${quietCaption}</div>
-    </div>`;
+    const showLLBar=!isSteal&&['question','options','selecting'].includes(f.stage);
+    mainContent=showLLBar
+      ? `<div style="width:100%;max-width:900px;min-height:100%;display:flex;flex-direction:column;">
+          <div id="tv-hero-block">${heroBlock}</div>
+          <div class="tv-q-text">${esc(q.text)}</div>
+          ${optsHtml}<div id="tv-result-banner">${quietCaption}</div>
+          <div style="flex:1;display:flex;align-items:center;justify-content:center;">${buildLifelinesBar(state.hotSeatTeam)}</div>
+        </div>`
+      : `<div style="width:100%;max-width:900px;">
+          <div id="tv-hero-block">${heroBlock}</div>
+          <div class="tv-q-text">${esc(q.text)}</div>
+          ${optsHtml}<div id="tv-result-banner">${quietCaption}</div>
+        </div>`;
   } else {
     const playerUrl=currentLobbyCode?(location.href.split('?')[0].split('#')[0]+'?lobby='+currentLobbyCode):'';
     mainContent=`<div style="text-align:center;width:100%;max-width:900px;">
