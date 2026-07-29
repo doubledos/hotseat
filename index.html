@@ -725,6 +725,9 @@ let lastFlowStage = '';
 let lastEndedSeen = false;
 let lastAudioSetup = false;
 let audioStageToken = 0;
+let phoneSpinRequestedFor = null;
+let phoneLifelineRequestedKey = null;
+let lastPhoneWheelSeen = 0;
 
 /* ===== Sound design — produced mp3 score (audio/), TV surface only ===== */
 let audioCtx = null;
@@ -813,6 +816,7 @@ async function playOnce(key, opts){
     gain.gain.linearRampToValueAtTime(0, now+buf.duration);
   }
   source.connect(gain); gain.connect(ctx.destination);
+  if(opts.onEnded) source.onended=opts.onEnded;
   source.start(0);
   if(opts.solo) activeOneShot={key, source, gain};
 }
@@ -988,6 +992,13 @@ async function pollForUpdates(){
   if(mode==='host'&&state.wager&&state.wager.active&&!state.wager.revealed){
     await pollWagers();
   }
+  // Poll player-requested lifelines / wheel spins if host
+  if(mode==='host'&&currentLobbyCode&&state.hotSeatTeam&&!state.wheel){
+    await pollLifelineRequests();
+  }
+  if(mode==='host'&&currentLobbyCode&&state.wheel&&!state.wheel.spunAt){
+    await pollSpinRequest();
+  }
 }
 
 /* ===== Modal ===== */
@@ -1086,6 +1097,7 @@ async function confirmHotSeatReveal(){
   } else if(state.lifelines[state.hotSeatTeam].doubleDip&&!state.flow.doubleDipUsed){
     // Double Dip: first miss just costs the guess, no steal yet
     state.flow.doubleDipUsed=true;
+    state.flow.doubleDipMissIdx=di;
     state.flow.stage='doubledip-miss';
   } else {
     // Wrong — create steal record and go to steal-peek
@@ -1291,7 +1303,13 @@ async function useLifeline(key){
     const lvl=activeLevel();
     const diff=state.currentQuestion?state.currentQuestion.difficulty:levelDiff(lvl);
     const newQ=pickQuestion(diff);
-    if(newQ){ newQ.used=true; state.currentQuestion=makeCurrentQuestion(newQ,lvl); state.flow={stage:'idle',optionsRevealed:0,hotSeatAnswer:-1,stealPeeked:false,stealRevealed:false,doubleDipUsed:false}; }
+    if(newQ){
+      newQ.used=true;
+      state.currentQuestion=makeCurrentQuestion(newQ,lvl);
+      // Drop the new question straight into place — keep whatever progress-free stage we
+      // were already in (no re-reveal ceremony, no audio retrigger).
+      state.flow={stage:'selecting',optionsRevealed:state.currentQuestion.options.length,hotSeatAnswer:-1,stealPeeked:false,stealRevealed:false,doubleDipUsed:false,doubleDipMissIdx:-1};
+    }
     await saveLobby(); renderHost(); return;
   }
   if(key==='bomb'){
@@ -1299,11 +1317,12 @@ async function useLifeline(key){
     state.lifelines[team].bomb=true;
     const outcomes=buildBombWheelOutcomes();
     state.wheel={
+      id:genId(),
       kind:'bomb',
       names:outcomes.map(wheelOutcomeLabel),
       outcomes:outcomes,
       winnerIdx:Math.floor(Math.random()*outcomes.length),
-      spunAt:Date.now()
+      spunAt:null
     };
     state.currentQuestion=null;
     state.flow={stage:'idle',optionsRevealed:0,hotSeatAnswer:-1,stealPeeked:false,stealRevealed:false,doubleDipUsed:false};
@@ -1312,6 +1331,59 @@ async function useLifeline(key){
   }
   state.lifelines[team][key]=true;
   await saveLobby(); renderHost();
+}
+async function undoLifeline(key){
+  // Testing aid — puts a used lifeline back so the host can re-trigger it.
+  state.lifelines[state.hotSeatTeam][key]=false;
+  await saveLobby(); renderHost();
+}
+
+/* ===== Wildcard wheel — spin is a separate, explicit step so players can watch it land ===== */
+async function spinWheel(){
+  if(!state.wheel||state.wheel.spunAt) return;
+  state.wheel.spunAt=Date.now();
+  await saveLobby(); renderHost();
+}
+async function requestSpinWheel(){
+  if(!currentLobbyCode||!state.wheel||state.wheel.spunAt) return;
+  phoneSpinRequestedFor=state.wheel.id;
+  await dbSet(`llspin:${currentLobbyCode}`, String(Date.now()));
+  renderPlayer();
+}
+async function pollSpinRequest(){
+  if(!state.wheel||state.wheel.spunAt) return;
+  const res=await dbGet(`llspin:${currentLobbyCode}`);
+  if(res&&res.value){
+    await dbDelete(`llspin:${currentLobbyCode}`);
+    await spinWheel();
+  }
+}
+
+/* ===== Player-requested lifelines — phone sends a request, host (authoritative) applies it ===== */
+async function phoneRequestLifeline(key, targetId){
+  if(!currentLobbyCode||!myPlayerId) return;
+  const me=playerById(myPlayerId); if(!me) return;
+  phoneLifelineRequestedKey=key;
+  await dbSet(`llreq:${currentLobbyCode}:${me.team}`, JSON.stringify({key,targetId:targetId||null,ts:Date.now()}));
+  renderPlayer();
+}
+async function pollLifelineRequests(){
+  const team=state.hotSeatTeam;
+  const res=await dbGet(`llreq:${currentLobbyCode}:${team}`);
+  if(!res||!res.value) return;
+  await dbDelete(`llreq:${currentLobbyCode}:${team}`);
+  let req; try{ req=JSON.parse(res.value); }catch(e){ req=null; }
+  if(!req||!req.key) return;
+  const showLL=['question','options','selecting'].includes(state.flow.stage);
+  if(!showLL||state.lifelines[team][req.key]) return;
+  if(req.key==='promote'){
+    if(!req.targetId) return;
+    state.lifelines[team].promote=true;
+    state.hotSeatPlayerId=req.targetId;
+    await saveLobby(); if(mode==='host') renderHost();
+  } else {
+    await useLifeline(req.key);
+  }
 }
 
 /* ===== Score adjustments ===== */
@@ -2202,11 +2274,11 @@ function renderHost(){
   if(ta) ta.addEventListener('input', debounce(e=>{ state.teamAName=e.target.value; saveLobby(); },400));
   if(tb) tb.addEventListener('input', debounce(e=>{ state.teamBName=e.target.value; saveLobby(); },400));
 
-  // Wheel animation
-  if(state.wheel&&state.wheel.spunAt!==lastWheelSeen){
+  // Wheel animation (only once it's actually been spun)
+  if(state.wheel&&state.wheel.spunAt&&state.wheel.spunAt!==lastWheelSeen){
     lastWheelSeen=state.wheel.spunAt;
     animateWheel(state.wheel,'host');
-  } else if(state.wheel){
+  } else if(state.wheel&&state.wheel.spunAt){
     const disc=document.getElementById('wheel-disc-host');
     if(disc){ const n=state.wheel.names.length,seg=360/n; disc.style.transition='none'; disc.style.transform=`rotate(${360*6+(360-(state.wheel.winnerIdx*seg+seg/2))}deg)`; }
     const res=document.getElementById('wheel-result-host');
@@ -2383,13 +2455,17 @@ function renderFlowCard(isPuzzleLevel){
         return `<div class="flow-opt" style="opacity:0.1;height:44px;"></div>`;
       }
       // Option is revealed
+      const isDDMiss=f.doubleDipMissIdx===di;
       if(stage==='selecting'){
+        if(isDDMiss){
+          return `<div class="flow-opt wrong-pick"><span class="flow-opt-letter">${letterFor(di)})</span>${esc(q.options[origIdx])} <span style="font-size:11px;">— already wrong</span></div>`;
+        }
         return `<button class="flow-opt" style="cursor:pointer;text-align:left;width:100%;border-color:var(--c-border2);" onclick="hostSelectAnswer(${di})">
           <span class="flow-opt-letter">${letterFor(di)})</span>${esc(q.options[origIdx])}
         </button>`;
       }
       if(stage==='steal-peek'){
-        if(isHSPick){
+        if(isHSPick||isDDMiss){
           return `<div class="flow-opt dim" style="opacity:0.35;"><span class="flow-opt-letter">${letterFor(di)})</span>${esc(q.options[origIdx])} <span style="font-size:11px;">— already wrong</span></div>`;
         }
         const stealNil=s?getNextInLine(s.panelTeam):null;
@@ -2400,7 +2476,7 @@ function renderFlowCard(isPuzzleLevel){
         </button>`;
       }
       if(stage==='steal-locked'){
-        if(isHSPick){
+        if(isHSPick||isDDMiss){
           return `<div class="flow-opt dim" style="opacity:0.35;"><span class="flow-opt-letter">${letterFor(di)})</span>${esc(q.options[origIdx])} <span style="font-size:11px;">— already wrong</span></div>`;
         }
         const stealNil=s?getNextInLine(s.panelTeam):null;
@@ -2413,12 +2489,14 @@ function renderFlowCard(isPuzzleLevel){
       const stealVote2=stealNil2?s.votes[stealNil2.id]:undefined;
       const isStealPick=stage==='steal-reveal'&&stealVote2===di;
       let cls='flow-opt';
-      if(isHSPick&&(stage==='revealing'||stage==='revealed'||stage==='doubledip-miss'||stage==='race-miss'||stage==='steal-peek')) cls+=' answer-flash';
+      if(isHSPick&&(stage==='revealing'||stage==='revealed'||stage==='race-miss')) cls+=' answer-flash';
+      if(isHSPick&&stage==='doubledip-miss') cls+=' wrong-pick';
+      if(isDDMiss&&!isHSPick) cls+=' wrong-pick';
       if(isStealPick) cls+=isCorrect?' correct':' wrong-pick';
       else if(stage==='steal-reveal'&&isHSPick) cls+=' wrong-pick';
       if(stage==='steal-reveal'&&isCorrect&&!isHSPick&&!isStealPick) cls+=' correct';
-      if((stage==='revealed'||stage==='doubledip-miss'||stage==='race-miss'||stage==='steal-peek')&&!isHSPick) cls+=' dim';
-      if(stage==='steal-reveal'&&!isCorrect&&!isHSPick&&!isStealPick) cls+=' dim';
+      if((stage==='revealed'||stage==='doubledip-miss'||stage==='race-miss')&&!isHSPick&&!isDDMiss) cls+=' dim';
+      if(stage==='steal-reveal'&&!isCorrect&&!isHSPick&&!isStealPick&&!isDDMiss) cls+=' dim';
       return `<div class="${cls}"><span class="flow-opt-letter">${letterFor(di)})</span>${esc(q.options[origIdx])}${isCorrect&&stage==='steal-reveal'?' ✓':''}</div>`;
     }).join('')+'</div>';
   } else if(qRevealed){
@@ -2491,7 +2569,9 @@ function renderFlowCard(isPuzzleLevel){
     ${actionSlot}
     ${voteStatus}
     ${showLL?`<div class="flow-lifelines" style="margin-top:10px;">${LIFELINE_DEFS.filter(({key})=>!(state.gameMode==='race'&&(key==='bomb'||key==='doubleDip'))).map(({key,label,icon})=>
-      `<button class="btn btn-ghost btn-sm" ${ll[key]?'disabled style="opacity:0.35;text-decoration:line-through;"':''} onclick="useLifeline('${key}')">${label}</button>`
+      ll[key]
+        ? `<button class="btn btn-ghost btn-sm" style="opacity:0.35;" disabled>${label}</button><button class="btn btn-ghost btn-sm" title="Undo (testing)" onclick="undoLifeline('${key}')" style="padding:6px 8px;">↺</button>`
+        : `<button class="btn btn-ghost btn-sm" onclick="useLifeline('${key}')">${label}</button>`
     ).join('')}</div>`:''}
     ${kbHint?`<div class="kb-hint">${kbHint}</div>`:''}
   </div>`;
@@ -2513,7 +2593,9 @@ function renderBombWheel(){
     <div class="steal-title" style="color:#c070f0;">Wildcard — Spin the Chance Wheel</div>
     ${buildWheelHTML(state.wheel,'host')}
     <div class="flow-controls" style="justify-content:center;margin-top:14px;">
-      <button class="btn btn-primary" onclick="confirmBombWheel()">Confirm Result</button>
+      ${!state.wheel.spunAt
+        ?`<button class="btn btn-primary" onclick="spinWheel()">Spin!</button><div class="hint" style="width:100%;text-align:center;margin-top:6px;">Or let a player spin from their phone.</div>`
+        :`<button class="btn btn-primary" onclick="confirmBombWheel()">Confirm Result</button>`}
     </div>
   </div>`;
 }
@@ -2841,7 +2923,7 @@ function buildLifelinesBar(team){
     const used=!!ll[key];
     const style=used?'':`color:${teamMidColor(team)};border-color:${teamMidColor(team)};box-shadow:0 0 18px ${teamMidColor(team)}77, inset 0 0 10px ${teamMidColor(team)}33;`;
     return `<div class="tv-ll-item ${used?'used':'avail'}">
-      <div class="tv-ll-icon" style="${style}">${tvIcon(LIFELINE_ICONS[key],'1em')}${used?`<span class="tv-ll-slash"></span>`:''}</div>
+      <div class="tv-ll-icon" style="${style}">${tvIcon(LIFELINE_ICONS[key],'1em')}</div>
       <div class="tv-ll-label">${esc(label)}</div>
     </div>`;
   }).join('')+'</div>';
@@ -2902,14 +2984,17 @@ function renderDisplay(){
   const isSetup=state.gamePhase==='setup'||!hp;
   root.className='app tv-stage-'+tvStage;
 
-  const stageJustChanged=f.stage!==lastFlowStage;
+  // A stage flip normally re-triggers audio, but 'idle' -> 'idle' (setup lobby handing off to
+  // the very first live question) never looks like a change unless we also watch isSetup.
+  const stageJustChanged=f.stage!==lastFlowStage || (lastFlowStage==='idle'&&f.stage==='idle'&&lastAudioSetup&&!isSetup);
   if(stageJustChanged){
     audioStageToken++;
     const myAudioToken=audioStageToken;
     const delayedQuestionLoop=()=>setTimeout(()=>{ if(audioStageToken===myAudioToken) playLoop('question',{fadeIn:2.5,volume:0.28}); }, 3500);
     if(f.stage==='question'){
-      playOnce('letsPlay',{volume:0.8});
-      delayedQuestionLoop();
+      // Lets-play sting, then give the host a couple seconds of dead air to read the
+      // question out loud before the tension bed creeps in underneath.
+      playOnce('letsPlay',{volume:0.8, onEnded:()=>{ setTimeout(()=>{ if(audioStageToken===myAudioToken) playLoop('question',{fadeIn:2.5,volume:0.28}); }, 2000); }});
     } else if(f.stage==='revealing'||f.stage==='steal-locked'){
       stopLoop(0.8);
       playOnce('finalAnswer',{volume:0.75,solo:true});
@@ -2980,6 +3065,7 @@ function renderDisplay(){
     mainContent=`<div style="display:flex;flex-direction:column;align-items:center;gap:16px;">
       <div class="tv-hotseat-name" style="font-size:clamp(18px,3vw,28px);">${state.wheel.kind==='bomb'?tvIcon('card')+' Wildcard!':'Tie-breaker'}</div>
       ${buildWheelHTML(state.wheel,'tv')}
+      ${!state.wheel.spunAt?`<div class="tv-waiting" style="font-size:clamp(14px,2.2vw,20px);">Grab your phone and spin!</div>`:''}
     </div>`;
   } else if(puz.active){
     const curRevSet=new Set((puz.revealedLetters||[]).map(l=>l.toUpperCase()));
@@ -3015,6 +3101,7 @@ function renderDisplay(){
       optsHtml='<div class="tv-opts">'+q.displayOrder.map((origIdx,di)=>{
         const isCorrect=origIdx===0; const isHSPick=f.hotSeatAnswer===di;
         const isStealPick=isSteal&&stealPickIdx===di;
+        const isDDMiss=f.doubleDipMissIdx===di&&!isHSPick;
         // Only show options that have been revealed one by one
         const isRevealed=(f.stage==='options'&&di<f.optionsRevealed)||['selecting','revealing','revealed','doubledip-miss','steal-peek','steal-locked','steal-reveal'].includes(f.stage);
         let cls='tv-opt'+(isRevealed?' shown':'');
@@ -3027,9 +3114,10 @@ function renderDisplay(){
           if(f.stage==='revealed') cls+=' is-answer';
           else if(f.stage==='doubledip-miss'||f.stage==='steal-peek'||f.stage==='steal-locked'||f.stage==='steal-reveal') cls+=' is-wrong';
         }
+        if(isDDMiss) cls+=' is-wrong';
         if(showCorrect&&isCorrect&&!isHSPick&&!isStealPick) cls+=' is-answer';
-        if(showCorrect&&!isCorrect&&!isHSPick&&!isStealPick) cls+=' not-answer';
-        if((f.stage==='revealed'||f.stage==='doubledip-miss')&&!isHSPick) cls+=' not-answer';
+        if(showCorrect&&!isCorrect&&!isHSPick&&!isStealPick&&!isDDMiss) cls+=' not-answer';
+        if((f.stage==='revealed'||f.stage==='doubledip-miss')&&!isHSPick&&!isDDMiss) cls+=' not-answer';
         const verdictBadge=cls.includes('is-answer')?`<span class="tv-opt-verdict good">${tvIcon('check','0.6em')}</span>`
           :cls.includes('is-wrong')?`<span class="tv-opt-verdict bad">${tvIcon('cross','0.6em')}</span>`:'';
         return `<div class="${cls}"><span class="tv-opt-letter">${letterFor(di)})</span>${esc(q.options[origIdx])}${verdictBadge}</div>`;
@@ -3140,8 +3228,8 @@ function renderDisplay(){
     const rb=document.getElementById('tv-result-banner');
     if(rb&&rb.innerHTML.trim()){ rb.classList.add('pop'); setTimeout(()=>rb.classList.remove('pop'),450); }
   }
-  if(state.wheel&&state.wheel.spunAt!==lastWheelSeen){ lastWheelSeen=state.wheel.spunAt; animateWheel(state.wheel,'tv'); }
-  else if(state.wheel){
+  if(state.wheel&&state.wheel.spunAt&&state.wheel.spunAt!==lastWheelSeen){ lastWheelSeen=state.wheel.spunAt; animateWheel(state.wheel,'tv'); }
+  else if(state.wheel&&state.wheel.spunAt){
     const disc=document.getElementById('wheel-disc-tv');
     if(disc){ const n=state.wheel.names.length,seg=360/n; disc.style.transition='none'; disc.style.transform=`rotate(${360*6+(360-(state.wheel.winnerIdx*seg+seg/2))}deg)`; }
     const res=document.getElementById('wheel-result-tv');
@@ -3210,7 +3298,7 @@ function renderPlayer(){
           <div style="font-size:15px;font-weight:600;line-height:1.5;margin-bottom:14px;">${esc(q.text)}</div>
           <div class="ph-vote-btns">
             ${q.displayOrder.map((origIdx,di)=>{
-              if(di===f.hotSeatAnswer){
+              if(di===f.hotSeatAnswer||di===f.doubleDipMissIdx){
                 return `<div class="ph-vote-btn ph-vote-btn-disabled">
                   <span class="ph-vote-letter">${letterFor(di)})</span>${esc(q.options[origIdx])} <span style="font-size:12px;">— already wrong</span>
                 </div>`;
@@ -3226,6 +3314,43 @@ function renderPlayer(){
     } else {
       content=`<div class="card"><div class="ph-status">Your team's next-in-line is voting. Collaborate and watch the TV!</div></div>`;
     }
+  }
+  // Wildcard wheel — anyone can watch it and spin it from their phone
+  else if(state.wheel&&state.wheel.kind==='bomb'){
+    const spun=!!state.wheel.spunAt;
+    const pending=!spun&&phoneSpinRequestedFor===state.wheel.id;
+    content=`<div class="card" style="text-align:center;">
+      <div style="font-size:13px;font-weight:700;color:#c070f0;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px;">🎡 Wildcard</div>
+      <div style="transform:scale(0.82);margin:-20px 0;">${buildWheelHTML(state.wheel,'ph')}</div>
+      <div id="wheel-result-ph" class="ph-status" style="margin-top:4px;"></div>
+      ${spun?'':pending
+        ?`<div class="ph-status" style="margin-top:12px;">Spinning…</div>`
+        :`<button class="btn btn-primary btn-block mt-12 btn-lg" onclick="requestSpinWheel()">Spin!</button>`}
+    </div>`;
+  }
+  // My team's turn — lifelines available to use from the phone
+  else if(q&&me.team===state.hotSeatTeam&&state.gamePhase==='live'&&['question','options','selecting'].includes(f.stage)){
+    const ll=state.lifelines[me.team]||{};
+    const defs=LIFELINE_DEFS.filter(({key})=>!(state.gameMode==='race'&&(key==='bomb'||key==='doubleDip')));
+    const teammates=state.players.filter(p=>p.team===me.team&&p.id!==state.hotSeatPlayerId);
+    const hp2=hotSeatPlayer();
+    content=`<div class="card">
+      <div style="font-size:13px;font-weight:700;color:var(--c-gold);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px;">Lifelines</div>
+      <div class="ph-status" style="margin-bottom:12px;">${hp2?esc(hp2.name):'Your team'} is in the hot seat. Watch the TV — use a lifeline here if needed.</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        ${defs.map(({key,label})=>{
+          if(ll[key]) return `<button class="btn btn-ghost btn-block" disabled style="opacity:0.35;">${esc(label)}</button>`;
+          if(key==='promote'){
+            if(!teammates.length) return '';
+            return `<div>
+              <div style="font-size:12px;color:var(--c-muted);margin-bottom:4px;">${esc(label)} — pick who takes the hot seat:</div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px;">${teammates.map(p=>`<button class="btn btn-ghost btn-sm" onclick="phoneRequestLifeline('promote','${p.id}')">${esc(p.name)}</button>`).join('')}</div>
+            </div>`;
+          }
+          return `<button class="btn btn-ghost btn-block" onclick="phoneRequestLifeline('${key}')">${esc(label)}</button>`;
+        }).join('')}
+      </div>
+    </div>`;
   }
   else if(s&&!s.locked&&!iAmPanel){
     content=`<div class="card"><div class="ph-status">Your team is in the hot seat. Watch the TV!</div></div>`;
@@ -3243,6 +3368,17 @@ function renderPlayer(){
     ${content}
     <button class="btn btn-ghost btn-sm" style="margin-top:auto;" onclick="unclaimPlayer()">Not ${esc(me.name)}?</button>
   </div>`;
+
+  if(state.wheel&&state.wheel.spunAt&&state.wheel.spunAt!==lastPhoneWheelSeen){
+    lastPhoneWheelSeen=state.wheel.spunAt;
+    animateWheel(state.wheel,'ph');
+  } else if(state.wheel&&state.wheel.spunAt){
+    const disc=document.getElementById('wheel-disc-ph');
+    if(disc){ const n=state.wheel.names.length,seg=360/n; disc.style.transition='none'; disc.style.transform=`rotate(${360*6+(360-(state.wheel.winnerIdx*seg+seg/2))}deg)`; }
+    const res=document.getElementById('wheel-result-ph');
+    if(res) res.textContent=state.wheel.outcomes?wheelOutcomeResultText(resolvedOutcomeFor(state.wheel)):wheelResultText(state.wheel);
+  }
+  if(!state.wheel) phoneSpinRequestedFor=null;
 }
 
 function submitPhoneWager(){
