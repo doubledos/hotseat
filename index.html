@@ -811,6 +811,18 @@ async function playOnce(key, opts){
   source.start(0);
   if(opts.solo) activeOneShot={key, source, gain};
 }
+async function playBigWinThenTheme(){
+  const ctx=getAudioCtx(); if(!ctx) return;
+  const buf=await loadAudioBuffer('bigWin');
+  if(!buf){ playLoop('mainTheme',{fadeIn:2.5,volume:0.35}); return; }
+  const source=ctx.createBufferSource();
+  source.buffer=buf;
+  const gain=ctx.createGain();
+  gain.gain.value=0.9;
+  source.connect(gain); gain.connect(ctx.destination);
+  source.onended=()=>{ playLoop('mainTheme',{fadeIn:2.5,volume:0.35}); };
+  source.start(0);
+}
 // Detect hash-based routing
 function detectMode(){
   const h = location.hash;
@@ -2917,7 +2929,10 @@ function renderDisplay(){
       stopLoop(0.5);
       playOnce('finalAnswer',{volume:0.8,solo:true});
     } else if(f.stage==='revealed'&&f.hotSeatAnswer===correctDisplayIdx(q)){
-      playOnce('win',{volume:0.9,solo:true});
+      // Skip the small win sting when this correct answer is about to end the game
+      // (Race Mode clinching level 15) — the big-win sting covers that moment instead.
+      const isFinalRaceWin=state.gameMode==='race'&&activeLevel(state.hotSeatTeam)===15;
+      if(!isFinalRaceWin) playOnce('win',{volume:0.9,solo:true});
     } else if(f.stage==='doubledip-miss'||f.stage==='race-miss'||f.stage==='steal-peek'){
       playOnce('lose',{volume:0.9,solo:true});
     }
@@ -2925,8 +2940,7 @@ function renderDisplay(){
   }
   if(state.ended&&!lastEndedSeen){
     stopLoop(0.6);
-    playOnce('bigWin',{volume:0.9});
-    playLoop('mainTheme',{fadeIn:2.5,volume:0.35});
+    playBigWinThenTheme();
     lastEndedSeen=true;
   } else if(!state.ended) lastEndedSeen=false;
   if(isSetup&&!state.ended){
