@@ -402,6 +402,8 @@ body.mode-player .app{max-width:480px;margin:0 auto;padding:0;}
 .ph-vote-letter{color:var(--c-accent);font-weight:700;margin-right:8px;}
 .ph-vote-btn.picked .ph-vote-letter{color:#fff8ec;}
 .ph-vote-btn-disabled{opacity:0.4;cursor:default;}
+.ph-submenu{display:flex;flex-direction:column;gap:8px;padding:10px;background:var(--c-surface2);border:1px solid var(--c-border);border-radius:10px;}
+.ph-submenu-back{background:none;border:none;color:var(--c-muted);font-size:12px;text-align:left;padding:0 0 2px;cursor:pointer;}
 .ph-wager-input{width:100%;font-size:32px;font-weight:700;text-align:center;background:var(--c-surface);border:2px solid var(--c-gold-dim);border-radius:10px;color:var(--c-gold-light);padding:14px;letter-spacing:0.05em;}
 .ph-wager-input:focus{border-color:var(--c-gold);}
 
@@ -728,6 +730,7 @@ let audioStageToken = 0;
 let phoneSpinRequestedFor = null;
 let phoneLifelineRequestedKey = null;
 let lastPhoneWheelSeen = 0;
+let phonePromoteMenuOpen = false;
 
 /* ===== Sound design — produced mp3 score (audio/), TV surface only ===== */
 let audioCtx = null;
@@ -3336,15 +3339,18 @@ function renderPlayer(){
     const hp2=hotSeatPlayer();
     content=`<div class="card">
       <div style="font-size:13px;font-weight:700;color:var(--c-gold);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px;">Lifelines</div>
-      <div class="ph-status" style="margin-bottom:12px;">${hp2?esc(hp2.name):'Your team'} is in the hot seat. Watch the TV — use a lifeline here if needed.</div>
+      <div class="ph-status" style="margin-bottom:12px;">${hp2&&hp2.id===me.id?'You are in the hot seat.':(hp2?esc(hp2.name)+' is in the hot seat.':'Your team is in the hot seat.')} Watch the TV — use a lifeline here if needed.</div>
       <div style="display:flex;flex-direction:column;gap:8px;">
         ${defs.map(({key,label})=>{
           if(ll[key]) return `<button class="btn btn-ghost btn-block" disabled style="opacity:0.35;">${esc(label)}</button>`;
           if(key==='promote'){
             if(!teammates.length) return '';
-            return `<div>
-              <div style="font-size:12px;color:var(--c-muted);margin-bottom:4px;">${esc(label)} — pick who takes the hot seat:</div>
-              <div style="display:flex;flex-wrap:wrap;gap:6px;">${teammates.map(p=>`<button class="btn btn-ghost btn-sm" onclick="phoneRequestLifeline('promote','${p.id}')">${esc(p.name)}</button>`).join('')}</div>
+            if(!phonePromoteMenuOpen){
+              return `<button class="btn btn-ghost btn-block" onclick="phonePromoteMenuOpen=true;renderPlayer();">${esc(label)} ›</button>`;
+            }
+            return `<div class="ph-submenu">
+              <button class="ph-submenu-back" onclick="phonePromoteMenuOpen=false;renderPlayer();">‹ ${esc(label)}</button>
+              ${teammates.map(p=>`<button class="btn btn-ghost btn-block" onclick="phonePromoteMenuOpen=false;phoneRequestLifeline('promote','${p.id}')">${esc(p.name)}</button>`).join('')}
             </div>`;
           }
           return `<button class="btn btn-ghost btn-block" onclick="phoneRequestLifeline('${key}')">${esc(label)}</button>`;
