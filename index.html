@@ -2931,6 +2931,9 @@ function renderDisplay(){
       playOnce(theirVote===correctDisplayIdx(q)?'win':'lose',{volume:0.85,solo:true});
     } else if(f.stage==='idle'&&!isSetup&&!state.ended){
       playLoop('mainTheme',{fadeIn:2,volume:0.3});
+    } else if(f.stage==='selecting'&&lastFlowStage==='doubledip-miss'){
+      // Double Dip retry — same question, second guess. Resume the tension bed instead of dead air.
+      delayedQuestionLoop();
     }
     lastFlowStage=f.stage;
   }
