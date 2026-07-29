@@ -803,7 +803,16 @@ async function playOnce(key, opts){
   const source=ctx.createBufferSource();
   source.buffer=buf;
   const gain=ctx.createGain();
-  gain.gain.value=opts.volume!==undefined?opts.volume:0.85;
+  const target=opts.volume!==undefined?opts.volume:0.85;
+  const fadeIn=opts.fadeIn!==undefined?opts.fadeIn:0.15;
+  const fadeOut=opts.fadeOut!==undefined?opts.fadeOut:0.4;
+  const now=ctx.currentTime;
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(target, now+fadeIn);
+  if(fadeOut>0&&buf.duration>fadeIn+fadeOut){
+    gain.gain.setValueAtTime(target, now+buf.duration-fadeOut);
+    gain.gain.linearRampToValueAtTime(0, now+buf.duration);
+  }
   source.connect(gain); gain.connect(ctx.destination);
   source.start(0);
   if(opts.solo) activeOneShot={key, source, gain};
@@ -1122,6 +1131,8 @@ async function changeHotSeatPick(){
 }
 async function revealHotSeatResult(){ state.flow.stage='revealed'; await saveLobby(); renderHost(); } // kept for safety
 async function revealStealGuess(){ state.flow.stage='steal-peek'; state.flow.stealPeeked=true; await saveLobby(); renderHost(); }
+async function lockStealAnswer(){ if(!state.steal) return; state.flow.stage='steal-locked'; await saveLobby(); renderHost(); }
+async function unlockStealAnswer(){ if(!state.steal) return; state.flow.stage='steal-peek'; await saveLobby(); renderHost(); }
 async function revealCorrectAnswer(){ state.flow.stage='steal-reveal'; state.flow.stealRevealed=true; await saveLobby(); renderHost(); }
 
 function flowButtonLabel(){
@@ -2342,7 +2353,7 @@ function renderFlowCard(isPuzzleLevel){
   // Determine what's visible/active at each stage
   const qRevealed = stage!=='idle';
   // optsRevealed means ALL options are shown (post-options stage)
-  const allOptsShown = ['selecting','revealing','revealed','doubledip-miss','race-miss','steal-peek','steal-reveal'].includes(stage);
+  const allOptsShown = ['selecting','revealing','revealed','doubledip-miss','race-miss','steal-peek','steal-locked','steal-reveal'].includes(stage);
 
   // QUESTION SLOT
   let questionSlot='';
@@ -2389,6 +2400,15 @@ function renderFlowCard(isPuzzleLevel){
           <span class="flow-opt-letter">${letterFor(di)})</span>${esc(q.options[origIdx])}
         </button>`;
       }
+      if(stage==='steal-locked'){
+        if(isHSPick){
+          return `<div class="flow-opt dim" style="opacity:0.35;"><span class="flow-opt-letter">${letterFor(di)})</span>${esc(q.options[origIdx])} <span style="font-size:11px;">— already wrong</span></div>`;
+        }
+        const stealNil=s?getNextInLine(s.panelTeam):null;
+        const stealVote=stealNil?s.votes[stealNil.id]:undefined;
+        const isPicked=stealVote===di;
+        return `<div class="flow-opt${isPicked?' answer-flash':''}"><span class="flow-opt-letter">${letterFor(di)})</span>${esc(q.options[origIdx])}</div>`;
+      }
       // Post-selection display
       const stealNil2=s?getNextInLine(s.panelTeam):null;
       const stealVote2=stealNil2?s.votes[stealNil2.id]:undefined;
@@ -2431,9 +2451,12 @@ function renderFlowCard(isPuzzleLevel){
     const stealNilA=s?getNextInLine(s.panelTeam):null;
     const stealVoteA=stealNilA?s.votes[stealNilA.id]:undefined;
     actionSlot=(stealVoteA!==undefined
-      ?`<button class="flow-reveal-btn" style="margin-top:6px;" onclick="revealCorrectAnswer()">▶ Reveal Correct Answer</button>`
+      ?`<button class="btn btn-primary btn-block" style="margin-top:6px;" onclick="lockStealAnswer()">▶ Lock In Their Answer</button>`
       :`<div style="font-size:13px;color:var(--c-muted);padding:8px;background:var(--c-surface2);border-radius:8px;text-align:center;margin-top:6px;">Tap their answer above</div>`)
       +`<button class="btn-changepick" onclick="changeHotSeatPick()">✎ Misheard the original answer? Change pick</button>`;
+  } else if(stage==='steal-locked'){
+    actionSlot=`<button class="btn btn-primary btn-block" style="margin-top:6px;" onclick="revealCorrectAnswer()">▶ Reveal Correct Answer</button>
+      <button class="btn-changepick" onclick="unlockStealAnswer()">✎ Change their pick</button>`;
   } else if(stage==='steal-reveal'){
     const nil=s?getNextInLine(s.panelTeam):null;
     const theirVote=nil?s.votes[nil.id]:undefined;
@@ -2456,7 +2479,7 @@ function renderFlowCard(isPuzzleLevel){
 
   const showLL=['question','options','selecting'].includes(stage);
   const kbHints={idle:'⌨ Space to reveal',question:isMC?'⌨ Space for next option':'⌨ Space to reveal',options:'⌨ Space for next option',selecting:'⌨ 1–4 to pick',
-    revealed:(f.hotSeatAnswer===correctIdx?'⌨ Space to bank & advance':''),'doubledip-miss':'⌨ Space to try again','race-miss':'⌨ Space to swap teams','steal-peek':'⌨ 1–4 for their pick'};
+    revealed:(f.hotSeatAnswer===correctIdx?'⌨ Space to bank & advance':''),'doubledip-miss':'⌨ Space to try again','race-miss':'⌨ Space to swap teams','steal-peek':'⌨ 1–4 for their pick','steal-locked':'⌨ Space to reveal'};
   const kbHint=kbHints[stage]||'';
 
   return `<div class="flow-card">
@@ -2884,36 +2907,36 @@ function renderDisplay(){
   if(stageJustChanged){
     audioStageToken++;
     const myAudioToken=audioStageToken;
-    const delayedQuestionLoop=()=>setTimeout(()=>{ if(audioStageToken===myAudioToken) playLoop('question',{fadeIn:2,volume:0.28}); }, 3500);
+    const delayedQuestionLoop=()=>setTimeout(()=>{ if(audioStageToken===myAudioToken) playLoop('question',{fadeIn:2.5,volume:0.28}); }, 3500);
     if(f.stage==='question'){
-      playOnce('letsPlay',{volume:0.85});
+      playOnce('letsPlay',{volume:0.8});
       delayedQuestionLoop();
-    } else if(f.stage==='revealing'){
-      stopLoop(0.5);
-      playOnce('finalAnswer',{volume:0.8,solo:true});
+    } else if(f.stage==='revealing'||f.stage==='steal-locked'){
+      stopLoop(0.8);
+      playOnce('finalAnswer',{volume:0.75,solo:true});
     } else if(f.stage==='revealed'&&f.hotSeatAnswer===correctDisplayIdx(q)){
       // Skip the small win sting when this correct answer is about to end the game
       // (Race Mode clinching level 15) — the big-win sting covers that moment instead.
       const isFinalRaceWin=state.gameMode==='race'&&activeLevel(state.hotSeatTeam)===15;
-      if(!isFinalRaceWin) playOnce('win',{volume:0.9,solo:true});
+      if(!isFinalRaceWin) playOnce('win',{volume:0.85,solo:true});
     } else if(f.stage==='doubledip-miss'||f.stage==='race-miss'){
-      playOnce('lose',{volume:0.9,solo:true});
+      playOnce('lose',{volume:0.85,solo:true});
     } else if(f.stage==='steal-peek'){
       // The original hot seat player's miss
-      playOnce('lose',{volume:0.9,solo:true});
+      playOnce('lose',{volume:0.85,solo:true});
       delayedQuestionLoop();
     } else if(f.stage==='steal-reveal'){
-      stopLoop(0.4);
+      stopLoop(0.7);
       const nil=s?getNextInLine(s.panelTeam):null;
       const theirVote=nil?s.votes[nil.id]:undefined;
-      playOnce(theirVote===correctDisplayIdx(q)?'win':'lose',{volume:0.9,solo:true});
+      playOnce(theirVote===correctDisplayIdx(q)?'win':'lose',{volume:0.85,solo:true});
     } else if(f.stage==='idle'&&!isSetup&&!state.ended){
-      playLoop('mainTheme',{fadeIn:1.5,volume:0.3});
+      playLoop('mainTheme',{fadeIn:2,volume:0.3});
     }
     lastFlowStage=f.stage;
   }
   if(state.ended&&!lastEndedSeen){
-    stopLoop(0.6);
+    stopLoop(0.8);
     playBigWinThenTheme();
     lastEndedSeen=true;
   } else if(!state.ended) lastEndedSeen=false;
@@ -2980,10 +3003,10 @@ function renderDisplay(){
     </div>`;
   } else if(q&&f.stage!=='idle'){
     const isMC=q.options.length>1; const correctIdx=correctDisplayIdx(q);
-    const showOpts=['options','selecting','revealing','revealed','doubledip-miss','steal-peek','steal-reveal'].includes(f.stage);
-    const showHSAnswer=['revealed','doubledip-miss','steal-peek','steal-reveal'].includes(f.stage);
+    const showOpts=['options','selecting','revealing','revealed','doubledip-miss','steal-peek','steal-locked','steal-reveal'].includes(f.stage);
+    const showHSAnswer=['revealed','doubledip-miss','steal-peek','steal-locked','steal-reveal'].includes(f.stage);
     const showCorrect=f.stage==='steal-reveal';
-    const isSteal=(f.stage==='steal-peek'||f.stage==='steal-reveal')&&s;
+    const isSteal=(f.stage==='steal-peek'||f.stage==='steal-locked'||f.stage==='steal-reveal')&&s;
     const stealNilTV=s?getNextInLine(s.panelTeam):null;
     const stealNilLabel=stealNilTV?esc(stealNilTV.name):'Other team';
     let optsHtml='';
@@ -2993,15 +3016,16 @@ function renderDisplay(){
         const isCorrect=origIdx===0; const isHSPick=f.hotSeatAnswer===di;
         const isStealPick=isSteal&&stealPickIdx===di;
         // Only show options that have been revealed one by one
-        const isRevealed=(f.stage==='options'&&di<f.optionsRevealed)||['selecting','revealing','revealed','doubledip-miss','steal-peek','steal-reveal'].includes(f.stage);
+        const isRevealed=(f.stage==='options'&&di<f.optionsRevealed)||['selecting','revealing','revealed','doubledip-miss','steal-peek','steal-locked','steal-reveal'].includes(f.stage);
         let cls='tv-opt'+(isRevealed?' shown':'');
         if(isStealPick){
           if(f.stage==='steal-reveal') cls+= isCorrect?' is-answer':' is-wrong';
+          else if(f.stage==='steal-locked') cls+=' is-final';
         } else if(f.stage==='revealing'&&isHSPick){
           cls+=' is-final';
         } else if(showHSAnswer&&isHSPick){
           if(f.stage==='revealed') cls+=' is-answer';
-          else if(f.stage==='doubledip-miss'||f.stage==='steal-peek'||f.stage==='steal-reveal') cls+=' is-wrong';
+          else if(f.stage==='doubledip-miss'||f.stage==='steal-peek'||f.stage==='steal-locked'||f.stage==='steal-reveal') cls+=' is-wrong';
         }
         if(showCorrect&&isCorrect&&!isHSPick&&!isStealPick) cls+=' is-answer';
         if(showCorrect&&!isCorrect&&!isHSPick&&!isStealPick) cls+=' not-answer';
@@ -3015,7 +3039,7 @@ function renderDisplay(){
     }
     // Quiet caption — only for states that carry information a box icon can't (a mechanic, or who holds the seat now)
     let quietCaption='';
-    if(f.stage==='revealing'){
+    if(f.stage==='revealing'||f.stage==='steal-locked'){
       quietCaption=`<div class="tv-quiet-caption tv-final-caption">Final answer?</div>`;
     } else if(f.stage==='doubledip-miss'){
       quietCaption=`<div class="tv-quiet-caption">${tvIcon('refresh','0.85em')} Double Dip — one more guess</div>`;
@@ -3174,7 +3198,7 @@ function renderPlayer(){
     </div>`;
   }
   // Voting phase — I'm next-in-line and a question is active
-  else if(q&&iAmPanel&&s&&!s.locked&&['idle','question','options','selecting','revealing','revealed','steal-peek'].includes(f.stage)){
+  else if(q&&iAmPanel&&s&&!s.locked&&['idle','question','options','selecting','revealing','revealed','steal-peek','steal-locked'].includes(f.stage)){
     const amNil=s.nextInLineId===myPlayerId; const voted=s.votes[myPlayerId]!==undefined;
     if(amNil){
       if(voted){
@@ -3407,6 +3431,7 @@ function handleHostKeydown(e){
   if(key===' '||key==='Enter'){
     if(['idle','question','options'].includes(f.stage)&&q){ e.preventDefault(); flowAdvance(); return; }
     if(f.stage==='revealing'){ e.preventDefault(); confirmHotSeatReveal(); return; }
+    if(f.stage==='steal-locked'){ e.preventDefault(); revealCorrectAnswer(); return; }
     if(f.stage==='revealed'&&q&&f.hotSeatAnswer===correctDisplayIdx(q)){ e.preventDefault(); markCorrect(); return; }
     if(f.stage==='doubledip-miss'){ e.preventDefault(); retryDoubleDip(); return; }
     if(f.stage==='race-miss'){ e.preventDefault(); raceSwapAfterMiss(); return; }
