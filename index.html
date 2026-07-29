@@ -3055,19 +3055,15 @@ function renderDisplay(){
       }
     }
     const heroBlock=`<div class="tv-name-tag" style="color:${teamMidColor(isSteal?(s?s.panelTeam:state.hotSeatTeam):state.hotSeatTeam)}">${heroText}</div>`;
-    const showLLBar=!isSteal&&['question','options','selecting'].includes(f.stage);
-    mainContent=showLLBar
-      ? `<div style="width:100%;max-width:900px;min-height:100%;display:flex;flex-direction:column;">
-          <div id="tv-hero-block">${heroBlock}</div>
-          <div class="tv-q-text">${esc(q.text)}</div>
-          ${optsHtml}<div id="tv-result-banner">${quietCaption}</div>
-          <div style="flex:1;display:flex;align-items:center;justify-content:center;">${buildLifelinesBar(state.hotSeatTeam)}</div>
-        </div>`
-      : `<div style="width:100%;max-width:900px;">
-          <div id="tv-hero-block">${heroBlock}</div>
-          <div class="tv-q-text">${esc(q.text)}</div>
-          ${optsHtml}<div id="tv-result-banner">${quietCaption}</div>
-        </div>`;
+    // Same wrapper skeleton for every live-question stage (question through reveal) so the
+    // hero/question never jumps position when the stage below it changes.
+    const showLLBar=!isSteal&&['question','options','selecting','doubledip-miss'].includes(f.stage);
+    mainContent=`<div style="width:100%;max-width:900px;min-height:100%;display:flex;flex-direction:column;">
+        <div id="tv-hero-block">${heroBlock}</div>
+        <div class="tv-q-text">${esc(q.text)}</div>
+        ${optsHtml}<div id="tv-result-banner">${quietCaption}</div>
+        <div style="flex:1;display:flex;align-items:center;justify-content:center;">${showLLBar?buildLifelinesBar(state.hotSeatTeam):''}</div>
+      </div>`;
   } else {
     const playerUrl=currentLobbyCode?(location.href.split('?')[0].split('#')[0]+'?lobby='+currentLobbyCode):'';
     mainContent=`<div style="text-align:center;width:100%;max-width:900px;">
