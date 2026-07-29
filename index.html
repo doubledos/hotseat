@@ -325,8 +325,6 @@ body.mode-display .app>*{position:relative;z-index:1;}
 .tv-hotseat-name{font-size:clamp(32px,5.4vw,64px);font-family:var(--font-display);color:var(--tv-accent);letter-spacing:0.04em;margin-bottom:clamp(10px,1.5vh,20px);text-shadow:var(--tv-text-shadow);}
 .tv-name-tag{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--font-display);font-size:clamp(20px,3.2vw,30px);letter-spacing:0.02em;text-shadow:var(--tv-text-shadow);margin-bottom:clamp(8px,1.2vh,14px);}
 .tv-name-tag svg{width:0.55em;height:0.8em;flex-shrink:0;filter:drop-shadow(0 2px 5px rgba(0,0,0,0.4));}
-.tv-prev-turn{display:flex;align-items:center;justify-content:center;gap:8px;font-size:clamp(13px,1.6vw,16px);color:var(--tv-text-soft);text-shadow:var(--tv-text-shadow);opacity:0.75;margin-bottom:clamp(10px,1.6vh,18px);}
-.tv-steal-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:clamp(13px,1.7vw,17px);font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:var(--tv-accent);text-shadow:var(--tv-text-shadow);margin-bottom:clamp(8px,1.2vh,14px);}
 .tv-opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;max-width:1000px;width:100%;margin:0 auto;box-sizing:border-box;}
 .tv-opt{position:relative;background:var(--tv-panel-solid);color:var(--tv-text);border:1px solid var(--tv-border);border-radius:10px;padding:clamp(12px,1.8vh,20px) clamp(14px,2.2vw,24px);font-size:clamp(18px,2.5vw,26px);font-weight:600;text-align:left;opacity:0;transform:translateY(8px);transition:all .4s var(--tv-ease);box-shadow:0 4px 16px rgba(0,0,0,0.15);overflow:visible;}
 .tv-opt.shown{opacity:1;transform:none;}
@@ -340,9 +338,7 @@ body.mode-display .app>*{position:relative;z-index:1;}
 .tv-opt-verdict.good{background:var(--c-green-light);color:#072213;}
 .tv-opt-verdict.bad{background:var(--c-red-light);color:#2b0705;}
 @keyframes tv-reveal-pop{0%{transform:scale(0.85);opacity:0;}60%{transform:scale(1.04);opacity:1;}100%{transform:scale(1);opacity:1;}}
-@keyframes tv-hero-enter{0%{transform:translateX(-16px);opacity:0;}100%{transform:translateX(0);opacity:1;}}
 #tv-result-banner.pop>*{animation:tv-reveal-pop .38s var(--tv-ease) both;}
-#tv-hero-block.enter{animation:tv-hero-enter .5s var(--tv-ease) both;}
 .tv-hotseat-name{position:relative;}
 .tv-hotseat-name::before{content:'';position:absolute;left:50%;top:50%;width:140%;height:280%;transform:translate(-50%,-50%);background:radial-gradient(ellipse at center,var(--tv-panel,rgba(255,255,255,0.1)) 0%,transparent 68%);z-index:-1;pointer-events:none;}
 .tv-quiet-caption{margin-top:12px;font-size:clamp(13px,1.8vw,16px);font-weight:600;color:var(--tv-text-soft);text-shadow:var(--tv-text-shadow);text-align:center;display:flex;align-items:center;justify-content:center;gap:8px;}
@@ -406,6 +402,7 @@ body.mode-player .app{max-width:480px;margin:0 auto;padding:0;}
 .ph-vote-btn.picked{background:var(--c-accent);color:#fff8ec;border-color:var(--c-accent-hi);}
 .ph-vote-letter{color:var(--c-accent);font-weight:700;margin-right:8px;}
 .ph-vote-btn.picked .ph-vote-letter{color:#fff8ec;}
+.ph-vote-btn-disabled{opacity:0.4;cursor:default;}
 .ph-wager-input{width:100%;font-size:32px;font-weight:700;text-align:center;background:var(--c-surface);border:2px solid var(--c-gold-dim);border-radius:10px;color:var(--c-gold-light);padding:14px;letter-spacing:0.05em;}
 .ph-wager-input:focus{border-color:var(--c-gold);}
 
@@ -723,12 +720,12 @@ let phoneWagerSubmitted = false;
 let displayPrevRevealed = new Set();
 let lastGlitchSeen = 0;
 let lastWheelSeen = 0;
-let lastVoteFlashKey = '';
 let seenWagerIds = new Set();
 let puzzleTimerRAF = null;
 let lastFlowStage = '';
 let lastEndedSeen = false;
 let lastAudioSetup = false;
+let audioStageToken = 0;
 
 /* ===== Sound design — produced mp3 score (audio/), TV surface only ===== */
 let audioCtx = null;
@@ -1186,11 +1183,6 @@ async function pollStealVotes(){
   if(changed){ await saveLobby(); if(mode==='host') renderHost(); }
 }
 
-async function hostSetVote(playerId, displayIdx){
-  if(!state.steal) return;
-  state.steal.votes[playerId]=displayIdx;
-  await saveLobby(); renderHost();
-}
 async function hostSetStealVote(displayIdx){
   if(!state.steal) return;
   const nil=getNextInLine(state.steal.panelTeam);
@@ -2275,8 +2267,6 @@ function renderGameTab(){
   // Steal / wheel
   else if(state.wheel){
     html+=state.wheel.kind==='bomb'?renderBombWheel():renderStealWheel();
-  } else if(state.steal&&!state.steal.resolved&&['steal-peek','steal-reveal'].includes(state.flow.stage)){
-    html+=renderStealBox();
   } else if(state.steal&&state.steal.outcome==='defended'){
     html+=`<div class="steal-box">
       <div class="steal-title">Nobody stole it</div>
@@ -2389,6 +2379,9 @@ function renderFlowCard(isPuzzleLevel){
         </button>`;
       }
       if(stage==='steal-peek'){
+        if(isHSPick){
+          return `<div class="flow-opt dim" style="opacity:0.35;"><span class="flow-opt-letter">${letterFor(di)})</span>${esc(q.options[origIdx])} <span style="font-size:11px;">— already wrong</span></div>`;
+        }
         const stealNil=s?getNextInLine(s.panelTeam):null;
         const stealVote=stealNil?s.votes[stealNil.id]:undefined;
         const isPicked=stealVote===di;
@@ -2397,11 +2390,16 @@ function renderFlowCard(isPuzzleLevel){
         </button>`;
       }
       // Post-selection display
+      const stealNil2=s?getNextInLine(s.panelTeam):null;
+      const stealVote2=stealNil2?s.votes[stealNil2.id]:undefined;
+      const isStealPick=stage==='steal-reveal'&&stealVote2===di;
       let cls='flow-opt';
       if(isHSPick&&(stage==='revealing'||stage==='revealed'||stage==='doubledip-miss'||stage==='race-miss'||stage==='steal-peek')) cls+=' answer-flash';
-      if(stage==='steal-reveal'&&isHSPick) cls+=isCorrect?' correct':' wrong-pick';
-      if(stage==='steal-reveal'&&isCorrect&&!isHSPick) cls+=' correct';
+      if(isStealPick) cls+=isCorrect?' correct':' wrong-pick';
+      else if(stage==='steal-reveal'&&isHSPick) cls+=' wrong-pick';
+      if(stage==='steal-reveal'&&isCorrect&&!isHSPick&&!isStealPick) cls+=' correct';
       if((stage==='revealed'||stage==='doubledip-miss'||stage==='race-miss'||stage==='steal-peek')&&!isHSPick) cls+=' dim';
+      if(stage==='steal-reveal'&&!isCorrect&&!isHSPick&&!isStealPick) cls+=' dim';
       return `<div class="${cls}"><span class="flow-opt-letter">${letterFor(di)})</span>${esc(q.options[origIdx])}${isCorrect&&stage==='steal-reveal'?' ✓':''}</div>`;
     }).join('')+'</div>';
   } else if(qRevealed){
@@ -2412,9 +2410,7 @@ function renderFlowCard(isPuzzleLevel){
 
   // POST-OPTIONS ACTION SLOT
   let actionSlot='';
-  if(allOptsShown&&stage==='selecting'){
-    actionSlot=`<div style="font-size:13px;color:var(--c-muted);margin-top:6px;padding:8px;background:var(--c-surface2);border-radius:8px;text-align:center;">Tap the answer the hot seat player said</div>`;
-  } else if(stage==='revealing'){
+  if(stage==='revealing'){
     actionSlot=`<button class="btn btn-primary btn-block" style="margin-top:6px;" onclick="confirmHotSeatReveal()">▶ Reveal Answer</button>
       <button class="btn-changepick" onclick="changeHotSeatPick()">✎ Misheard? Change pick</button>`;
   } else if(stage==='revealed'){
@@ -2446,21 +2442,6 @@ function renderFlowCard(isPuzzleLevel){
       :`<button class="btn btn-error btn-block" style="margin-top:6px;" onclick="advanceLevelNoMoney()">Nobody Got It — Next Level</button>`;
   }
 
-  // Steal info
-  let stealInfo='';
-  if(s&&(stage==='steal-peek'||stage==='steal-reveal')){
-    const nil=s?getNextInLine(s.panelTeam):null; const theirVote=nil?s.votes[nil.id]:undefined;
-    const isCorrect=theirVote===correctIdx; const showColor=stage==='steal-reveal';
-    const flashKey='steal-'+s.roundId+'-'+(nil?nil.id:'');
-    const justArrived=stage==='steal-peek'&&theirVote!==undefined&&flashKey!==lastVoteFlashKey;
-    if(theirVote!==undefined) lastVoteFlashKey=flashKey;
-    stealInfo=`<div class="${justArrived?'vote-flash':''}" style="margin-top:8px;padding:10px 14px;background:var(--c-surface2);border:1px solid ${showColor?(isCorrect?'var(--c-green-light)':'var(--c-red-light)'):'var(--c-border)'};border-radius:8px;">
-      <div style="font-size:11px;color:var(--c-muted);margin-bottom:2px;">${esc(nil?nil.name:'Other team')} guessed</div>
-      <div style="font-size:15px;font-weight:700;">${theirVote!==undefined?letterFor(theirVote)+' — '+esc(q.options[q.displayOrder[theirVote]]):'No vote'}</div>
-      ${showColor?`<div style="font-size:12px;font-weight:700;color:${isCorrect?'var(--c-green-light)':'var(--c-red-light)'};">${isCorrect?'✓ Steal!':'✗ Nobody earns'}</div>`:''}
-    </div>`;
-  }
-
   // Vote status (shown before a wrong pick creates the steal — placeholder line, no vote possible yet)
   let voteStatus='';
   if(['question','options','selecting','revealing'].includes(stage)&&s){
@@ -2485,7 +2466,6 @@ function renderFlowCard(isPuzzleLevel){
     </div>
     <div class="flow-slot">${questionSlot}</div>
     ${optSlots}
-    ${stealInfo}
     ${actionSlot}
     ${voteStatus}
     ${showLL?`<div class="flow-lifelines" style="margin-top:10px;">${LIFELINE_DEFS.filter(({key})=>!(state.gameMode==='race'&&(key==='bomb'||key==='doubleDip'))).map(({key,label,icon})=>
@@ -2495,26 +2475,6 @@ function renderFlowCard(isPuzzleLevel){
   </div>`;
 }
 
-
-function renderStealBox(){
-  const s=state.steal; const q=state.currentQuestion;
-  if(!s||!q) return '';
-  const nil=getNextInLine(s.panelTeam);
-  const theirVote=nil?s.votes[nil.id]:undefined;
-  const hasVoted=theirVote!==undefined;
-  // Manual vote buttons for host (in case no phone)
-  const voteBtns=q.displayOrder.map((_,di)=>
-    `<button class="btn ${hasVoted&&theirVote===di?'btn-primary':'btn-ghost'} btn-sm" onclick="hostSetVote('${nil?nil.id:''}',${di})">${letterFor(di)}</button>`
-  ).join('');
-  return `<div class="steal-box">
-    <div class="steal-title">Other Team's Guess — ${esc(nil?nil.name:'Next in line')} (${esc(teamName(s.panelTeam))})</div>
-    <p class="hint" style="margin-bottom:10px;">Their answer comes in via phone, or tap it here manually.</p>
-    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
-      ${voteBtns}
-      ${hasVoted?`<span style="color:var(--c-gold);font-weight:700;margin-left:6px;">${esc(nil?nil.name:'')} picked ${letterFor(theirVote)}</span>`:'<span style="color:var(--c-muted);">no vote yet</span>'}
-    </div>
-  </div>`;
-}
 
 function renderStealWheel(){
   return `<div class="steal-box">
@@ -2922,9 +2882,12 @@ function renderDisplay(){
 
   const stageJustChanged=f.stage!==lastFlowStage;
   if(stageJustChanged){
+    audioStageToken++;
+    const myAudioToken=audioStageToken;
+    const delayedQuestionLoop=()=>setTimeout(()=>{ if(audioStageToken===myAudioToken) playLoop('question',{fadeIn:2,volume:0.28}); }, 3500);
     if(f.stage==='question'){
       playOnce('letsPlay',{volume:0.85});
-      playLoop('question',{fadeIn:2.5,volume:0.28});
+      delayedQuestionLoop();
     } else if(f.stage==='revealing'){
       stopLoop(0.5);
       playOnce('finalAnswer',{volume:0.8,solo:true});
@@ -2933,8 +2896,19 @@ function renderDisplay(){
       // (Race Mode clinching level 15) — the big-win sting covers that moment instead.
       const isFinalRaceWin=state.gameMode==='race'&&activeLevel(state.hotSeatTeam)===15;
       if(!isFinalRaceWin) playOnce('win',{volume:0.9,solo:true});
-    } else if(f.stage==='doubledip-miss'||f.stage==='race-miss'||f.stage==='steal-peek'){
+    } else if(f.stage==='doubledip-miss'||f.stage==='race-miss'){
       playOnce('lose',{volume:0.9,solo:true});
+    } else if(f.stage==='steal-peek'){
+      // The original hot seat player's miss
+      playOnce('lose',{volume:0.9,solo:true});
+      delayedQuestionLoop();
+    } else if(f.stage==='steal-reveal'){
+      stopLoop(0.4);
+      const nil=s?getNextInLine(s.panelTeam):null;
+      const theirVote=nil?s.votes[nil.id]:undefined;
+      playOnce(theirVote===correctDisplayIdx(q)?'win':'lose',{volume:0.9,solo:true});
+    } else if(f.stage==='idle'&&!isSetup&&!state.ended){
+      playLoop('mainTheme',{fadeIn:1.5,volume:0.3});
     }
     lastFlowStage=f.stage;
   }
@@ -3045,18 +3019,20 @@ function renderDisplay(){
       quietCaption=`<div class="tv-quiet-caption tv-final-caption">Final answer?</div>`;
     } else if(f.stage==='doubledip-miss'){
       quietCaption=`<div class="tv-quiet-caption">${tvIcon('refresh','0.85em')} Double Dip — one more guess</div>`;
-    } else if(f.stage==='steal-reveal'){
-      const stealVoteTV=stealNilTV?s.votes[stealNilTV.id]:undefined;
-      const stealCorrect=stealVoteTV===correctIdx;
-      quietCaption=stealCorrect
-        ? `<div class="tv-quiet-caption">`+stealNilLabel+` takes the seat</div>`
-        : `<div class="tv-quiet-caption">`+(hp?esc(hp.name):'Original player')+` keeps the seat</div>`;
     }
-    const heroBlock=isSteal
-      ? `<div class="tv-prev-turn">${hp?esc(hp.name):'Previous player'} missed it</div>
-         <div class="tv-steal-eyebrow">${tvIcon('target')} Now stealing</div>
-         <div class="tv-name-tag" style="color:${teamMidColor(s?s.panelTeam:state.hotSeatTeam)}">${stealNilLabel}</div>`
-      : `<div class="tv-name-tag" style="color:${teamMidColor(state.hotSeatTeam)}">${hp?esc(hp.name):'—'}</div>`;
+    let heroText=hp?esc(hp.name):'—';
+    if(isSteal){
+      if(f.stage==='steal-reveal'){
+        const stealVoteTV=stealNilTV?s.votes[stealNilTV.id]:undefined;
+        const stealCorrect=stealVoteTV===correctIdx;
+        heroText=stealCorrect
+          ? `${stealNilLabel} steals the hot seat!`
+          : `${stealNilLabel} missed it, ${hp?esc(hp.name):'the original player'} keeps the hot seat`;
+      } else {
+        heroText=`${stealNilLabel} is stealing`;
+      }
+    }
+    const heroBlock=`<div class="tv-name-tag" style="color:${teamMidColor(isSteal?(s?s.panelTeam:state.hotSeatTeam):state.hotSeatTeam)}">${heroText}</div>`;
     const showLLBar=!isSteal&&['question','options','selecting'].includes(f.stage);
     mainContent=showLLBar
       ? `<div style="width:100%;max-width:900px;min-height:100%;display:flex;flex-direction:column;">
@@ -3145,10 +3121,6 @@ function renderDisplay(){
   if(stageJustChanged){
     const rb=document.getElementById('tv-result-banner');
     if(rb&&rb.innerHTML.trim()){ rb.classList.add('pop'); setTimeout(()=>rb.classList.remove('pop'),450); }
-    if(f.stage==='steal-peek'&&s){
-      const hb=document.getElementById('tv-hero-block');
-      if(hb){ hb.classList.add('enter'); setTimeout(()=>hb.classList.remove('enter'),550); }
-    }
   }
   if(state.wheel&&state.wheel.spunAt!==lastWheelSeen){ lastWheelSeen=state.wheel.spunAt; animateWheel(state.wheel,'tv'); }
   else if(state.wheel){
@@ -3219,10 +3191,16 @@ function renderPlayer(){
           <div style="font-size:13px;font-weight:700;color:var(--c-gold);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px;">🎯 Your Steal</div>
           <div style="font-size:15px;font-weight:600;line-height:1.5;margin-bottom:14px;">${esc(q.text)}</div>
           <div class="ph-vote-btns">
-            ${q.displayOrder.map((origIdx,di)=>`
-              <button class="ph-vote-btn" onclick="phoneVote(${di})">
+            ${q.displayOrder.map((origIdx,di)=>{
+              if(di===f.hotSeatAnswer){
+                return `<div class="ph-vote-btn ph-vote-btn-disabled">
+                  <span class="ph-vote-letter">${letterFor(di)})</span>${esc(q.options[origIdx])} <span style="font-size:12px;">— already wrong</span>
+                </div>`;
+              }
+              return `<button class="ph-vote-btn" onclick="phoneVote(${di})">
                 <span class="ph-vote-letter">${letterFor(di)})</span>${esc(q.options[origIdx])}
-              </button>`).join('')}
+              </button>`;
+            }).join('')}
           </div>
           <div class="ph-status">Collaborate with your team and pick.</div>
         </div>`;
