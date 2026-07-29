@@ -1371,7 +1371,7 @@ async function phoneRequestLifeline(key, targetId){
   if(!currentLobbyCode||!myPlayerId) return;
   const me=playerById(myPlayerId); if(!me) return;
   phoneLifelineRequestedKey=key;
-  await dbSet(`llreq:${currentLobbyCode}:${me.team}`, JSON.stringify({key,targetId:targetId||null,ts:Date.now()}));
+  await dbSet(`llreq:${currentLobbyCode}:${me.team}`, JSON.stringify({key,targetId:targetId||null,requesterId:myPlayerId,ts:Date.now()}));
   renderPlayer();
 }
 async function pollLifelineRequests(){
@@ -1381,6 +1381,8 @@ async function pollLifelineRequests(){
   await dbDelete(`llreq:${currentLobbyCode}:${team}`);
   let req; try{ req=JSON.parse(res.value); }catch(e){ req=null; }
   if(!req||!req.key) return;
+  // Only the player actually in the hot seat can request a lifeline.
+  if(req.requesterId!==state.hotSeatPlayerId) return;
   const showLL=['question','options','selecting'].includes(state.flow.stage);
   if(!showLL||state.lifelines[team][req.key]) return;
   if(req.key==='promote'){
@@ -3417,15 +3419,14 @@ function renderPlayer(){
         :`<button class="btn btn-primary btn-block mt-12 btn-lg" onclick="requestSpinWheel()">Spin!</button>`}
     </div>`;
   }
-  // My team's turn — lifelines available to use from the phone
-  else if(q&&me.team===state.hotSeatTeam&&state.gamePhase==='live'&&['question','options','selecting'].includes(f.stage)){
+  // Hot seat player's turn — lifelines available to use from their phone (teammates just watch)
+  else if(q&&me.team===state.hotSeatTeam&&me.id===state.hotSeatPlayerId&&state.gamePhase==='live'&&['question','options','selecting'].includes(f.stage)){
     const ll=state.lifelines[me.team]||{};
     const defs=LIFELINE_DEFS.filter(({key})=>!(state.gameMode==='race'&&(key==='bomb'||key==='doubleDip')));
     const teammates=state.players.filter(p=>p.team===me.team&&p.id!==state.hotSeatPlayerId);
-    const hp2=hotSeatPlayer();
     content=`<div class="card">
       <div style="font-size:13px;font-weight:700;color:var(--c-gold);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px;">Lifelines</div>
-      <div class="ph-status" style="margin-bottom:12px;">${hp2&&hp2.id===me.id?'You are in the hot seat.':(hp2?esc(hp2.name)+' is in the hot seat.':'Your team is in the hot seat.')} Watch the TV — use a lifeline here if needed.</div>
+      <div class="ph-status" style="margin-bottom:12px;">You are in the hot seat. Watch the TV — use a lifeline here if needed.</div>
       <div style="display:flex;flex-direction:column;gap:8px;">
         ${defs.map(({key,label})=>{
           if(ll[key]) return `<button class="btn btn-ghost btn-block" disabled style="opacity:0.35;">${esc(label)}</button>`;
@@ -3446,6 +3447,10 @@ function renderPlayer(){
   }
   else if(s&&!s.locked&&!iAmPanel){
     content=`<div class="card"><div class="ph-status">Your team is in the hot seat. Watch the TV!</div></div>`;
+  }
+  else if(q&&me.team===state.hotSeatTeam&&me.id!==state.hotSeatPlayerId&&state.gamePhase==='live'&&['question','options','selecting'].includes(f.stage)){
+    const hp3=hotSeatPlayer();
+    content=`<div class="card"><div class="ph-status">${hp3?esc(hp3.name):'Your teammate'} is in the hot seat — only they can use a lifeline. Watch the TV!</div></div>`;
   }
   else {
     content=`<div class="card"><div class="ph-status">Nothing to do right now.<br>Votes and wagers will appear here automatically.</div></div>`;
