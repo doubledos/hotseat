@@ -212,7 +212,6 @@ body.mode-display .timer-label{font-size:20px;font-weight:600;color:var(--tv-tex
 
 /* ===== Wheel ===== */
 .wheel-wrap{display:flex;flex-direction:column;align-items:center;gap:14px;}
-.wheel-crop{overflow:hidden;border-radius:18px;box-shadow:0 10px 34px rgba(0,0,0,0.5);}
 .wheel-outer{position:relative;}
 .wheel-pointer{position:absolute;top:-15px;left:50%;transform:translateX(-50%) rotate(0deg);transform-origin:top center;z-index:6;width:0;height:0;border-left:15px solid transparent;border-right:15px solid transparent;border-top:30px solid var(--c-gold);filter:drop-shadow(0 3px 6px rgba(0,0,0,0.7));transition:transform .16s cubic-bezier(.32,1.9,.5,1);}
 .wheel-pointer.impact{transform:translateX(-50%) rotate(-16deg);}
@@ -223,15 +222,20 @@ body.mode-display .timer-label{font-size:20px;font-weight:600;color:var(--tv-tex
 .wheel-slice{position:absolute;top:50%;left:50%;text-align:center;transform-origin:top center;}
 .wheel-slice-inner{display:flex;flex-direction:column;align-items:center;gap:2px;}
 .wheel-slice-icon svg{width:1.3em;height:1.3em;color:#fff;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.85));}
-.wheel-slice-text{font-family:var(--font-display);font-weight:400;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.9);letter-spacing:0.01em;white-space:nowrap;}
+.wheel-slice-text{font-family:var(--font-display);font-weight:400;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.9);letter-spacing:0.01em;line-height:1.05;word-break:break-word;}
 .wheel-slice-inner.dark .wheel-slice-text{color:#2b1a02;text-shadow:0 1px 1px rgba(255,255,255,0.4);}
 .wheel-slice-inner.dark .wheel-slice-icon svg{color:#2b1a02;}
 .wheel-slice-inner.mystery .wheel-slice-text{font-size:1.7em;}
 .wheel-result{font-size:19px;font-weight:700;color:var(--c-gold-light);font-family:var(--font-display);letter-spacing:0.04em;text-align:center;min-height:1.3em;}
+.wheel-zoom{position:absolute;inset:0;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(6px,1.6vw,16px);transform:scale(0);opacity:0;pointer-events:none;z-index:8;transition:transform .6s cubic-bezier(.18,1.6,.4,1),opacity .3s ease;}
+.wheel-zoom.show{transform:scale(1.16);opacity:1;}
+.wheel-zoom-icon svg{width:clamp(26px,6vw,64px);height:clamp(26px,6vw,64px);color:#fff;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.85));}
+.wheel-zoom-text{font-family:var(--font-display);font-weight:400;font-size:clamp(18px,5vw,42px);color:#fff;text-shadow:0 2px 10px rgba(0,0,0,0.85);text-align:center;padding:0 15%;line-height:1.05;}
+.wheel-zoom-text.dark{color:#2b1a02;text-shadow:0 1px 2px rgba(255,255,255,0.4);}
 .tv-wheel-flash{position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:0;}
 .tv-wheel-flash.fire{animation:tv-wheel-flash-pulse 1.15s ease-out;}
 @keyframes tv-wheel-flash-pulse{0%{opacity:0;}8%{opacity:1;}100%{opacity:0;}}
-@media (prefers-reduced-motion:reduce){.wheel-bulb{animation:none;opacity:0.85;}.tv-wheel-flash.fire{animation:none;opacity:0;}.wheel-pointer{transition:none;}}
+@media (prefers-reduced-motion:reduce){.wheel-bulb{animation:none;opacity:0.85;}.tv-wheel-flash.fire{animation:none;opacity:0;}.wheel-pointer{transition:none;}.wheel-zoom{transition:opacity .2s ease;}.wheel-zoom.show{transform:scale(1);}}
 
 /* ===== Money display ===== */
 .money{font-variant-numeric:tabular-nums;font-weight:700;}
@@ -1832,10 +1836,27 @@ function buildWheelBulbs(size){
   }
   return html;
 }
+function wheelZoomVisual(o){
+  if(!o) return {icon:'',text:'',dark:false};
+  if(o.type==='win') return {icon:'', text:money(o.amount), dark:o.tier===3};
+  if(o.type==='bankrupt') return {icon:'cross', text:'BANKRUPT', dark:false};
+  if(o.type==='swap') return {icon:'shuffle', text:'SEAT SWAP', dark:false};
+  if(o.type==='vacation') return {icon:'sun', text:'VACATION!', dark:false};
+  if(o.type==='mystery') return {icon:'', text:'?', dark:false};
+  return {icon:'',text:'',dark:false};
+}
+function showWheelZoom(idSuffix, outcome, pulse){
+  const el=document.getElementById('wheel-zoom-'+idSuffix);
+  if(!el||!outcome) return;
+  const vis=wheelZoomVisual(outcome);
+  el.style.background=wheelSliceColor(outcome);
+  el.innerHTML=`${vis.icon?`<div class="wheel-zoom-icon">${tvIcon(vis.icon,'1em')}</div>`:''}<div class="wheel-zoom-text ${vis.dark?'dark':''}">${esc(vis.text)}</div>`;
+  if(pulse){ el.classList.remove('show'); void el.offsetWidth; }
+  el.classList.add('show');
+}
 function buildWheelHTML(wheel, idSuffix, opts){
   opts=opts||{};
-  const cropped=!!opts.cropped;
-  const size=opts.size||(idSuffix==='tv'?440:290);
+  const size=opts.size||(idSuffix==='tv'?560:320);
   const n=wheel.names.length;
   const seg=360/n;
   const outcomes=wheel.outcomes||[];
@@ -1843,31 +1864,33 @@ function buildWheelHTML(wheel, idSuffix, opts){
     ? outcomes.map((o,i)=>`${wheelSliceColor(o)} ${i*seg}deg ${(i+1)*seg}deg`).join(', ')
     : wheel.names.map((_,i)=>`${['#8a5c0d','#d94a1f','#f06a3d','#b97e22'][i%4]} ${i*seg}deg ${(i+1)*seg}deg`).join(', ');
   const r=size/2;
-  const labelR=r*0.76;
-  const labelW=Math.max(38, Math.round(2*Math.PI*labelR*(seg/360)*0.92));
-  const iconSize=size>=380?'1.1em':'0.95em';
+  const labelR=r*0.78;
+  const labelW=Math.max(46, Math.round(2*Math.PI*labelR*(seg/360)*0.98));
+  const iconSize=size>=380?'1.15em':'1em';
   const labels=wheel.names.map((name,i)=>{
     const o=outcomes[i];
     const angle=i*seg+seg/2;
     const vis=o?wheelSliceVisual(o):{icon:'',text:name,dark:false,cls:''};
-    const fontSize=vis.cls==='mystery'?Math.round(size*0.09):Math.round(size*0.045);
+    const isWin=o&&o.type==='win';
+    const text=isWin?money(o.amount):vis.text;
+    const fontSize=vis.cls==='mystery'?Math.round(size*0.11):(isWin?Math.round(size*0.04):Math.round(size*0.048));
     return `<div class="wheel-slice" style="width:${labelW}px;margin-left:-${labelW/2}px;transform:rotate(${angle}deg) translateY(-${labelR}px);">
       <div class="wheel-slice-inner ${vis.dark?'dark':''} ${vis.cls}">
         ${vis.icon?`<div class="wheel-slice-icon">${tvIcon(vis.icon,iconSize)}</div>`:''}
-        <div class="wheel-slice-text" style="font-size:${fontSize}px;">${esc(vis.text)}</div>
+        <div class="wheel-slice-text" style="font-size:${fontSize}px;">${esc(text)}</div>
       </div>
     </div>`;
   }).join('');
-  const discMarkup=`<div class="wheel-outer" style="width:${size}px;height:${size}px;">
+  return `<div class="wheel-wrap">
+    <div class="wheel-outer" style="width:${size}px;height:${size}px;">
       ${buildWheelBulbs(size)}
       <div class="wheel-pointer" id="wheel-pointer-${idSuffix}"></div>
       <div class="wheel-disc" id="wheel-disc-${idSuffix}" style="background:conic-gradient(from 0deg, ${stops});">
         <div style="position:relative;width:100%;height:100%;">${labels}</div>
       </div>
       <div class="wheel-hub"></div>
-    </div>`;
-  return `<div class="wheel-wrap">
-    ${cropped?`<div class="wheel-crop" style="width:${size}px;height:${Math.round(size*0.44)}px;">${discMarkup}</div>`:discMarkup}
+      <div class="wheel-zoom" id="wheel-zoom-${idSuffix}"></div>
+    </div>
     <div class="wheel-result" id="wheel-result-${idSuffix}"></div>
   </div>`;
 }
@@ -1903,9 +1926,14 @@ function onWheelLanded(wheel, idSuffix, resultEl){
   const isTV=idSuffix==='tv';
   if(outcome&&outcome.type==='mystery'){
     if(resultEl) resultEl.textContent='Unlocking the mystery box…';
+    showWheelZoom(idSuffix, outcome, false);
     if(isTV){ sndWheelMystery(); flashWheelResult('#241242','#a06bff'); }
-    setTimeout(()=>revealWheelOutcome(outcome.resolved, wheel, resultEl, isTV), 1300);
+    setTimeout(()=>{
+      showWheelZoom(idSuffix, outcome.resolved, true);
+      revealWheelOutcome(outcome.resolved, wheel, resultEl, isTV);
+    }, 1300);
   } else {
+    showWheelZoom(idSuffix, outcome, false);
     revealWheelOutcome(outcome, wheel, resultEl, isTV);
   }
 }
@@ -2874,7 +2902,7 @@ function renderDisplay(){
   } else if(state.wheel){
     mainContent=`<div style="display:flex;flex-direction:column;align-items:center;gap:16px;">
       <div class="tv-hotseat-name" style="font-size:clamp(18px,3vw,28px);">${state.wheel.kind==='bomb'?tvIcon('card')+' Wildcard!':'Tie-breaker'}</div>
-      ${buildWheelHTML(state.wheel,'tv',{cropped:true})}
+      ${buildWheelHTML(state.wheel,'tv')}
     </div>`;
   } else if(puz.active){
     const curRevSet=new Set((puz.revealedLetters||[]).map(l=>l.toUpperCase()));
