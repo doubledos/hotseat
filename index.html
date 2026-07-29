@@ -668,6 +668,7 @@ function defaultState(){
     // Steal
     steal: null,
     stealRoundCounter: 0,
+    wagerRoundCounter: 0,
     wheel: null,
     // Puzzle
     puzzle: {
@@ -994,6 +995,9 @@ async function pollForUpdates(){
   // Poll wagers if host
   if(mode==='host'&&state.wager&&state.wager.active&&!state.wager.revealed){
     await pollWagers();
+  }
+  if(mode==='host'&&state.wager&&state.wager.active&&state.wager.revealed&&!state.wager.resolved){
+    await pollWagerAnswers();
   }
   // Poll player-requested lifelines / wheel spins if host
   if(mode==='host'&&currentLobbyCode&&state.hotSeatTeam&&!state.wheel){
@@ -1488,10 +1492,12 @@ async function startWager(){
   const q=pickQuestion(diff);
   if(q) q.used=true;
   seenWagerIds=new Set();
+  state.wagerRoundCounter++;
   state.wager={
+    roundId:state.wagerRoundCounter,
     active:true,
     question:q?makeCurrentQuestion(q,15):null,
-    wagers:{}, revealed:false, resolved:false
+    wagers:{}, answers:{}, revealed:false, resolved:false
   };
   state.gamePhase='wager';
   await saveLobby(); renderHost();
@@ -1499,7 +1505,7 @@ async function startWager(){
 
 async function pollWagers(){
   if(!state.wager||!state.wager.active||state.wager.revealed) return;
-  const prefix=`wager:${currentLobbyCode}:`;
+  const prefix=`wager:${currentLobbyCode}:${state.wager.roundId}:`;
   const keys=await dbList(prefix);
   let changed=false;
   for(const k of keys){
@@ -1512,32 +1518,42 @@ async function pollWagers(){
   if(changed){ await saveLobby(); if(mode==='host') renderHost(); }
 }
 
+async function pollWagerAnswers(){
+  if(!state.wager||!state.wager.active||!state.wager.revealed||state.wager.resolved) return;
+  const prefix=`wanswer:${currentLobbyCode}:${state.wager.roundId}:`;
+  const keys=await dbList(prefix);
+  let changed=false;
+  state.wager.answers=state.wager.answers||{};
+  for(const k of keys){
+    const pid=k.slice(prefix.length);
+    if(!(pid in state.wager.answers)){
+      const res=await dbGet(k);
+      if(res&&res.value!==undefined){ state.wager.answers[pid]=parseInt(res.value,10); changed=true; }
+    }
+  }
+  if(changed){ await saveLobby(); if(mode==='host') renderHost(); }
+}
+
 async function revealWagerQuestion(){
   state.wager.revealed=true;
   await saveLobby(); renderHost();
 }
 
-async function resolveWager(correct){
-  const wq=state.wager.question;
+// Everyone answers the same final question independently — each player wins or loses
+// their own wager based on their own pick, then the game is over.
+async function finalizeWager(){
+  const w=state.wager; if(!w||!w.question) return;
+  const correctIdx=correctDisplayIdx(w.question);
+  const answers=w.answers||{};
   state.players.forEach(p=>{
-    const w=state.wager.wagers[p.id]||0;
-    if(w===0) return;
-    if(correct) p.personalBank=(p.personalBank||0)+w;
-    else p.personalBank=Math.max(0,(p.personalBank||0)-w);
+    const amt=w.wagers[p.id]||0;
+    if(amt===0) return;
+    const got=answers[p.id]===correctIdx;
+    if(got) p.personalBank=(p.personalBank||0)+amt;
+    else p.personalBank=Math.max(0,(p.personalBank||0)-amt);
   });
-  if(!correct){
-    // bounce hot seat to other team
-    const other=opposingTeam();
-    const candidates=state.players.filter(p=>p.team===other);
-    if(candidates.length){
-      state.hotSeatPlayerId=candidates[0].id;
-      state.hotSeatTeam=other;
-    }
-  }
-  state.wager.resolved=true;
-  state.gamePhase='live';
-  state.currentQuestion=null; state.flow={stage:'idle',optionsRevealed:0,hotSeatAnswer:-1,stealPeeked:false,stealRevealed:false,doubleDipUsed:false};
-  await saveLobby(); renderHost();
+  w.resolved=true;
+  await endGame();
 }
 
 /* ===== Ending ===== */
@@ -1767,10 +1783,17 @@ function importQuestionsMarkdown(file){
 
 /* ===== Phone: wager submission ===== */
 async function phoneSubmitWager(amount){
-  if(!myPlayerId||!currentLobbyCode) return;
-  const key=`wager:${currentLobbyCode}:${myPlayerId}`;
+  if(!myPlayerId||!currentLobbyCode||!state.wager) return;
+  const key=`wager:${currentLobbyCode}:${state.wager.roundId}:${myPlayerId}`;
   await dbSet(key,String(amount));
   phoneWagerSubmitted=true;
+  renderPlayer();
+}
+async function phoneSubmitWagerAnswer(di){
+  if(!myPlayerId||!currentLobbyCode||!state.wager||!state.wager.revealed) return;
+  state.wager.answers=state.wager.answers||{};
+  state.wager.answers[myPlayerId]=di;
+  await dbSet(`wanswer:${currentLobbyCode}:${state.wager.roundId}:${myPlayerId}`,String(di));
   renderPlayer();
 }
 
@@ -2633,18 +2656,34 @@ function renderWagerTab(){
       <span style="font-weight:700;color:${amount!==undefined?'var(--c-gold)':'var(--c-muted)'};">${amount!==undefined?money(amount):'waiting…'}</span>
     </div>`;
   }).join('');
-  const qHtml=w.question?`<div class="flow-q" style="${w.revealed?'':'filter:blur(6px);user-select:none;'}">${esc(w.question.text)}</div>`:'<div class="text-muted">No question drawn.</div>';
+  if(!w.revealed){
+    return `<div class="wager-box">
+      <div class="wager-title">Final Wager — Level 15</div>
+      <p class="hint" style="margin-bottom:12px;">All players set their wager on their phones before seeing the question. Wager from personal bank only.</p>
+      <div class="wager-rows">${wagerRows}</div>
+      <button class="btn btn-primary" style="margin-top:12px;" onclick="revealWagerQuestion()">Reveal Question${allIn?'':' (not everyone has wagered yet)'}</button>
+    </div>`;
+  }
+  const q=w.question;
+  const answers=w.answers||{};
+  const answeredCount=state.players.filter(p=>answers[p.id]!==undefined).length;
+  const optsHtml=q&&q.options.length>1?`<div class="flow-opts" style="margin-top:10px;">${q.displayOrder.map((origIdx,di)=>{
+    const isCorrect=origIdx===0;
+    const pickers=state.players.filter(p=>answers[p.id]===di).map(p=>p.name);
+    return `<div class="flow-opt${isCorrect?' correct':''}">
+      <span class="flow-opt-letter">${letterFor(di)})</span>${esc(q.options[origIdx])}
+      ${pickers.length?`<span style="float:right;font-size:11px;color:var(--c-muted);">${pickers.map(esc).join(', ')}</span>`:''}
+    </div>`;
+  }).join('')}</div>`:(q?`<div class="flow-q" style="margin-top:10px;color:var(--c-green-light);">${esc(q.options[0])}</div>`:'');
   return `<div class="wager-box">
     <div class="wager-title">Final Wager — Level 15</div>
-    <p class="hint" style="margin-bottom:12px;">All players set their wager on their phones before seeing the question. Wager from personal bank only.</p>
     <div class="wager-rows">${wagerRows}</div>
-    ${!w.revealed?`<button class="btn btn-primary" style="margin-top:12px;" onclick="revealWagerQuestion()" ${!allIn&&!w.revealed?'':''}>Reveal Question</button>`:`
-      ${qHtml}
-      <div class="flow-controls" style="margin-top:14px;">
-        <button class="btn btn-success" onclick="resolveWager(true)">✓ Correct</button>
-        <button class="btn btn-error" onclick="resolveWager(false)">✗ Wrong — Bounce Hot Seat</button>
-      </div>
-    `}
+    ${q?`<div class="flow-q" style="margin-top:12px;">${esc(q.text)}</div>`:'<div class="text-muted">No question drawn.</div>'}
+    ${optsHtml}
+    <div class="hint" style="margin-top:8px;text-align:center;">${answeredCount}/${state.players.length} answered</div>
+    <div class="flow-controls" style="margin-top:14px;">
+      <button class="btn btn-primary btn-block" onclick="finalizeWager()">▶ Reveal Correct Answer &amp; End Game</button>
+    </div>
   </div>`;
 }
 
@@ -3081,13 +3120,28 @@ function renderDisplay(){
     displayPrevRevealed=curRevSet;
   } else if(state.gamePhase==='wager'){
     const w=state.wager;
+    const wq=w.question;
+    const wCorrectIdx=wq?correctDisplayIdx(wq):-1;
+    const wAnswers=w.answers||{};
     mainContent=`<div style="width:100%;max-width:700px;">
       <div class="tv-hotseat-name" style="font-size:clamp(20px,3.5vw,36px);">Final Wager</div>
-      ${w.revealed&&w.question?`<div class="tv-q-text">${esc(w.question.text)}</div>`:''}
+      ${w.revealed&&wq?`<div class="tv-q-text">${esc(wq.text)}</div>`:`<div class="tv-waiting" style="margin-top:10px;font-size:clamp(14px,2.2vw,20px);">Wagers are locked in blind — question coming up…</div>`}
+      ${(w.revealed&&wq&&wq.options.length>1)?`<div class="tv-opts" style="margin-top:12px;">${wq.displayOrder.map((origIdx,di)=>{
+        const isCorrect=origIdx===0;
+        const pickedCount=state.players.filter(p=>wAnswers[p.id]===di).length;
+        let cls='tv-opt shown';
+        if(w.resolved&&isCorrect) cls+=' is-answer';
+        return `<div class="${cls}"><span class="tv-opt-letter">${letterFor(di)})</span>${esc(wq.options[origIdx])}${pickedCount?`<span style="float:right;opacity:0.7;">${pickedCount}</span>`:''}</div>`;
+      }).join('')}</div>`:''}
       <div style="display:flex;flex-direction:column;gap:6px;margin-top:16px;">
-        ${state.players.map(p=>`<div style="display:flex;align-items:center;justify-content:space-between;background:var(--tv-panel-solid);border:1px solid var(--tv-border);border-radius:8px;padding:8px 14px;font-size:clamp(13px,2vw,18px);color:var(--tv-text);text-shadow:var(--tv-text-shadow);">
-          <span>${esc(p.name)}</span><span style="font-weight:700;color:${w.wagers[p.id]!==undefined?'var(--tv-accent)':'var(--tv-text-soft)'};">${w.wagers[p.id]!==undefined?money(w.wagers[p.id]):'...'}</span>
-        </div>`).join('')}
+        ${state.players.map(p=>{
+          const ans=wAnswers[p.id];
+          const gotIt=w.resolved&&ans!==undefined?(ans===wCorrectIdx):null;
+          const amtColor=gotIt===true?'var(--c-green-light)':gotIt===false?'var(--c-red-light)':(w.wagers[p.id]!==undefined?'var(--tv-accent)':'var(--tv-text-soft)');
+          return `<div style="display:flex;align-items:center;justify-content:space-between;background:var(--tv-panel-solid);border:1px solid var(--tv-border);border-radius:8px;padding:8px 14px;font-size:clamp(13px,2vw,18px);color:var(--tv-text);text-shadow:var(--tv-text-shadow);">
+          <span>${esc(p.name)}${w.revealed&&ans!==undefined?' ✓':''}</span><span style="font-weight:700;color:${amtColor};">${w.wagers[p.id]!==undefined?money(w.wagers[p.id]):'...'}</span>
+        </div>`;
+        }).join('')}
       </div>
     </div>`;
   } else if(q&&f.stage!=='idle'){
@@ -3269,18 +3323,50 @@ function renderPlayer(){
   let content='';
 
   // Wager phase
-  if(state.gamePhase==='wager'&&w.active&&!w.revealed){
+  if(state.gamePhase==='wager'&&w.active){
     const maxWager=me.personalBank||0;
-    const submitted=phoneWagerSubmitted||w.wagers[myPlayerId]!==undefined;
-    content=`<div class="card card-gold">
-      <div style="font-size:13px;font-weight:700;color:#c070f0;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px;">💜 Final Wager</div>
-      <p class="ph-status">Wager from your personal bank. Max: ${money(maxWager)}.</p>
-      ${submitted?
-        `<div style="text-align:center;padding:16px;"><div class="ph-amount">${money(w.wagers[myPlayerId]||0)}</div><div class="ph-status">Wager locked in!</div></div>`
-        :`<input type="number" class="ph-wager-input" id="ph-wager-input" min="0" max="${maxWager}" placeholder="0" value="">
-        <button class="btn btn-primary btn-block mt-12 btn-lg" onclick="submitPhoneWager()">Lock In Wager</button>`
+    const wagerSubmitted=phoneWagerSubmitted||w.wagers[myPlayerId]!==undefined;
+    if(!wagerSubmitted){
+      content=w.revealed
+        ?`<div class="card"><div class="ph-status">Wager window closed — you didn't lock one in this round.</div></div>`
+        :`<div class="card card-gold">
+          <div style="font-size:13px;font-weight:700;color:#c070f0;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px;">💜 Final Wager</div>
+          <p class="ph-status">Wager from your personal bank. Max: ${money(maxWager)}.</p>
+          <input type="number" class="ph-wager-input" id="ph-wager-input" min="0" max="${maxWager}" placeholder="0" value="">
+          <button class="btn btn-primary btn-block mt-12 btn-lg" onclick="submitPhoneWager()">Lock In Wager</button>
+        </div>`;
+    } else if(!w.revealed){
+      content=`<div class="card card-gold" style="text-align:center;">
+        <div style="font-size:13px;font-weight:700;color:#c070f0;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px;">💜 Final Wager</div>
+        <div class="ph-amount">${money(w.wagers[myPlayerId]||0)}</div>
+        <div class="ph-status" style="margin-top:10px;">Wager locked in! Waiting for the question…</div>
+      </div>`;
+    } else {
+      const wq=w.question;
+      const myWagerAns=w.answers?w.answers[myPlayerId]:undefined;
+      if(!wq){
+        content=`<div class="card"><div class="ph-status">No question available.</div></div>`;
+      } else if(myWagerAns!==undefined){
+        const myOrigIdx=wq.displayOrder[myWagerAns];
+        content=`<div class="card" style="border-color:var(--c-gold-dim);text-align:center;">
+          <div style="font-size:13px;font-weight:700;color:var(--c-gold);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:16px;">🎯 Locked In</div>
+          <div style="font-size:clamp(32px,10vw,60px);font-weight:700;color:var(--c-gold-light);font-family:var(--font-display);letter-spacing:0.05em;">${letterFor(myWagerAns)})</div>
+          <div style="font-size:clamp(18px,5vw,28px);font-weight:600;color:var(--c-ink);margin-top:6px;">${esc(wq.options[myOrigIdx])}</div>
+          <div style="font-size:13px;color:var(--c-muted);margin-top:16px;">Watch the TV!</div>
+        </div>`;
+      } else {
+        content=`<div class="card card-gold">
+          <div style="font-size:13px;font-weight:700;color:#c070f0;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px;">💜 Final Wager</div>
+          <div style="font-size:15px;font-weight:600;line-height:1.5;margin-bottom:14px;">${esc(wq.text)}</div>
+          <div class="ph-vote-btns">
+            ${wq.displayOrder.map((origIdx,di)=>`<button class="ph-vote-btn" onclick="phoneSubmitWagerAnswer(${di})">
+              <span class="ph-vote-letter">${letterFor(di)})</span>${esc(wq.options[origIdx])}
+            </button>`).join('')}
+          </div>
+          <div class="ph-status">Pick your final answer.</div>
+        </div>`;
       }
-    </div>`;
+    }
   }
   // Voting phase — I'm next-in-line and a question is active
   else if(q&&iAmPanel&&s&&!s.locked&&['idle','question','options','selecting','revealing','revealed','steal-peek','steal-locked'].includes(f.stage)){
