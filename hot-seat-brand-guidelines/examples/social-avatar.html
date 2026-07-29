@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Hot Seat — Social Avatar</title>
+<link rel="stylesheet" href="../tokens/colors.css">
+<link rel="stylesheet" href="../tokens/typography.css">
+<link rel="stylesheet" href="../tokens/patterns.css">
+<style>
+  html,body{margin:0;background:#1a1a1a;}
+  .frame{width:100%;max-width:640px;margin:0 auto;aspect-ratio:1/1;border-radius:50%;font-family:var(--font-heading);}
+  .content{height:100%;display:flex;align-items:center;justify-content:center;}
+  .chair{height:52%;width:auto;}
+  .wordmark-text{position:absolute;bottom:9%;left:0;right:0;text-align:center;font:var(--text-display-md);color:var(--cream);
+    -webkit-text-stroke:clamp(3px,0.8vw,6px) var(--ember);paint-order:stroke fill;letter-spacing:0.02em;}
+</style>
+</head>
+<body>
+  <div class="frame hs-stage hs-stage--gold hs-stage--circle">
+    <div class="content"><img class="chair" src="../assets/hotseat-chair.svg" alt=""></div>
+    <div class="wordmark-text">HOT SEAT</div>
+  </div>
+</body>
+</html>

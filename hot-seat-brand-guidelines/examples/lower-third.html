@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Hot Seat — Lower Third</title>
+<link rel="stylesheet" href="../tokens/colors.css">
+<link rel="stylesheet" href="../tokens/typography.css">
+<link rel="stylesheet" href="../tokens/patterns.css">
+<style>
+  html,body{margin:0;background:#1a1a1a;}
+  .frame{width:100%;max-width:1600px;margin:0 auto;aspect-ratio:16/9;font-family:var(--font-heading);}
+  .plate{position:absolute;left:4vw;bottom:9vh;display:flex;align-items:stretch;max-width:74%;}
+  .plate-bar{background:var(--gold-accent);width:clamp(6px,0.7vw,14px);flex-shrink:0;}
+  .plate-body{background:var(--ink);opacity:0.9;box-sizing:border-box;padding:clamp(12px,1.8vw,22px) clamp(20px,3.4vw,46px);display:flex;flex-direction:column;gap:0.35em;}
+  .name{font:var(--text-display-lg);color:var(--cream);letter-spacing:0.01em;white-space:nowrap;}
+  .loc{font:var(--text-heading-md);letter-spacing:var(--tracking-wider);color:var(--gold-label);}
+</style>
+</head>
+<body>
+  <div class="frame hs-stage hs-stage--green">
+    <div class="plate">
+      <div class="plate-bar"></div>
+      <div class="plate-body">
+        <div class="name">MARCUS DELGADO</div>
+        <div class="loc">CONTESTANT · CHICAGO, IL</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

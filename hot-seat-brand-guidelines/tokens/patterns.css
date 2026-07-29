@@ -1,0 +1,45 @@
+/*
+  Hot Seat — Stage Pattern System
+  Every graphic type sits on one of the three tone-matched flame-tile SVGs
+  with a matching radial vignette. Tile size is viewport-relative so the
+  pattern reads at the right density on any screen instead of one fixed
+  420px tile tuned only for a 1920px canvas.
+*/
+
+.hs-stage {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.hs-stage::before {
+  /* the tiled flame pattern */
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--hs-stage-pattern);
+  background-size: clamp(160px, 22vw, 420px) clamp(160px, 22vw, 420px);
+  z-index: 0;
+}
+
+.hs-stage::after {
+  /* vignette: fades the pattern back to the flat stage color at the edges */
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(var(--hs-vignette-shape, ellipse) at center, transparent 50%, var(--hs-stage-color) 88%);
+  z-index: 1;
+}
+
+.hs-stage > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* One modifier per graphic type — sets the stage color + matching pattern tile */
+.hs-stage--gold    { --hs-stage-color: var(--stage-gold);   --hs-stage-pattern: url('../assets/hotseat-pattern-gold-tile.svg');   background: var(--stage-gold); }
+.hs-stage--green   { --hs-stage-color: var(--stage-green);  --hs-stage-pattern: url('../assets/hotseat-pattern-green-tile.svg');  background: var(--stage-green); }
+.hs-stage--maroon  { --hs-stage-color: var(--stage-maroon); --hs-stage-pattern: url('../assets/hotseat-pattern-maroon-tile.svg'); background: var(--stage-maroon); }
+
+/* Square/badge formats (social avatar) use a circular vignette instead of elliptical */
+.hs-stage--circle { --hs-vignette-shape: circle; }

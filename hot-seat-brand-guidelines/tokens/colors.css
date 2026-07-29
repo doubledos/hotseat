@@ -1,0 +1,35 @@
+/*
+  Hot Seat — Color Tokens
+  Consolidated from the original design-handoff palette. Only colors that are
+  actually used across the logo, patterns, and templates made the cut — see
+  BRAND_GUIDELINES.md "What changed from the original handoff" for the
+  pruned/merged tokens and why.
+*/
+
+:root {
+  /* ===== Stage colors — one full-bleed background per graphic type ===== */
+  --stage-gold: #FFF931;
+  --stage-green: #206243;
+  --stage-maroon: #622030;
+
+  /* ===== Gold accents — bars, rules, small labels on a dark stage ===== */
+  --gold-label: #FFDD33;   /* eyebrow/caption text on dark panels */
+  --gold-accent: #FFC400;  /* accent bars, underlines, dividers */
+
+  /* ===== Ember — the brand's primary ink/outline/accent ===== */
+  --ember: #7F1515;
+  --ember-soft: #A62348;   /* hover/secondary state, never a background on its own */
+
+  /* ===== Neutrals — text pairing ===== */
+  --cream: #FFFBF2;        /* text/logo fill on any stage color */
+  --ink: #241506;          /* text/plate fill on gold */
+
+  /* ===== Semantic aliases — reach for these in components, not the raw scale ===== */
+  --color-bg-stage: var(--stage-gold);
+  --color-text-on-stage: var(--cream);
+  --color-text-on-gold: var(--ink);
+  --color-accent: var(--ember);
+  --color-accent-hover: var(--ember-soft);
+  --color-rule: var(--gold-accent);
+  --color-label: var(--gold-label);
+}

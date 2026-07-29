@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Hot Seat — Title Card</title>
+<link rel="stylesheet" href="../tokens/colors.css">
+<link rel="stylesheet" href="../tokens/typography.css">
+<link rel="stylesheet" href="../tokens/patterns.css">
+<style>
+  html,body{margin:0;background:#1a1a1a;}
+  .frame{width:100%;max-width:1600px;margin:0 auto;aspect-ratio:16/9;font-family:var(--font-heading);}
+  .content{height:100%;box-sizing:border-box;padding:4vw;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(10px,2.2vh,24px);text-align:center;}
+  .script{font:var(--text-script-accent);color:var(--ember);}
+  .wordmark{width:min(58%,820px);height:auto;}
+  .tag-row{display:flex;align-items:center;gap:clamp(12px,2vw,28px);}
+  .chair{height:clamp(44px,10vh,150px);width:auto;}
+  .tag{font:var(--text-heading-lg);letter-spacing:var(--tracking-wider);color:var(--ember);}
+</style>
+</head>
+<body>
+  <div class="frame hs-stage hs-stage--gold">
+    <div class="content">
+      <div class="script">tonight, someone's in the...</div>
+      <img class="wordmark" src="../assets/hotseat-logotext-ember.png" alt="THE HOT SEAT">
+      <div class="tag-row">
+        <img class="chair" src="../assets/hotseat-chair.svg" alt="">
+        <div class="tag">NEW EPISODES · FRIDAYS AT 8</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
