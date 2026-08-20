@@ -1,81 +1,18 @@
+/* Hotseat - application entry point.
+   Loaded by index.html as <script type="module">.
+   See CLAUDE.md for the file map. */
+
+import { dbDelete, dbGet, dbList, dbSet, hasSupabase } from './core/db.js';
+import { LEVEL_DIFFICULTY_DEFAULT, LEVEL_MONEY, LIFELINE_DEFS, LOGO_EMBER_PNG, LOGO_WHITE_PNG, PUZZLE_TIMER_MS, QWERTY } from './core/constants.js';
+import { bounceText, debounce, esc, genId, letterFor, money, shuffleArray, slugify } from './core/util.js';
+import { playBigWinThenTheme, playLoop, playOnce, stopLoop } from './screens/display-audio.js';
+
 /* ============================================================
    FORTUNE & FORTUNE v3
    Part 2: Config, storage, state schema, utilities
    ============================================================ */
 
-/* ===== Supabase config ===== */
-const SUPABASE_URL = 'https://lmjluzxzxpbuhvantbwt.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxtamx1enh6eHBidWh2YW50Ynd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwNzQyMzcsImV4cCI6MjA5OTY1MDIzN30.Qj0SZi_pBJNvLdDj5Hr9osh9ub3xRkhRyx-1AZjElKY';
-const hasSupabase = !!(SUPABASE_URL && SUPABASE_ANON_KEY);
-const LOGO_EMBER_PNG = "https://raw.githubusercontent.com/doubledos/hotseat/main/hotseat-logotext-ember.png";
-const LOGO_WHITE_PNG = "https://raw.githubusercontent.com/doubledos/hotseat/main/hotseat-logotext.png";
 
-async function sbFetch(path, opts){
-  const res = await fetch(SUPABASE_URL + path, {
-    ...opts,
-    headers:{
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=representation',
-      ...(opts && opts.headers)
-    }
-  });
-  if(!res.ok) return null;
-  const text = await res.text();
-  try{ return JSON.parse(text); } catch(e){ return null; }
-}
-
-async function dbGet(key){
-  if(!hasSupabase){
-    try{ const v=localStorage.getItem(key); return v!==null?{key,value:v}:null; } catch(e){ return null; }
-  }
-  const rows = await sbFetch('/rest/v1/kv_store?key=eq.'+encodeURIComponent(key)+'&select=key,value&limit=1',{method:'GET'});
-  return (rows&&rows.length)?{key,value:rows[0].value}:null;
-}
-async function dbSet(key, value){
-  if(!hasSupabase){
-    try{ localStorage.setItem(key,value); return {key,value}; } catch(e){ return null; }
-  }
-  const row = await sbFetch('/rest/v1/kv_store',{
-    method:'POST',
-    headers:{'Prefer':'resolution=merge-duplicates,return=representation'},
-    body:JSON.stringify({key,value})
-  });
-  return row?{key,value}:null;
-}
-async function dbDelete(key){
-  if(!hasSupabase){
-    try{ localStorage.removeItem(key); return {key,deleted:true}; } catch(e){ return null; }
-  }
-  await sbFetch('/rest/v1/kv_store?key=eq.'+encodeURIComponent(key),{method:'DELETE'});
-  return {key,deleted:true};
-}
-async function dbList(prefix){
-  if(!hasSupabase){
-    try{
-      const keys=[];
-      for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith(prefix))keys.push(k);}
-      return keys;
-    } catch(e){ return []; }
-  }
-  const rows = await sbFetch('/rest/v1/kv_store?key=like.'+encodeURIComponent(prefix+'%')+'&select=key',{method:'GET'});
-  return rows?rows.map(r=>r.key):[];
-}
-
-/* ===== Constants ===== */
-const QWERTY = ['QWERTYUIOP','ASDFGHJKL','ZXCVBNM'];
-const LEVEL_MONEY = [100,200,300,500,750,1000,2000,4000,8000,16000,32000,64000,125000,500000,1000000];
-const DIFFICULTIES = ['easy','medium','hard'];
-const LEVEL_DIFFICULTY_DEFAULT = (l) => l<=5?'easy':l<=10?'medium':'hard';
-const LIFELINE_DEFS = [
-  {key:'promote', label:'Promote', icon:'', desc:'Swap a teammate into the hot seat permanently'},
-  {key:'doubleDip', label:'Double Dip', icon:'', desc:'Two attempts; first miss triggers no steal'},
-  {key:'swap', label:'Swap It Out', icon:'', desc:'Discard this question, draw a new one'},
-  {key:'bomb', label:'Wildcard', icon:'', desc:'Skip the question — spin the chance wheel for cash, bankruptcy, or a seat swap'},
-];
-const PUZZLE_TIMER_MS = 20000;
-// Lobby uses named slugs
 
 /* ===== State schema ===== */
 function defaultState(){
@@ -184,109 +121,6 @@ let phoneLifelineRequestedKey = null;
 let lastPhoneWheelSeen = 0;
 let phonePromoteMenuOpen = false;
 
-/* ===== Sound design — produced mp3 score (audio/), TV surface only ===== */
-let audioCtx = null;
-function getAudioCtx(){
-  if(!audioCtx){
-    const AC = window.AudioContext || window.webkitAudioContext;
-    if(!AC) return null;
-    audioCtx = new AC();
-  }
-  if(audioCtx.state==='suspended') audioCtx.resume();
-  return audioCtx;
-}
-document.addEventListener('click', getAudioCtx, {once:false});
-
-const AUDIO_SRC={
-  mainTheme:'audio/main-theme.mp3',
-  letsPlay:'audio/lets-play.mp3',
-  question:'audio/question.mp3',
-  finalAnswer:'audio/final-answer.mp3',
-  win:'audio/win.mp3',
-  lose:'audio/lose.mp3',
-  bigWin:'audio/big-win.mp3'
-};
-const audioBuffers={};
-const audioLoading={};
-function loadAudioBuffer(key){
-  if(audioBuffers[key]) return Promise.resolve(audioBuffers[key]);
-  const ctx=getAudioCtx(); if(!ctx) return Promise.resolve(null);
-  if(!audioLoading[key]){
-    audioLoading[key]=fetch(AUDIO_SRC[key]).then(r=>r.arrayBuffer()).then(buf=>ctx.decodeAudioData(buf)).then(decoded=>{ audioBuffers[key]=decoded; return decoded; }).catch(()=>null);
-  }
-  return audioLoading[key];
-}
-document.addEventListener('click', ()=>{ Object.keys(AUDIO_SRC).forEach(loadAudioBuffer); }, {once:true});
-
-let activeLoop=null; // {key, source, gain}
-function stopLoop(fadeSec){
-  if(!activeLoop) return;
-  const {source,gain}=activeLoop; const ctx=getAudioCtx();
-  if(fadeSec&&ctx){
-    gain.gain.cancelScheduledValues(ctx.currentTime);
-    gain.gain.setValueAtTime(gain.gain.value, ctx.currentTime);
-    gain.gain.linearRampToValueAtTime(0, ctx.currentTime+fadeSec);
-    setTimeout(()=>{ try{source.stop();}catch(e){} }, fadeSec*1000+50);
-  } else {
-    try{source.stop();}catch(e){}
-  }
-  activeLoop=null;
-}
-async function playLoop(key, opts){
-  opts=opts||{};
-  if(activeLoop&&activeLoop.key===key) return;
-  const ctx=getAudioCtx(); if(!ctx) return;
-  const buf=await loadAudioBuffer(key); if(!buf) return;
-  stopLoop(opts.crossfade);
-  const source=ctx.createBufferSource();
-  source.buffer=buf; source.loop=true;
-  const gain=ctx.createGain();
-  const target=opts.volume!==undefined?opts.volume:0.5;
-  gain.gain.setValueAtTime(opts.fadeIn?0:target, ctx.currentTime);
-  if(opts.fadeIn) gain.gain.linearRampToValueAtTime(target, ctx.currentTime+opts.fadeIn);
-  source.connect(gain); gain.connect(ctx.destination);
-  source.start(0);
-  activeLoop={key, source, gain};
-}
-let activeOneShot=null;
-function stopOneShot(){
-  if(activeOneShot){ try{activeOneShot.source.stop();}catch(e){} activeOneShot=null; }
-}
-async function playOnce(key, opts){
-  opts=opts||{};
-  const ctx=getAudioCtx(); if(!ctx) return;
-  const buf=await loadAudioBuffer(key); if(!buf) return;
-  if(opts.solo) stopOneShot();
-  const source=ctx.createBufferSource();
-  source.buffer=buf;
-  const gain=ctx.createGain();
-  const target=opts.volume!==undefined?opts.volume:0.85;
-  const fadeIn=opts.fadeIn!==undefined?opts.fadeIn:0.15;
-  const fadeOut=opts.fadeOut!==undefined?opts.fadeOut:0.4;
-  const now=ctx.currentTime;
-  gain.gain.setValueAtTime(0, now);
-  gain.gain.linearRampToValueAtTime(target, now+fadeIn);
-  if(fadeOut>0&&buf.duration>fadeIn+fadeOut){
-    gain.gain.setValueAtTime(target, now+buf.duration-fadeOut);
-    gain.gain.linearRampToValueAtTime(0, now+buf.duration);
-  }
-  source.connect(gain); gain.connect(ctx.destination);
-  if(opts.onEnded) source.onended=opts.onEnded;
-  source.start(0);
-  if(opts.solo) activeOneShot={key, source, gain};
-}
-async function playBigWinThenTheme(){
-  const ctx=getAudioCtx(); if(!ctx) return;
-  const buf=await loadAudioBuffer('bigWin');
-  if(!buf){ playLoop('mainTheme',{fadeIn:2.5,volume:0.35}); return; }
-  const source=ctx.createBufferSource();
-  source.buffer=buf;
-  const gain=ctx.createGain();
-  gain.gain.value=0.9;
-  source.connect(gain); gain.connect(ctx.destination);
-  source.onended=()=>{ playLoop('mainTheme',{fadeIn:2.5,volume:0.35}); };
-  source.start(0);
-}
 // Detect hash-based routing
 function detectMode(){
   const h = location.hash;
@@ -297,23 +131,7 @@ function detectMode(){
 }
 
 /* ===== Utilities ===== */
-function genId(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
-function slugify(name){
-  return name.toLowerCase().trim()
-    .replace(/[^a-z0-9\s-]/g,'')
-    .replace(/\s+/g,'-')
-    .replace(/-+/g,'-')
-    .slice(0,40)||'game';
-}
-function esc(str){ return (str==null?'':String(str)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function bounceText(str){
-  return [...str].map((ch,i)=>`<span style="animation-delay:${(i*0.06).toFixed(2)}s">${ch===' '?'&nbsp;':esc(ch)}</span>`).join('');
-}
-function money(n){ return '$'+(n||0).toLocaleString(); }
 function elapsedMinutes(){ return state.hostingStartedAt?Math.max(0,Math.floor((Date.now()-state.hostingStartedAt)/60000)):0; }
-function debounce(fn,delay){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),delay); }; }
-function shuffleArray(arr){ const a=arr.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]; } return a; }
-function letterFor(i){ return String.fromCharCode(65+i); }
 
 function playerById(id){ return state.players.find(p=>p.id===id)||null; }
 function teamName(t){ return t==='A'?state.teamAName:state.teamBName; }
