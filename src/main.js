@@ -8,6 +8,8 @@ import { bounceText, debounce, esc, genId, letterFor, money, shuffleArray, slugi
 import { playBigWinThenTheme, playLoop, playOnce, stopLoop } from './screens/display-audio.js';
 import { defaultState, normalizeState, setState, state } from './core/state.js';
 import { LIFELINE_ICONS, chairIconSVG, hotSeatLogoImg, teamFlameIcon, teamGradId, teamMidColor, tvIcon } from './ui/icons.js';
+import { R, bindRenderers } from './ui/rerender.js';
+import { currentLobbyCode, mode, setLobbyCode, setMode } from './core/session.js';
 
 /* ============================================================
    FORTUNE & FORTUNE v3
@@ -16,8 +18,6 @@ import { LIFELINE_ICONS, chairIconSVG, hotSeatLogoImg, teamFlameIcon, teamGradId
 
 
 
-let currentLobbyCode = '';
-let mode = 'entry'; // entry | host | display | player
 let hostTab = 'game'; // game | setup | questions | rules
 let setupStep = 'players'; // players | questions | levels | ready
 let lastSavedJSON = '';
@@ -44,7 +44,7 @@ let phonePromoteMenuOpen = false;
 /* Inline on* handlers run in GLOBAL scope, so `phonePromoteMenuOpen=true` inside an
    attribute would write to window and never reach this module-scoped binding. Writes
    must go through a function that the barrel republishes. */
-function setPromoteMenu(open, rerender=true){ phonePromoteMenuOpen=open; if(rerender) renderPlayer(); }
+function setPromoteMenu(open, rerender=true){ phonePromoteMenuOpen=open; if(rerender) R.player(); }
 
 // Detect hash-based routing
 function detectMode(){
@@ -141,7 +141,7 @@ async function loadLobby(code){
   const res = await dbGet(lobbyKey(code));
   if(res&&res.value){
     setState(normalizeState(JSON.parse(res.value)));
-    currentLobbyCode = code;
+    setLobbyCode(code);
     lastSavedJSON = res.value;
     return true;
   }
@@ -157,7 +157,7 @@ async function saveLobby(){
 async function createLobby(name){
   const slug=slugify(name||'game');
   setState(defaultState()); state.code=slug; state.lobbyName=name||slug;
-  currentLobbyCode=slug; await saveLobby(); return slug;
+  setLobbyCode(slug); await saveLobby(); return slug;
 }
 
 async function listLobbies(){
@@ -179,7 +179,7 @@ async function pollForUpdates(){
       const newState = normalizeState(JSON.parse(res.value));
       setState(newState);
       lastSavedJSON = res.value;
-      render();
+      R.all();
     }
   } catch(e){}
   // Poll steal votes if host
@@ -258,7 +258,7 @@ async function hostDrawQuestion(){
     }
   }
   state.steal=null; state.wheel=null;
-  await saveLobby(); renderHost();
+  await saveLobby(); R.host();
 }
 
 async function rerollQuestion(){
@@ -270,7 +270,7 @@ async function rerollQuestion(){
   newQ.used=true;
   state.currentQuestion = makeCurrentQuestion(newQ, lvl);
   state.flow={stage:'idle',optionsRevealed:0,hotSeatAnswer:-1,stealPeeked:false,stealRevealed:false,doubleDipUsed:false};
-  await saveLobby(); renderHost();
+  await saveLobby(); R.host();
 }
 
 async function flowAdvance(){
@@ -279,13 +279,13 @@ async function flowAdvance(){
   if(f.stage==='idle'){ f.stage='question'; }
   else if(f.stage==='question'){ if(isMC){f.stage='options';f.optionsRevealed=1;}else{f.stage='selecting';} }
   else if(f.stage==='options'){ if(f.optionsRevealed<optCount) f.optionsRevealed++; if(f.optionsRevealed>=optCount) f.stage='selecting'; }
-  await saveLobby(); renderHost();
+  await saveLobby(); R.host();
 }
 async function hostSelectAnswer(di){
   // Lock in the pick first — dramatic pause before the actual reveal (see confirmHotSeatReveal).
   state.flow.hotSeatAnswer=di;
   state.flow.stage='revealing';
-  await saveLobby(); renderHost();
+  await saveLobby(); R.host();
 }
 async function confirmHotSeatReveal(){
   const di=state.flow.hotSeatAnswer;
@@ -314,7 +314,7 @@ async function confirmHotSeatReveal(){
     };
     state.wheel=null;
   }
-  await saveLobby(); renderHost();
+  await saveLobby(); R.host();
 }
 async function raceSwapAfterMiss(){
   const missedTeam=state.hotSeatTeam; const other=opposingTeam(missedTeam);
@@ -323,12 +323,12 @@ async function raceSwapAfterMiss(){
   state.hotSeatTeam=other;
   if(nextId) state.hotSeatPlayerId=nextId.id;
   state.currentQuestion=null; state.flow={stage:'idle',optionsRevealed:0,hotSeatAnswer:-1,stealPeeked:false,stealRevealed:false,doubleDipUsed:false};
-  await saveLobby(); renderHost();
+  await saveLobby(); R.host();
 }
 async function retryDoubleDip(){
   state.flow.stage='selecting';
   state.flow.hotSeatAnswer=-1;
-  await saveLobby(); renderHost();
+  await saveLobby(); R.host();
 }
 async function changeHotSeatPick(){
   const f=state.flow;
@@ -339,13 +339,13 @@ async function changeHotSeatPick(){
     const voted=nil&&state.steal.votes[nil.id]!==undefined;
     if(!voted){ state.steal=null; f.stage='selecting'; f.hotSeatAnswer=-1; }
   }
-  await saveLobby(); renderHost();
+  await saveLobby(); R.host();
 }
-async function revealHotSeatResult(){ state.flow.stage='revealed'; await saveLobby(); renderHost(); } // kept for safety
-async function revealStealGuess(){ state.flow.stage='steal-peek'; state.flow.stealPeeked=true; await saveLobby(); renderHost(); }
-async function lockStealAnswer(){ if(!state.steal) return; state.flow.stage='steal-locked'; await saveLobby(); renderHost(); }
-async function unlockStealAnswer(){ if(!state.steal) return; state.flow.stage='steal-peek'; await saveLobby(); renderHost(); }
-async function revealCorrectAnswer(){ state.flow.stage='steal-reveal'; state.flow.stealRevealed=true; await saveLobby(); renderHost(); }
+async function revealHotSeatResult(){ state.flow.stage='revealed'; await saveLobby(); R.host(); } // kept for safety
+async function revealStealGuess(){ state.flow.stage='steal-peek'; state.flow.stealPeeked=true; await saveLobby(); R.host(); }
+async function lockStealAnswer(){ if(!state.steal) return; state.flow.stage='steal-locked'; await saveLobby(); R.host(); }
+async function unlockStealAnswer(){ if(!state.steal) return; state.flow.stage='steal-peek'; await saveLobby(); R.host(); }
+async function revealCorrectAnswer(){ state.flow.stage='steal-reveal'; state.flow.stealRevealed=true; await saveLobby(); R.host(); }
 
 function flowButtonLabel(){
   const f=state.flow; const q=state.currentQuestion; if(!q) return '';
@@ -358,10 +358,10 @@ function flowButtonLabel(){
 async function markCorrect(){
   const lvl=activeLevel(); const amt=levelMoney(lvl); const hp=hotSeatPlayer();
   if(hp&&state.gameMode==='classic') hp.personalBank=(hp.personalBank||0)+amt;
-  if(await winLevel(state.hotSeatTeam, amt)){ await saveLobby(); renderHost(); return; }
+  if(await winLevel(state.hotSeatTeam, amt)){ await saveLobby(); R.host(); return; }
   state.currentQuestion=null; state.flow={stage:'idle',optionsRevealed:0,hotSeatAnswer:-1,stealPeeked:false,stealRevealed:false,doubleDipUsed:false};
   state.steal=null; state.wheel=null; state.puzzle.active=false;
-  await saveLobby(); renderHost();
+  await saveLobby(); R.host();
 }
 async function advanceLevelNoMoney(){
   const lvl=state.ladderCurrent;
@@ -371,14 +371,14 @@ async function advanceLevelNoMoney(){
   if(state.ladderCurrent===15&&!state.wager.resolved){ await startWager(); return; }
   state.currentQuestion=null; state.flow={stage:'idle',optionsRevealed:0,hotSeatAnswer:-1,stealPeeked:false,stealRevealed:false,doubleDipUsed:false};
   state.steal=null; state.wheel=null;
-  await saveLobby(); renderHost();
+  await saveLobby(); R.host();
 }
 
 async function startSteal(){
   state.stealRoundCounter++;
   const panelTeam=opposingTeam(); const nextInLine=getNextInLine(panelTeam);
   state.steal={roundId:state.stealRoundCounter,panelTeam,nextInLineId:nextInLine?nextInLine.id:null,votes:{},locked:false,resolved:false,outcome:null};
-  state.wheel=null; await saveLobby(); renderHost();
+  state.wheel=null; await saveLobby(); R.host();
 }
 function getNextInLine(team){
   const q=state.hotSeatQueue[team]||[];
@@ -403,14 +403,14 @@ async function pollStealVotes(){
       if(res&&res.value!==undefined){ state.steal.votes[pid]=parseInt(res.value,10); changed=true; }
     }
   }
-  if(changed){ await saveLobby(); if(mode==='host') renderHost(); }
+  if(changed){ await saveLobby(); if(mode==='host') R.host(); }
 }
 
 async function hostSetStealVote(displayIdx){
   if(!state.steal) return;
   const nil=getNextInLine(state.steal.panelTeam);
   if(nil){ state.steal.votes[nil.id]=displayIdx; }
-  await saveLobby(); renderHost();
+  await saveLobby(); R.host();
 }
 
 async function resolveSteal(){
@@ -426,7 +426,7 @@ async function resolveSteal(){
     state.steal.outcome='stolen'; await applyStealWinner(nil.id);
   } else {
     state.steal.outcome='defended'; state.steal.resolved=true;
-    await saveLobby(); renderHost();
+    await saveLobby(); R.host();
   }
 }
 
@@ -448,7 +448,7 @@ async function applyStealWinner(playerId){
   }
   state.currentQuestion=null; state.flow={stage:'idle',optionsRevealed:0,hotSeatAnswer:-1,stealPeeked:false,stealRevealed:false,doubleDipUsed:false};
   state.steal=null; state.wheel=null; state.puzzle.active=false;
-  await saveLobby(); renderHost();
+  await saveLobby(); R.host();
 }
 
 async function confirmWheelWinner(){
@@ -477,7 +477,7 @@ async function confirmBombWheel(){
   }
   state.wheel=null; state.currentQuestion=null;
   state.flow={stage:'idle',optionsRevealed:0,hotSeatAnswer:-1,stealPeeked:false,stealRevealed:false,doubleDipUsed:false};
-  await saveLobby(); renderHost();
+  await saveLobby(); R.host();
 }
 
 async function dismissDefendedSteal(){
@@ -495,7 +495,7 @@ async function useLifeline(key){
     showPicker('Promote: who takes the hot seat?', teammates.map(p=>({label:p.name,value:p.id})), async pid=>{
       state.lifelines[team].promote=true;
       state.hotSeatPlayerId=pid;
-      await saveLobby(); renderHost();
+      await saveLobby(); R.host();
     });
     return;
   }
@@ -511,7 +511,7 @@ async function useLifeline(key){
       // were already in (no re-reveal ceremony, no audio retrigger).
       state.flow={stage:'selecting',optionsRevealed:state.currentQuestion.options.length,hotSeatAnswer:-1,stealPeeked:false,stealRevealed:false,doubleDipUsed:false,doubleDipMissIdx:-1};
     }
-    await saveLobby(); renderHost(); return;
+    await saveLobby(); R.host(); return;
   }
   if(key==='bomb'){
     if(state.gameMode==='race') return; // Hail Mary is a money mechanic — not available in Race Mode
@@ -528,28 +528,28 @@ async function useLifeline(key){
     state.currentQuestion=null;
     state.flow={stage:'idle',optionsRevealed:0,hotSeatAnswer:-1,stealPeeked:false,stealRevealed:false,doubleDipUsed:false};
     state.steal=null;
-    await saveLobby(); renderHost(); return;
+    await saveLobby(); R.host(); return;
   }
   state.lifelines[team][key]=true;
-  await saveLobby(); renderHost();
+  await saveLobby(); R.host();
 }
 async function undoLifeline(key){
   // Testing aid — puts a used lifeline back so the host can re-trigger it.
   state.lifelines[state.hotSeatTeam][key]=false;
-  await saveLobby(); renderHost();
+  await saveLobby(); R.host();
 }
 
 /* ===== Wildcard wheel — spin is a separate, explicit step so players can watch it land ===== */
 async function spinWheel(){
   if(!state.wheel||state.wheel.spunAt) return;
   state.wheel.spunAt=Date.now();
-  await saveLobby(); renderHost();
+  await saveLobby(); R.host();
 }
 async function requestSpinWheel(){
   if(!currentLobbyCode||!state.wheel||state.wheel.spunAt) return;
   phoneSpinRequestedFor=state.wheel.id;
   await dbSet(`llspin:${currentLobbyCode}`, String(Date.now()));
-  renderPlayer();
+  R.player();
 }
 async function pollSpinRequest(){
   if(!state.wheel||state.wheel.spunAt) return;
@@ -566,7 +566,7 @@ async function phoneRequestLifeline(key, targetId){
   const me=playerById(myPlayerId); if(!me) return;
   phoneLifelineRequestedKey=key;
   await dbSet(`llreq:${currentLobbyCode}:${me.team}`, JSON.stringify({key,targetId:targetId||null,requesterId:myPlayerId,ts:Date.now()}));
-  renderPlayer();
+  R.player();
 }
 async function pollLifelineRequests(){
   const team=state.hotSeatTeam;
@@ -583,7 +583,7 @@ async function pollLifelineRequests(){
     if(!req.targetId) return;
     state.lifelines[team].promote=true;
     state.hotSeatPlayerId=req.targetId;
-    await saveLobby(); if(mode==='host') renderHost();
+    await saveLobby(); if(mode==='host') R.host();
   } else {
     await useLifeline(req.key);
   }
@@ -602,7 +602,7 @@ async function applyAdjustment(targetType, targetId, amount, reason){
   } else if(targetType==='teamB'){
     state.teamBBank=Math.max(0,(state.teamBBank||0)+amount);
   }
-  await saveLobby(); renderHost();
+  await saveLobby(); R.host();
 }
 
 /* ===== Puzzle ===== */
@@ -620,7 +620,7 @@ async function triggerPuzzle(){
     timerStartedAt:0, timerPaused:true, timerElapsed:0
   };
   state.currentQuestion=null; state.flow={stage:'idle',optionsRevealed:0,hotSeatAnswer:-1,stealPeeked:false,stealRevealed:false,doubleDipUsed:false};
-  await saveLobby(); renderHost();
+  await saveLobby(); R.host();
 }
 
 async function pressLetter(ch){
@@ -633,21 +633,21 @@ async function pressLetter(ch){
   state.puzzle.timerStartedAt=Date.now();
   state.puzzle.timerPaused=false;
   state.puzzle.timerElapsed=0;
-  await saveLobby(); renderHost();
+  await saveLobby(); R.host();
 }
 
 async function pausePuzzleTimer(){
   if(state.puzzle.timerPaused) return;
   state.puzzle.timerElapsed=(state.puzzle.timerElapsed||0)+(Date.now()-state.puzzle.timerStartedAt);
   state.puzzle.timerPaused=true;
-  await saveLobby(); renderHost();
+  await saveLobby(); R.host();
 }
 
 async function resumePuzzleTimer(){
   if(!state.puzzle.timerPaused) return;
   state.puzzle.timerStartedAt=Date.now();
   state.puzzle.timerPaused=false;
-  await saveLobby(); renderHost();
+  await saveLobby(); R.host();
 }
 
 async function swapPuzzleHotSeat(){
@@ -667,7 +667,7 @@ async function swapPuzzleHotSeat(){
   state.puzzle.timerStartedAt=Date.now();
   state.puzzle.timerPaused=false;
   state.puzzle.timerElapsed=0;
-  await saveLobby(); renderHost();
+  await saveLobby(); R.host();
 }
 
 async function puzzleSolved(){
@@ -675,11 +675,11 @@ async function puzzleSolved(){
   const lvl=activeLevel(); const amt=levelMoney(lvl);
   const hp=hotSeatPlayer();
   if(hp&&state.gameMode==='classic') hp.personalBank=(hp.personalBank||0)+amt;
-  if(await winLevel(state.hotSeatTeam, amt)){ state.puzzle.active=false; await saveLobby(); renderHost(); return; }
+  if(await winLevel(state.hotSeatTeam, amt)){ state.puzzle.active=false; await saveLobby(); R.host(); return; }
   state.puzzle.active=false;
   state.currentQuestion=null; state.flow={stage:'idle',optionsRevealed:0,hotSeatAnswer:-1,stealPeeked:false,stealRevealed:false,doubleDipUsed:false};
   state.steal=null; state.wheel=null;
-  await saveLobby(); renderHost();
+  await saveLobby(); R.host();
 }
 
 /* ===== Wager (before level 15) ===== */
@@ -696,7 +696,7 @@ async function startWager(){
     wagers:{}, answers:{}, revealed:false, resolved:false
   };
   state.gamePhase='wager';
-  await saveLobby(); renderHost();
+  await saveLobby(); R.host();
 }
 
 async function pollWagers(){
@@ -711,7 +711,7 @@ async function pollWagers(){
       if(res&&res.value!==undefined){ state.wager.wagers[pid]=parseInt(res.value,10)||0; changed=true; }
     }
   }
-  if(changed){ await saveLobby(); if(mode==='host') renderHost(); }
+  if(changed){ await saveLobby(); if(mode==='host') R.host(); }
 }
 
 async function pollWagerAnswers(){
@@ -727,12 +727,12 @@ async function pollWagerAnswers(){
       if(res&&res.value!==undefined){ state.wager.answers[pid]=parseInt(res.value,10); changed=true; }
     }
   }
-  if(changed){ await saveLobby(); if(mode==='host') renderHost(); }
+  if(changed){ await saveLobby(); if(mode==='host') R.host(); }
 }
 
 async function revealWagerQuestion(){
   state.wager.revealed=true;
-  await saveLobby(); renderHost();
+  await saveLobby(); R.host();
 }
 
 // Everyone answers the same final question independently — each player wins or loses
@@ -755,7 +755,7 @@ async function finalizeWager(){
 /* ===== Ending ===== */
 async function endGame(){
   state.ended=true; state.gamePhase='ended';
-  await saveLobby(); render();
+  await saveLobby(); R.all();
 }
 
 /* ===== New game ===== */
@@ -800,7 +800,7 @@ async function doNewGame(){
   state.ended=false;
   if(keepQuestions){ state.questions.forEach(q=>q.used=false); state.phraseBank.forEach(p=>p.used=false); }
   else { state.questions=[]; state.phraseBank=[]; }
-  await saveLobby(); hostTab='setup'; renderHost();
+  await saveLobby(); hostTab='setup'; R.host();
 }
 
 /* ===== Players / setup ===== */
@@ -811,14 +811,14 @@ async function addPlayer(){
   const p={id:genId(),name,team:teamEl.value,personalBank:0};
   state.players.push(p);
   state.hotSeatQueue[teamEl.value].push(p.id);
-  await saveLobby(); nameEl.value=''; renderHost();
+  await saveLobby(); nameEl.value=''; R.host();
 }
 async function deletePlayer(id){
   state.players=state.players.filter(p=>p.id!==id);
   state.hotSeatQueue.A=state.hotSeatQueue.A.filter(x=>x!==id);
   state.hotSeatQueue.B=state.hotSeatQueue.B.filter(x=>x!==id);
   if(state.hotSeatPlayerId===id) state.hotSeatPlayerId=null;
-  await saveLobby(); renderHost();
+  await saveLobby(); R.host();
 }
 async function togglePlayerTeam(id){
   const p=playerById(id); if(!p) return;
@@ -826,12 +826,12 @@ async function togglePlayerTeam(id){
   p.team=p.team==='A'?'B':'A';
   state.hotSeatQueue[p.team].push(id);
   if(state.hotSeatPlayerId===id) state.hotSeatTeam=p.team;
-  await saveLobby(); renderHost();
+  await saveLobby(); R.host();
 }
 async function setHotSeat(pid){
   const p=playerById(pid); if(!p) return;
   state.hotSeatPlayerId=p.id; state.hotSeatTeam=p.team;
-  await saveLobby(); renderHost();
+  await saveLobby(); R.host();
 }
 async function startHosting(){
   state.gamePhase='live';
@@ -840,7 +840,7 @@ async function startHosting(){
     const first=state.players[0];
     state.hotSeatPlayerId=first.id; state.hotSeatTeam=first.team;
   }
-  await saveLobby(); hostTab='game'; renderHost();
+  await saveLobby(); hostTab='game'; R.host();
 }
 
 /* ===== Question bank CRUD ===== */
@@ -858,11 +858,11 @@ async function saveQuestionFromForm(){
   }
   await saveLobby();
   ['q-text','q-opt-a','q-opt-b','q-opt-c','q-opt-d'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
-  renderHost();
+  R.host();
 }
 function startEditQuestion(id){
   const q=state.questions.find(x=>x.id===id); if(!q) return;
-  editingQuestion=id; renderHost();
+  editingQuestion=id; R.host();
   setTimeout(()=>{
     const textEl=document.getElementById('q-text');
     if(textEl) textEl.value=q.text;
@@ -871,16 +871,16 @@ function startEditQuestion(id){
     if(diffEl) diffEl.value=q.difficulty||'easy';
   },0);
 }
-function cancelEditQuestion(){ editingQuestion=null; renderHost(); }
+function cancelEditQuestion(){ editingQuestion=null; R.host(); }
 async function deleteQuestion(id){
   state.questions=state.questions.filter(x=>x.id!==id);
   if(editingQuestion===id) editingQuestion=null;
-  await saveLobby(); renderHost();
+  await saveLobby(); R.host();
 }
 async function resetAllUsedFlags(){
   state.questions.forEach(q=>q.used=false);
   state.phraseBank.forEach(p=>p.used=false);
-  await saveLobby(); renderHost();
+  await saveLobby(); R.host();
 }
 
 /* Phrases */
@@ -896,21 +896,21 @@ async function savePhraseFromForm(){
   }
   await saveLobby();
   ['phrase-cat','phrase-text'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
-  renderHost();
+  R.host();
 }
 function startEditPhrase(id){
   const p=state.phraseBank.find(x=>x.id===id); if(!p) return;
-  editingPhrase=id; renderHost();
+  editingPhrase=id; R.host();
   setTimeout(()=>{
     const catEl=document.getElementById('phrase-cat'); if(catEl) catEl.value=p.category||'';
     const phraseEl=document.getElementById('phrase-text'); if(phraseEl) phraseEl.value=p.phrase;
   },0);
 }
-function cancelEditPhrase(){ editingPhrase=null; renderHost(); }
+function cancelEditPhrase(){ editingPhrase=null; R.host(); }
 async function deletePhrase(id){
   state.phraseBank=state.phraseBank.filter(x=>x.id!==id);
   if(editingPhrase===id) editingPhrase=null;
-  await saveLobby(); renderHost();
+  await saveLobby(); R.host();
 }
 
 /* ===== Import/Export ===== */
@@ -972,7 +972,7 @@ function importQuestionsMarkdown(file){
     if(currentQ&&!inPhrases){ state.questions.push(currentQ); imported++; }
     await saveLobby();
     showModal('',`Imported ${imported} question${imported===1?'':'s'} and ${importedPhrases} phrase${importedPhrases===1?'':'s'}.`,null,null);
-    renderHost();
+    R.host();
   };
   reader.readAsText(file);
 }
@@ -983,14 +983,14 @@ async function phoneSubmitWager(amount){
   const key=`wager:${currentLobbyCode}:${state.wager.roundId}:${myPlayerId}`;
   await dbSet(key,String(amount));
   phoneWagerSubmitted=true;
-  renderPlayer();
+  R.player();
 }
 async function phoneSubmitWagerAnswer(di){
   if(!myPlayerId||!currentLobbyCode||!state.wager||!state.wager.revealed) return;
   state.wager.answers=state.wager.answers||{};
   state.wager.answers[myPlayerId]=di;
   await dbSet(`wanswer:${currentLobbyCode}:${state.wager.roundId}:${myPlayerId}`,String(di));
-  renderPlayer();
+  R.player();
 }
 
 /* ===== Phone: vote submission ===== */
@@ -999,18 +999,18 @@ async function phoneVote(dispIdx){
   window._myVote=dispIdx;
   phoneVotedRound=state.steal.roundId;
   await dbSet(`gsv:${currentLobbyCode}:${state.steal.roundId}:${myPlayerId}`,String(dispIdx));
-  renderPlayer();
+  R.player();
 }
 
 function claimPlayer(pid){
   myPlayerId=pid;
   try{ localStorage.setItem('gs-my-player-'+currentLobbyCode,pid); } catch(e){}
-  renderPlayer();
+  R.player();
 }
 function unclaimPlayer(){
   myPlayerId=null; phoneVotedRound=null; phoneWagerSubmitted=false;
   try{ localStorage.removeItem('gs-my-player-'+currentLobbyCode); } catch(e){}
-  renderPlayer();
+  R.player();
 }
 
 /* ===== Test data ===== */
@@ -1051,7 +1051,7 @@ async function loadTestData(){
       {category:'Phrase',phrase:'BETTER LATE THAN NEVER'},
     ];
     phrases.forEach(p=>state.phraseBank.push({id:genId(),...p,used:false}));
-    await saveLobby(); renderHost();
+    await saveLobby(); R.host();
   });
 }
 
@@ -2696,7 +2696,7 @@ async function loadAndRenderLobbyList(){
 async function openExistingLobby(slug){
   const errEl=document.getElementById('host-error');
   const ok=await loadLobby(slug); if(!ok){ if(errEl) errEl.textContent='Lobby not found.'; return; }
-  currentLobbyCode=slug; setupStep='players'; setLobbyInUrl(slug); render();
+  setLobbyCode(slug); setupStep='players'; setLobbyInUrl(slug); render();
 }
 async function deleteLobbyFromList(slug){
   if(!confirm('Delete this lobby? Cannot be undone.')) return;
@@ -2780,7 +2780,7 @@ function render(){
 }
 
 window.addEventListener('hashchange',()=>{
-  mode=detectMode();
+  setMode(detectMode());
   render();
 });
 
@@ -2847,24 +2847,28 @@ Object.assign(window, {
   undoLifeline, unlockStealAnswer, useLifeline,
 });
 
+/* Fill in the late-bound render hooks that rules modules call through.
+   Must run before the first render. */
+bindRenderers({ host: renderHost, player: renderPlayer, display: renderDisplay, all: render });
+
 (async function init(){
-  mode=detectMode();
+  setMode(detectMode());
   if(mode==='display'){
     const params=new URLSearchParams(location.search);
     const slug=params.get('lobby');
-    if(slug){ const ok=await loadLobby(slug); if(ok) currentLobbyCode=slug; }
+    if(slug){ const ok=await loadLobby(slug); if(ok) setLobbyCode(slug); }
     render(); pollTimer=setInterval(pollForUpdates,1200); return;
   }
   if(mode==='player'){
     const params=new URLSearchParams(location.search);
     const slug=params.get('lobby');
-    if(slug){ const ok=await loadLobby(slug); if(ok) currentLobbyCode=slug; }
+    if(slug){ const ok=await loadLobby(slug); if(ok) setLobbyCode(slug); }
     if(currentLobbyCode){ try{ const saved=localStorage.getItem('gs-my-player-'+currentLobbyCode); if(saved&&playerById(saved)) myPlayerId=saved; } catch(e){} }
     render(); pollTimer=setInterval(pollForUpdates,1500); return;
   }
   // Host mode — load from URL slug
   const hParams=new URLSearchParams(location.search); const hSlug=hParams.get('lobby');
-  if(hSlug){ const ok=await loadLobby(hSlug); if(ok) currentLobbyCode=hSlug; }
+  if(hSlug){ const ok=await loadLobby(hSlug); if(ok) setLobbyCode(hSlug); }
   render(); pollTimer=setInterval(pollForUpdates,1500); setTimeout(loadAndRenderLobbyList,150);
 })();
 function setLobbyInUrl(slug){ const url=new URL(location.href); url.searchParams.set('lobby',slug); history.replaceState({},'',url.toString()); }
