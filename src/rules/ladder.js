@@ -8,6 +8,7 @@ import { LEVEL_DIFFICULTY_DEFAULT, LEVEL_MONEY } from '../core/constants.js';
 import { state } from '../core/state.js';
 import { saveLobby } from '../core/lobby.js';
 import { R } from '../ui/rerender.js';
+import { startWager } from './wager.js';
 
 export function elapsedMinutes(){ return state.hostingStartedAt?Math.max(0,Math.floor((Date.now()-state.hostingStartedAt)/60000)):0; }
 

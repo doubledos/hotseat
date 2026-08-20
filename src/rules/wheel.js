@@ -8,6 +8,7 @@
 import { state } from '../core/state.js';
 import { money } from '../core/util.js';
 import { activeLevel, levelMoney, teamName } from './ladder.js';
+import { shuffleArray } from '../core/util.js';
 
 export function wheelMoneyLabel(n){
   if(n>=1000000) return '$'+(n/1000000).toFixed(n%1000000===0?0:1)+'M';

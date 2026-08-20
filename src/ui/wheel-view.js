@@ -4,6 +4,8 @@
 
 import { esc } from '../core/util.js';
 import { buildBombWheelOutcomes, resolvedOutcomeFor, wheelMoneyLabel, wheelOutcomeLabel, wheelOutcomeResultText, wheelSliceColor, wheelSliceVisual } from '../rules/wheel.js';
+import { money } from '../core/util.js';
+import { tvIcon } from './icons.js';
 
 export function buildWheelBulbs(size){
   const n=26; const r=size/2+7;
