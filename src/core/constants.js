@@ -2,8 +2,10 @@
    Fixed game values and brand asset URLs. No behavior, no state.
    Extracted from index.html @5c0cf1c; logic unchanged. */
 
-export const LOGO_EMBER_PNG = "https://raw.githubusercontent.com/doubledos/hotseat/main/hotseat-logotext-ember.png";
-export const LOGO_WHITE_PNG = "https://raw.githubusercontent.com/doubledos/hotseat/main/hotseat-logotext.png";
+/* Served from this repo by GitHub Pages. Relative, not raw.githubusercontent,
+   so local preview and any future rename of the repo keep working. */
+export const LOGO_EMBER_PNG = "hotseat-logotext-ember.png";
+export const LOGO_WHITE_PNG = "hotseat-logotext.png";
 
 /* ===== Constants ===== */
 export const QWERTY = ['QWERTYUIOP','ASDFGHJKL','ZXCVBNM'];
