@@ -120,6 +120,10 @@ let phoneSpinRequestedFor = null;
 let phoneLifelineRequestedKey = null;
 let lastPhoneWheelSeen = 0;
 let phonePromoteMenuOpen = false;
+/* Inline on* handlers run in GLOBAL scope, so `phonePromoteMenuOpen=true` inside an
+   attribute would write to window and never reach this module-scoped binding. Writes
+   must go through a function that the barrel republishes. */
+function setPromoteMenu(open, rerender=true){ phonePromoteMenuOpen=open; if(rerender) renderPlayer(); }
 
 // Detect hash-based routing
 function detectMode(){
@@ -2702,11 +2706,11 @@ function renderPlayer(){
           if(key==='promote'){
             if(!teammates.length) return '';
             if(!phonePromoteMenuOpen){
-              return `<button class="btn btn-ghost btn-block" onclick="phonePromoteMenuOpen=true;renderPlayer();">${esc(label)} ›</button>`;
+              return `<button class="btn btn-ghost btn-block" onclick="setPromoteMenu(true)">${esc(label)} ›</button>`;
             }
             return `<div class="ph-submenu">
-              <button class="ph-submenu-back" onclick="phonePromoteMenuOpen=false;renderPlayer();">‹ ${esc(label)}</button>
-              ${teammates.map(p=>`<button class="btn btn-ghost btn-block" onclick="phonePromoteMenuOpen=false;phoneRequestLifeline('promote','${p.id}')">${esc(p.name)}</button>`).join('')}
+              <button class="ph-submenu-back" onclick="setPromoteMenu(false)">‹ ${esc(label)}</button>
+              ${teammates.map(p=>`<button class="btn btn-ghost btn-block" onclick="setPromoteMenu(false,false);phoneRequestLifeline('promote','${p.id}')">${esc(p.name)}</button>`).join('')}
             </div>`;
           }
           return `<button class="btn btn-ghost btn-block" onclick="phoneRequestLifeline('${key}')">${esc(label)}</button>`;
@@ -2945,6 +2949,7 @@ document.addEventListener('keydown', handleHostKeydown);
    if you add or rename an inline handler.
    ============================================================ */
 Object.assign(window, {
+  setPromoteMenu,
   addPlayer, advanceLevelNoMoney, cancelEditPhrase, cancelEditQuestion,
   cancelModal, changeHotSeatPick, claimPlayer, confirmBombWheel,
   confirmHotSeatReveal, confirmModal, confirmWheelWinner, copyPlayerLinkFromPopover,
