@@ -3,9 +3,11 @@
    See CLAUDE.md for the file map. */
 
 import { dbDelete, dbGet, dbList, dbSet, hasSupabase } from './core/db.js';
-import { LEVEL_DIFFICULTY_DEFAULT, LEVEL_MONEY, LIFELINE_DEFS, LOGO_EMBER_PNG, LOGO_WHITE_PNG, PUZZLE_TIMER_MS, QWERTY } from './core/constants.js';
+import { LEVEL_DIFFICULTY_DEFAULT, LEVEL_MONEY, LIFELINE_DEFS, PUZZLE_TIMER_MS, QWERTY } from './core/constants.js';
 import { bounceText, debounce, esc, genId, letterFor, money, shuffleArray, slugify } from './core/util.js';
 import { playBigWinThenTheme, playLoop, playOnce, stopLoop } from './screens/display-audio.js';
+import { defaultState, normalizeState, setState, state } from './core/state.js';
+import { LIFELINE_ICONS, chairIconSVG, hotSeatLogoImg, teamFlameIcon, teamGradId, teamMidColor, tvIcon } from './ui/icons.js';
 
 /* ============================================================
    FORTUNE & FORTUNE v3
@@ -14,87 +16,6 @@ import { playBigWinThenTheme, playLoop, playOnce, stopLoop } from './screens/dis
 
 
 
-/* ===== State schema ===== */
-function defaultState(){
-  return {
-    // Meta
-    code: '',
-    lobbyName: '',
-    gamePhase: 'setup', // setup | live | puzzle | wager | ended
-    hostingStartedAt: 0,
-    gameMode: 'classic', // 'classic' (shared ladder + money) | 'race' (separate ladders, first to the top wins)
-    // Teams
-    teamAName: 'Team A',
-    teamBName: 'Team B',
-    teamABank: 0,
-    teamBBank: 0,
-    // Players [{id,name,team,personalBank}]
-    players: [],
-    hotSeatTeam: 'A',
-    hotSeatPlayerId: null,
-    hotSeatQueue: {A:[], B:[]}, // ordered player ids for rotation
-    // Questions (pool, lives in lobby state)
-    questions: [],
-    // Ladder
-    ladderCurrent: 1,
-    ladderWon: Array(15).fill(false), // which levels have been cleared
-    ladderWonTeam: Array(15).fill(null), // which team ('A'/'B') cleared each level
-    // Race mode — each team climbs its own ladder independently, first to clear level 15 wins
-    race: {
-      A:{current:1, won:Array(15).fill(false)},
-      B:{current:1, won:Array(15).fill(false)}
-    },
-    levelTypes: Array(15).fill(''), // '' = auto by difficulty, 'puzzle' = puzzle
-    // Lifelines
-    lifelines: {
-      A:{promote:false,doubleDip:false,swap:false},
-      B:{promote:false,doubleDip:false,swap:false}
-    },
-    // Current flow
-    currentQuestion: null,
-    flow: {stage:'idle',optionsRevealed:0,hotSeatAnswer:-1,stealPeeked:false,stealRevealed:false,doubleDipUsed:false},
-    // Steal
-    steal: null,
-    stealRoundCounter: 0,
-    wagerRoundCounter: 0,
-    wheel: null,
-    // Puzzle
-    puzzle: {
-      phrase:'', category:'', revealedLetters:[], usedLetters:[],
-      active:false, glitchAt:0,
-      currentGuessingTeam:'A',
-      timerStartedAt:0, timerPaused:true, timerElapsed:0
-    },
-    // Wager (before level 15)
-    wager: {active:false, question:null, wagers:{}, revealed:false, resolved:false},
-    // Score adjustments
-    adjustments: [],
-    // Phrase bank (puzzle content)
-    phraseBank: [],
-    // Ending
-    ended: false,
-  };
-}
-
-function normalizeState(s){
-  const d = defaultState();
-  for(const k of Object.keys(d)){
-    if(!(k in s)) s[k]=d[k];
-  }
-  if(!s.puzzle) s.puzzle = d.puzzle;
-  if(!s.wager) s.wager = d.wager;
-  if(!s.lifelines.A.hasOwnProperty('promote')){
-    ['A','B'].forEach(t=>{
-      s.lifelines[t].promote = s.lifelines[t].huddle||false;
-      delete s.lifelines[t].huddle;
-      delete s.lifelines[t].bomb;
-    });
-  }
-  return s;
-}
-
-/* ===== App state ===== */
-let state = defaultState();
 let currentLobbyCode = '';
 let mode = 'entry'; // entry | host | display | player
 let hostTab = 'game'; // game | setup | questions | rules
@@ -219,7 +140,7 @@ function lobbyKey(code){ return 'lobby:'+(code||currentLobbyCode); }
 async function loadLobby(code){
   const res = await dbGet(lobbyKey(code));
   if(res&&res.value){
-    state = normalizeState(JSON.parse(res.value));
+    setState(normalizeState(JSON.parse(res.value)));
     currentLobbyCode = code;
     lastSavedJSON = res.value;
     return true;
@@ -235,7 +156,7 @@ async function saveLobby(){
 
 async function createLobby(name){
   const slug=slugify(name||'game');
-  state=defaultState(); state.code=slug; state.lobbyName=name||slug;
+  setState(defaultState()); state.code=slug; state.lobbyName=name||slug;
   currentLobbyCode=slug; await saveLobby(); return slug;
 }
 
@@ -256,7 +177,7 @@ async function pollForUpdates(){
     const res = await dbGet(lobbyKey());
     if(res&&res.value&&res.value!==lastSavedJSON){
       const newState = normalizeState(JSON.parse(res.value));
-      state = newState;
+      setState(newState);
       lastSavedJSON = res.value;
       render();
     }
@@ -2244,50 +2165,6 @@ function buildLifelinesBar(team){
       <div class="tv-ll-label">${esc(label)}</div>
     </div>`;
   }).join('')+'</div>';
-}
-
-
-/* ===== Hot Seat logo — real brand assets: hotseat-chair.svg emblem + live-text wordmark ===== */
-function chairIcon(x,y,scale){
-  return `<g transform="translate(${x},${y}) scale(${scale})"><g transform="matrix(1,0,0,1,-667.582438,-140.32151)"><g transform="matrix(3.666797,0,0,3.666797,559.014417,96.800147)"><path d="M100.161,119.427C99.567,121.602 96.546,132.672 97.606,147.492C97.731,149.235 100.761,169.227 98.821,177.572C95.448,192.082 83.8,185.712 80.562,184.393C77.142,182.478 76.581,182.061 76.26,181.821C73.917,180.077 73.767,180.287 68.767,176.164C62.689,171.151 63.099,170.511 62.531,170.414C60.71,170.104 61.43,172.324 61.488,172.502C63.915,179.984 63.791,182.157 66.517,188.493C66.8,189.152 69.33,195.03 70.292,196.624C70.589,197.117 75.539,207.168 82.339,213.666C84.672,215.895 86.118,217.22 86.477,217.481C82.23,218.757 72.689,213.432 72.219,213.61C70.303,210.185 69.758,210.622 64.725,205.303C63.493,204.001 58.144,198.348 52.556,186.472C48.737,178.357 45.33,165.929 45.37,154.498C45.396,146.953 45.434,146.96 46.67,139.532C47.63,133.765 53.376,122.536 53.866,123.129C54.485,123.877 54.897,135.293 56.279,139.566C62.578,159.053 74.248,152.448 76.756,143.575C77.539,140.803 79.807,135.296 76.033,122.637C73.292,113.441 72.171,111.236 68.619,95.472C68.051,92.953 67.78,93.017 67.628,90.492C66.642,74.084 67.477,71.61 69.67,61.542C71.546,52.924 77.363,41.457 79.736,37.633C83.118,32.184 83.094,32.176 87.187,27.242C89.86,24.021 90.709,23.432 91.038,23.057C92.893,20.94 92.783,20.86 94.914,18.988C99.325,15.115 99.972,14.742 100.469,14.456C102.477,13.3 103.992,11.215 104.789,12.069C105.723,13.069 105.103,13.231 104.741,14.546C103.852,17.773 93.849,40.766 106.514,44.444C112.009,46.04 116.529,41.759 117.177,41.145C119.582,38.868 119.873,35.108 119.917,34.538C120.534,26.587 117.437,23.405 119.4,23.219C120.444,23.12 121.196,24.329 123.736,26.185C124.886,27.024 131.607,31.934 135.602,39.442C136.915,41.91 137.441,41.78 138.748,46.426C140.595,52.992 142.06,58.03 138.708,76.54C138.138,79.686 137.905,79.636 136.438,89.492C136.356,90.047 136.148,91.444 135.889,96.493C135.879,96.697 136.289,102.753 137.356,105.551C138.818,109.387 141.787,112.786 144.476,113.598C147.906,114.633 150.23,114.13 154.261,112.03C154.997,111.646 158.21,109.005 159.567,106.538C160.715,104.453 163.282,100.132 163.122,91.507C163.066,88.499 161.74,86.335 164.572,87.336C165.217,87.564 172.119,93.736 173.486,95.512C175.682,98.367 175.675,98.354 177.869,101.227C179.713,103.642 190.061,119.697 193.883,138.412C195.708,147.344 195.382,147.388 195.757,156.49C195.881,159.51 195.214,168.899 192.589,176.528C190.963,181.255 190.404,183.669 185.12,193.293C184.875,193.738 184.821,193.698 181.589,198.559C180.47,200.243 175.584,206.326 173.416,208.403C172.639,209.147 163.103,218.344 159.154,219.658C157.184,220.314 155.463,220.848 153.515,221.54C151.581,222.227 150.954,221.475 151.633,219.524C151.758,219.166 165.852,197.759 166.189,197.289C168.485,194.089 173.972,183.2 175.133,179.393C175.381,178.579 176.587,173.201 176.751,171.534C178.152,157.259 171.893,144.943 170.187,141.65C168.09,137.601 168.273,137.27 167.546,137.229C166.595,137.176 166.706,137.489 166.238,138.319C165.67,139.325 165.806,139.376 165.256,140.375C164.912,140.999 162.677,146.06 156.461,151.455C154.733,152.955 151.023,154.333 147.506,154.278C142.382,154.198 136.194,149.978 133.199,146.793C128.907,142.227 127.783,140.309 125.257,136.664C114.19,120.694 111.571,95.887 111.387,95.803C110.774,95.522 103.412,107.55 100.161,119.427Z" style="fill:rgb(218,32,35);"></path><path d="M168.639,268.5C168.68,226.102 168.364,226.034 169.626,220.527C171.919,210.514 181.341,208.667 186.563,207.915C190.838,207.299 196.572,208.281 199.419,209.67C203.02,211.427 207.006,214.891 208.844,219.363C212.054,227.174 211.35,234.197 208.056,238.127C202.272,245.028 191.962,243.793 190.789,244.818C189.998,245.509 190.21,245.725 190.204,269.5C190.2,283.114 190.431,288.924 183.59,291.711C179.915,293.208 171.952,293.242 159.515,293.038C147.5,292.841 147.526,292.451 135.498,292.403C99.944,292.26 61.624,292.809 58.609,292.078C49.458,289.86 50.578,283.82 50.554,266.5C50.525,246.48 50.748,246.418 50.335,245.575C49.496,243.859 43.926,244.566 37.421,241.685C36.048,241.077 29.544,238.52 29.609,228.502C29.627,225.755 30.947,212.65 43.589,208.769C49.885,206.836 55.939,207.83 61.447,209.652C71.865,213.099 71.502,223.428 71.981,227.442C72.432,231.22 71.985,270.614 72.198,271.579C72.544,273.154 73.529,272.854 82.495,272.913C93.215,272.983 104.459,272.715 110.511,273.079C113.145,273.237 113.131,273.073 143.498,273.277C155.56,273.358 159.333,273.057 164.502,273.468C164.795,273.491 167.478,273.704 168.161,273.115C168.846,272.524 168.651,269.705 168.639,268.5Z" style="fill:rgb(128,21,21);"></path><path d="M112.703,139.611C112.925,139.213 115.612,134.721 115.612,134.721C115.612,134.721 127.529,171.259 140.586,174.096C151.819,176.536 157.811,162.461 159.249,163.309C160.776,164.209 166.733,176.37 160.182,197.397C155.747,211.63 151.758,219.166 151.633,219.524C150.954,221.475 162.788,215.483 163.448,217.053C162.495,222.464 161.19,239 158.491,239.123C157.978,239.147 81.943,239.171 81.533,239.091C79.002,238.602 74.575,218.256 72.219,213.61C72.689,213.432 79.702,216.716 85.436,216.601C78.346,200.043 77.48,194.364 76.493,188.512C78.305,190.26 100.863,208.884 107.12,186.416C108.253,182.346 107.048,176.306 106.924,175.436C106.236,170.606 105.996,162.053 106.858,156.554C108.172,148.169 112.032,140.878 112.703,139.611Z" style="fill:rgb(127,22,22);"></path><path d="M96.496,246.906C101.03,246.77 113.328,246.803 156.499,246.844C156.735,246.844 159.35,246.846 159.447,246.875C161.607,247.512 160.912,248.239 160.886,250.503C160.732,264.219 161.176,264.538 160.243,265.126C159.765,265.429 159.713,265.421 136.5,265.436C126.493,265.442 126.509,265.544 116.504,265.694C112.148,265.759 87.385,265.705 84.502,265.721C84.258,265.722 81.82,265.735 81.456,265.618C79.783,265.08 80.533,264.421 80.023,258.538C79.479,252.256 79.839,247.932 79.942,247.704C80.294,246.925 81.382,246.873 81.525,246.866C85.506,246.676 95.299,246.881 96.496,246.906Z" style="fill:rgb(126,23,20);"></path><path d="M181.407,315.926C173.434,316.038 173.447,316.025 165.471,316.047C166.187,314.874 166.572,314.906 166.214,313.573C165.932,312.524 164.775,308.223 162.919,300.404C162.829,300.025 162.152,297.635 163.612,296.961C163.79,296.879 167.189,296.878 167.5,296.878C179.39,296.875 180.16,296.645 180.503,298.499C180.552,298.764 180.58,314.09 180.658,314.437C180.781,314.979 181.284,315.384 181.407,315.926Z" style="fill:rgb(125,24,20);"></path><path d="M74.372,315.911C73.179,315.945 69.071,316.061 59.457,316.026C60.186,314.536 60.221,314.559 60.244,314.417C60.28,314.187 60.156,314.192 60.104,311.508C59.907,301.369 59.873,301.378 59.875,300.497C59.883,298.171 59.278,297.426 61.54,296.862C61.676,296.829 76.325,296.842 76.451,296.865C78.198,297.18 77.957,297.768 77.554,299.512C77.442,299.997 75.75,308.205 74.403,313.479C73.957,315.224 74.377,315.511 74.372,315.911Z" style="fill:rgb(125,23,21);"></path></g></g></g>`;
-}
-function chairIconSVG(style){
-  return `<svg viewBox="0 0 665 1116" xmlns="http://www.w3.org/2000/svg" style="${style||''}">${chairIcon(0,0,1)}</svg>`;
-}
-function hotSeatLogoImg(variant, style){
-  const src = variant==='white' ? LOGO_WHITE_PNG : LOGO_EMBER_PNG;
-  return `<img src="${src}" alt="THE HOT SEAT" style="${style||''}">`;
-}
-
-/* ===== Team identity — Team A "Blue Flame" / Team B "Wildfire" ===== */
-function teamMidColor(team){ return team==='B' ? 'var(--team-b-mid)' : 'var(--team-a-mid)'; }
-function teamGradId(team){ return team==='B' ? 'gradTeamB' : 'gradTeamA'; }
-function teamFlameIcon(team, style){
-  return `<svg viewBox="0 0 146 211" style="${style||''}"><use href="#flameShape" fill="url(#${teamGradId(team)})"/></svg>`;
-}
-
-/* ===== Broadcast icon set — line-weight matched replacements for emoji ===== */
-const TV_ICON_PATHS={
-  puzzle:'M6 4h4a1 1 0 0 1 2 2 2 2 0 0 0 0 4 1 1 0 0 1-2 2v3H7v-3a2 2 0 0 0 0-4V4a1 1 0 0 1-1-1zM4 10a2 2 0 0 1 2-2v6H3a1 1 0 0 1-1-1V9a2 2 0 0 1 2 2h0z',
-  bolt:'M13 2 4 14h6l-1 8 9-12h-6l1-8z',
-  target:'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 4a6 6 0 1 1 0 12 6 6 0 0 1 0-12zm0 4a2 2 0 1 1 0 4 2 2 0 0 1 0-4z',
-  speaker:'M4 9v6h4l5 5V4L8 9H4zm12.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z',
-  trophy:'M6 3h12v2h2v3a4 4 0 0 1-4 4 5 5 0 0 1-3 3.9V19h3v2H8v-2h3v-3.1A5 5 0 0 1 8 12a4 4 0 0 1-4-4V5h2V3zm0 4H4v0a2 2 0 0 0 2 2V7zm12 0v2a2 2 0 0 0 2-2h-2z',
-  check:'M5 13l4 4L19 7',
-  cross:'M6 6l12 12M18 6L6 18',
-  refresh:'M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8 M21 3v5h-5 M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16 M8 16H3v5',
-  phone:'M7 2h10a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zm5 17a1 1 0 1 0 0 2 1 1 0 0 0 0-2z',
-  flame:'M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z',
-  promote:'M12 2a10 10 0 0 1 0 20 10 10 0 0 1 0-20z M16 12l-4-4-4 4 M12 16V8',
-  shuffle:'M18 14l4 4-4 4 M18 2l4 4-4 4 M2 18h1.973a4 4 0 0 0 3.3-1.7l5.454-8.6a4 4 0 0 1 3.3-1.7H22 M2 6h1.972a4 4 0 0 1 3.6 2.2 M22 18h-6.041a4 4 0 0 1-3.3-1.8l-.359-.45',
-  card:'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z M12 7l1.2 3.6L17 12l-3.8 1.4L12 17l-1.2-3.6L7 12l3.8-1.4L12 7z',
-  sun:'M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10z M12 1v2 M12 21v2 M4.22 4.22l1.42 1.42 M18.36 18.36l1.42 1.42 M1 12h2 M21 12h2 M4.22 19.78l1.42-1.42 M18.36 5.64l1.42-1.42'
-};
-const LIFELINE_ICONS = {promote:'promote', doubleDip:'refresh', swap:'shuffle', bomb:'card'};
-function tvIcon(name, size, style){
-  const d=TV_ICON_PATHS[name]; if(!d) return '';
-  const filled=['puzzle','bolt','target','speaker','trophy','flame'].includes(name);
-  return `<svg viewBox="0 0 24 24" width="${size||'1em'}" height="${size||'1em'}" style="display:inline-block;vertical-align:-0.14em;flex-shrink:0;${style||''}" fill="${filled?'currentColor':'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
 }
 
 
