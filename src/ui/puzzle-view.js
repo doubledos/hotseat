@@ -7,6 +7,13 @@ import { esc } from '../core/util.js';
 import { PUZZLE_TIMER_MS, QWERTY } from '../core/constants.js';
 import { pressLetter } from '../rules/puzzle.js';
 import { teamName } from '../rules/ladder.js';
+import { mode } from '../core/session.js';
+import { swapPuzzleHotSeat } from '../rules/puzzle.js';
+
+/* Surface-local render bookkeeping: what this surface last drew, so it can
+   tell a real change from a repaint. Owned here because nothing else reads it. */
+let puzzleTimerRAF = null;
+
 
 export function buildBoardHTML(puzzle, prevSet){
   const phrase=puzzle.phrase||'';
@@ -71,3 +78,33 @@ export function puzzleTimerHTML(puzzle, idSuffix){
     <div class="timer-label">${puzzle.timerPaused?'Paused':'Guessing — '+esc(teamName(puzzle.currentGuessingTeam))}</div>
   </div>`;
 }
+
+export function startPuzzleTimerRAF(){
+  if(puzzleTimerRAF) cancelAnimationFrame(puzzleTimerRAF);
+  function tick(){
+    if(!state.puzzle.active||state.puzzle.timerPaused) return;
+    const elapsed=(state.puzzle.timerElapsed||0)+(Date.now()-(state.puzzle.timerStartedAt||Date.now()));
+    const remaining=Math.max(0,PUZZLE_TIMER_MS-elapsed);
+    const secs=Math.ceil(remaining/1000);
+    const pct=remaining/PUZZLE_TIMER_MS;
+    const offset=(175.9*(1-pct)).toFixed(1);
+    const urgent=secs<=5;
+    // update host
+    ['host','tv'].forEach(sfx=>{
+      const fill=document.getElementById('timer-fill-'+sfx);
+      const num=document.getElementById('timer-num-'+sfx);
+      if(fill){ fill.style.strokeDashoffset=offset; fill.className='timer-fill'+(urgent?' urgent':''); }
+      if(num) num.textContent=secs;
+    });
+    if(remaining>0) puzzleTimerRAF=requestAnimationFrame(tick);
+    else if(mode==='host'){
+      // Time's up — only host writes state, so display/player tabs watching in parallel don't race to double-swap
+      swapPuzzleHotSeat();
+    }
+  }
+  puzzleTimerRAF=requestAnimationFrame(tick);
+}
+
+/* ============================================================
+   Part 5: Host render
+   ============================================================ */

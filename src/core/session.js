@@ -38,3 +38,7 @@ export let phonePromoteMenuOpen = false;
 export function setPhonePromoteMenuOpen(next){ phonePromoteMenuOpen = next; return phonePromoteMenuOpen; }
 export let lastWheelSeen = 0; // host+display: last wheel spin already animated
 export function setLastWheelSeen(next){ lastWheelSeen = next; return lastWheelSeen; }
+
+/* Keep the lobby slug in the URL so a refresh, or a link shared with the TV
+   or a phone, reopens the same game. */
+export function setLobbyInUrl(slug){ const url=new URL(location.href); url.searchParams.set('lobby',slug); history.replaceState({},'',url.toString()); }
