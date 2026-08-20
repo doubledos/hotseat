@@ -1,0 +1,48 @@
+/* tokens.css — Design tokens — palette, team identity, brand stage colors, type, radii, shadows
+   Extracted verbatim from index.html @5c0cf1c (lines 8-51).
+   Load order matters: see the <link> block in index.html. */
+
+/* ===== Reset & tokens ===== */
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  /* warm hot-seat palette — gold/flame on cream, maroon ink */
+  --c-bg:#fbead0;
+  --c-surface:#fff8ec;
+  --c-surface2:#fbe6bf;
+  --c-border:#ecd19a;
+  --c-border2:#dba959;
+  /* accent: burnt flame orange-red for ALL interactive elements */
+  --c-accent:#d94a1f;
+  --c-accent-hi:#f06a3d;
+  --c-accent-dim:#a83618;
+  /* gold reserved EXCLUSIVELY for money */
+  --c-gold:#8a5c0d;
+  --c-gold-light:#8f6014;
+  --c-gold-dim:#b97e22;
+  --c-gold-fill:#f2b95c;
+  --c-ink:#3a1a12;
+  --c-muted:#6e5439;
+  --c-green:#1e7d43;
+  --c-green-light:#2fa860;
+  --c-red:#b8302f;
+  --c-red-light:#d6524f;
+  --c-blue:#1a5fa8;
+  --c-purple:#6b3fa0;
+  /* Team identity — Team A "Blue Flame" / Team B "Wildfire". Used for team names,
+     the hot-seat/steal player name, topbar accents, and the ladder fill. */
+  --team-a-core:#eaf9ff; --team-a-mid:#3ec6ff; --team-a-edge:#1c6fa8;
+  --team-b-core:#fff0f8; --team-b-mid:#ff8dc7; --team-b-edge:#c2409e;
+  --r:12px;
+  --shadow:0 8px 24px rgba(120,70,20,0.18);
+  --shadow-gold:0 0 18px rgba(217,74,31,0.2);
+  --font-display:'Alfa Slab One','Arial Black',sans-serif;
+  --font-body:'Oswald','Helvetica Neue',sans-serif;
+  --font-script:'Pacifico',cursive;
+  /* Hot Seat brand tokens — used by the TV display's per-mode stage colors */
+  --stage-gold:#FFF931;
+  --stage-green:#206243;
+  --stage-maroon:#622030;
+  --ember:#7F1515;
+  --cream:#FFFBF2;
+  --ink:#241506;
+}

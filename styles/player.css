@@ -1,0 +1,23 @@
+/* player.css — Phone player only
+   Extracted verbatim from index.html @5c0cf1c (lines 390-409).
+   Load order matters: see the <link> block in index.html. */
+
+/* ===== Phone player view ===== */
+body.mode-player .app{max-width:480px;margin:0 auto;padding:0;}
+.ph-screen{min-height:100vh;display:flex;flex-direction:column;padding:20px 16px;gap:16px;}
+.ph-bank-hero{text-align:center;padding:20px;background:var(--c-surface);border:1px solid var(--c-border);border-radius:12px;}
+.ph-player-name{font-size:24px;font-weight:700;color:var(--c-ink);margin-bottom:4px;}
+.ph-team{font-size:12px;text-transform:uppercase;letter-spacing:0.1em;color:var(--c-muted);}
+.ph-amount{font-size:42px;font-weight:700;color:var(--c-gold-light);font-family:var(--font-display);letter-spacing:0.02em;margin:8px 0;font-variant-numeric:tabular-nums;}
+.ph-status{font-size:14px;color:var(--c-muted);text-align:center;line-height:1.6;padding:8px 0;}
+.ph-vote-btns{display:flex;flex-direction:column;gap:10px;}
+.ph-vote-btn{background:var(--c-surface2);border:1px solid var(--c-border2);color:var(--c-ink);border-radius:10px;padding:16px;font-size:15px;font-weight:600;text-align:left;cursor:pointer;transition:all .15s;}
+.ph-vote-btn:hover{border-color:var(--c-accent);}
+.ph-vote-btn.picked{background:var(--c-accent);color:#fff8ec;border-color:var(--c-accent-hi);}
+.ph-vote-letter{color:var(--c-accent);font-weight:700;margin-right:8px;}
+.ph-vote-btn.picked .ph-vote-letter{color:#fff8ec;}
+.ph-vote-btn-disabled{opacity:0.4;cursor:default;}
+.ph-submenu{display:flex;flex-direction:column;gap:8px;padding:10px;background:var(--c-surface2);border:1px solid var(--c-border);border-radius:10px;}
+.ph-submenu-back{background:none;border:none;color:var(--c-muted);font-size:12px;text-align:left;padding:0 0 2px;cursor:pointer;}
+.ph-wager-input{width:100%;font-size:32px;font-weight:700;text-align:center;background:var(--c-surface);border:2px solid var(--c-gold-dim);border-radius:10px;color:var(--c-gold-light);padding:14px;letter-spacing:0.05em;}
+.ph-wager-input:focus{border-color:var(--c-gold);}
