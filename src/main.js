@@ -9,7 +9,9 @@ import { playBigWinThenTheme, playLoop, playOnce, stopLoop } from './screens/dis
 import { defaultState, normalizeState, setState, state } from './core/state.js';
 import { LIFELINE_ICONS, chairIconSVG, hotSeatLogoImg, teamFlameIcon, teamGradId, teamMidColor, tvIcon } from './ui/icons.js';
 import { R, bindRenderers } from './ui/rerender.js';
-import { currentLobbyCode, mode, setLobbyCode, setMode } from './core/session.js';
+import { currentLobbyCode, editingPhrase, editingQuestion, hostTab, lastWheelSeen, mode, myPlayerId, phoneLifelineRequestedKey, phonePromoteMenuOpen, phoneSpinRequestedFor, phoneVotedRound, phoneWagerSubmitted, seenWagerIds, setEditingPhrase, setEditingQuestion, setActiveHostTab, setLastWheelSeen, setLobbyCode, setMode, setMyPlayerId, setPhoneLifelineRequestedKey, setPhonePromoteMenuOpen, setPhoneSpinRequestedFor, setPhoneVotedRound, setPhoneWagerSubmitted, setSeenWagerIds, setSetupStep, setupStep } from './core/session.js';
+import { createLobby, lastSavedJSON, listLobbies, loadLobby, lobbyKey, saveLobby, setLastSaved } from './core/lobby.js';
+import { cancelModal, confirmModal, setPendingModal, showModal, showPicker } from './ui/modal.js';
 
 /* ============================================================
    FORTUNE & FORTUNE v3
@@ -18,33 +20,20 @@ import { currentLobbyCode, mode, setLobbyCode, setMode } from './core/session.js
 
 
 
-let hostTab = 'game'; // game | setup | questions | rules
-let setupStep = 'players'; // players | questions | levels | ready
-let lastSavedJSON = '';
 let pollTimer = null;
-let editingQuestion = null;
-let editingPhrase = null;
-let pendingModal = null;
-let myPlayerId = null;
-let phoneVotedRound = null;
-let phoneWagerSubmitted = false;
 let displayPrevRevealed = new Set();
 let lastGlitchSeen = 0;
-let lastWheelSeen = 0;
-let seenWagerIds = new Set();
 let puzzleTimerRAF = null;
 let lastFlowStage = '';
 let lastEndedSeen = false;
 let lastAudioSetup = false;
 let audioStageToken = 0;
-let phoneSpinRequestedFor = null;
-let phoneLifelineRequestedKey = null;
 let lastPhoneWheelSeen = 0;
-let phonePromoteMenuOpen = false;
-/* Inline on* handlers run in GLOBAL scope, so `phonePromoteMenuOpen=true` inside an
-   attribute would write to window and never reach this module-scoped binding. Writes
-   must go through a function that the barrel republishes. */
-function setPromoteMenu(open, rerender=true){ phonePromoteMenuOpen=open; if(rerender) R.player(); }
+/* Inline on* handlers run in GLOBAL scope, so assigning phonePromoteMenuOpen
+   directly inside an attribute would write to window and never reach the
+   module-scoped binding. Writes go through this function, which the barrel
+   republishes. */
+function setPromoteMenu(open, rerender=true){ setPhonePromoteMenuOpen(open); if(rerender) R.player(); }
 
 // Detect hash-based routing
 function detectMode(){
@@ -134,43 +123,6 @@ function makeCurrentQuestion(q, level){
   };
 }
 
-/* ===== Lobby / persistence ===== */
-function lobbyKey(code){ return 'lobby:'+(code||currentLobbyCode); }
-
-async function loadLobby(code){
-  const res = await dbGet(lobbyKey(code));
-  if(res&&res.value){
-    setState(normalizeState(JSON.parse(res.value)));
-    setLobbyCode(code);
-    lastSavedJSON = res.value;
-    return true;
-  }
-  return false;
-}
-
-async function saveLobby(){
-  const json = JSON.stringify(state);
-  lastSavedJSON = json;
-  await dbSet(lobbyKey(), json);
-}
-
-async function createLobby(name){
-  const slug=slugify(name||'game');
-  setState(defaultState()); state.code=slug; state.lobbyName=name||slug;
-  setLobbyCode(slug); await saveLobby(); return slug;
-}
-
-async function listLobbies(){
-  const keys=await dbList('lobby:'); const lobbies=[];
-  for(const k of keys.slice(0,20)){
-    const res=await dbGet(k);
-    if(res&&res.value){ try{ const s=JSON.parse(res.value);
-      lobbies.push({code:s.code||k.replace('lobby:',''),name:s.lobbyName||s.code||k.replace('lobby:',''),phase:s.gamePhase,playerCount:(s.players||[]).length});
-    } catch(e){} }
-  }
-  return lobbies;
-}
-
 async function pollForUpdates(){
   if(!currentLobbyCode) return;
   try{
@@ -178,7 +130,7 @@ async function pollForUpdates(){
     if(res&&res.value&&res.value!==lastSavedJSON){
       const newState = normalizeState(JSON.parse(res.value));
       setState(newState);
-      lastSavedJSON = res.value;
+      setLastSaved(res.value);
       R.all();
     }
   } catch(e){}
@@ -201,45 +153,6 @@ async function pollForUpdates(){
     await pollSpinRequest();
   }
 }
-
-/* ===== Modal ===== */
-function showModal(icon, message, confirmLabel, onConfirm){
-  pendingModal = onConfirm;
-  document.getElementById('modal-icon').textContent = icon||'';
-  document.getElementById('modal-icon').style.display = icon?'':'none';
-  document.getElementById('modal-message').innerHTML = message;
-  document.getElementById('modal-picker').style.display = 'none';
-  document.getElementById('modal-input-wrap').style.display = 'none';
-  const confirmBtn = document.getElementById('modal-confirm-btn');
-  confirmBtn.style.display = onConfirm?'':'none';
-  confirmBtn.textContent = confirmLabel||'Confirm';
-  document.getElementById('modal-overlay').classList.add('show');
-}
-function showPicker(message, items, onPick){
-  pendingModal = null;
-  document.getElementById('modal-icon').style.display = 'none';
-  document.getElementById('modal-message').innerHTML = message;
-  const picker = document.getElementById('modal-picker');
-  picker.innerHTML = items.map((it,i)=>`<button class="picker-item" data-i="${i}">${esc(it.label)}</button>`).join('');
-  picker.style.display = 'flex';
-  picker.querySelectorAll('button').forEach(btn=>{
-    btn.addEventListener('click',()=>{ cancelModal(); onPick(items[parseInt(btn.dataset.i)].value); });
-  });
-  document.getElementById('modal-input-wrap').style.display = 'none';
-  document.getElementById('modal-confirm-btn').style.display = 'none';
-  document.getElementById('modal-overlay').classList.add('show');
-}
-function cancelModal(){
-  pendingModal=null;
-  document.getElementById('modal-overlay').classList.remove('show');
-}
-function confirmModal(){
-  const fn=pendingModal; cancelModal(); if(fn) fn();
-}
-
-/* ============================================================
-   Part 3: Game actions — flow, steal, lifelines, puzzle, wager, new game
-   ============================================================ */
 
 /* ===== Question flow ===== */
 async function hostDrawQuestion(){
@@ -547,7 +460,7 @@ async function spinWheel(){
 }
 async function requestSpinWheel(){
   if(!currentLobbyCode||!state.wheel||state.wheel.spunAt) return;
-  phoneSpinRequestedFor=state.wheel.id;
+  setPhoneSpinRequestedFor(state.wheel.id);
   await dbSet(`llspin:${currentLobbyCode}`, String(Date.now()));
   R.player();
 }
@@ -564,7 +477,7 @@ async function pollSpinRequest(){
 async function phoneRequestLifeline(key, targetId){
   if(!currentLobbyCode||!myPlayerId) return;
   const me=playerById(myPlayerId); if(!me) return;
-  phoneLifelineRequestedKey=key;
+  setPhoneLifelineRequestedKey(key);
   await dbSet(`llreq:${currentLobbyCode}:${me.team}`, JSON.stringify({key,targetId:targetId||null,requesterId:myPlayerId,ts:Date.now()}));
   R.player();
 }
@@ -687,7 +600,7 @@ async function startWager(){
   const diff=levelDiff(15);
   const q=pickQuestion(diff);
   if(q) q.used=true;
-  seenWagerIds=new Set();
+  setSeenWagerIds(new Set());
   state.wagerRoundCounter++;
   state.wager={
     roundId:state.wagerRoundCounter,
@@ -774,7 +687,7 @@ function newGame(){
     </label>`;
   const confirmBtn=document.getElementById('modal-confirm-btn');
   confirmBtn.style.display=''; confirmBtn.textContent='Start New Game';
-  pendingModal=doNewGame;
+  setPendingModal(doNewGame);
   document.getElementById('modal-overlay').classList.add('show');
 }
 async function doNewGame(){
@@ -782,7 +695,7 @@ async function doNewGame(){
   const keepQuestions=document.getElementById('ng-keep-questions')?.checked??true;
   state.gamePhase='setup';
   state.hostingStartedAt=0;
-  setupStep='players';
+  setSetupStep('players');
   state.teamABank=0; state.teamBBank=0;
   if(keepPlayers){ state.players.forEach(p=>p.personalBank=0); }
   else { state.players=[]; state.hotSeatQueue={A:[],B:[]}; state.hotSeatPlayerId=null; }
@@ -800,7 +713,7 @@ async function doNewGame(){
   state.ended=false;
   if(keepQuestions){ state.questions.forEach(q=>q.used=false); state.phraseBank.forEach(p=>p.used=false); }
   else { state.questions=[]; state.phraseBank=[]; }
-  await saveLobby(); hostTab='setup'; R.host();
+  await saveLobby(); setActiveHostTab('setup'); R.host();
 }
 
 /* ===== Players / setup ===== */
@@ -840,7 +753,7 @@ async function startHosting(){
     const first=state.players[0];
     state.hotSeatPlayerId=first.id; state.hotSeatTeam=first.team;
   }
-  await saveLobby(); hostTab='game'; R.host();
+  await saveLobby(); setActiveHostTab('game'); R.host();
 }
 
 /* ===== Question bank CRUD ===== */
@@ -852,7 +765,7 @@ async function saveQuestionFromForm(){
   if(editingQuestion){
     const q=state.questions.find(x=>x.id===editingQuestion);
     if(q){ q.text=text; q.options=opts; q.difficulty=diff; }
-    editingQuestion=null;
+    setEditingQuestion(null);
   } else {
     state.questions.push({id:genId(),text,options:opts,difficulty:diff,used:false});
   }
@@ -862,7 +775,7 @@ async function saveQuestionFromForm(){
 }
 function startEditQuestion(id){
   const q=state.questions.find(x=>x.id===id); if(!q) return;
-  editingQuestion=id; R.host();
+  setEditingQuestion(id); R.host();
   setTimeout(()=>{
     const textEl=document.getElementById('q-text');
     if(textEl) textEl.value=q.text;
@@ -871,10 +784,10 @@ function startEditQuestion(id){
     if(diffEl) diffEl.value=q.difficulty||'easy';
   },0);
 }
-function cancelEditQuestion(){ editingQuestion=null; R.host(); }
+function cancelEditQuestion(){ setEditingQuestion(null); R.host(); }
 async function deleteQuestion(id){
   state.questions=state.questions.filter(x=>x.id!==id);
-  if(editingQuestion===id) editingQuestion=null;
+  if(editingQuestion===id) setEditingQuestion(null);
   await saveLobby(); R.host();
 }
 async function resetAllUsedFlags(){
@@ -890,7 +803,7 @@ async function savePhraseFromForm(){
   if(editingPhrase){
     const p=state.phraseBank.find(x=>x.id===editingPhrase);
     if(p){ p.category=cat; p.phrase=phrase; }
-    editingPhrase=null;
+    setEditingPhrase(null);
   } else {
     state.phraseBank.push({id:genId(),category:cat,phrase:phrase,used:false});
   }
@@ -900,16 +813,16 @@ async function savePhraseFromForm(){
 }
 function startEditPhrase(id){
   const p=state.phraseBank.find(x=>x.id===id); if(!p) return;
-  editingPhrase=id; R.host();
+  setEditingPhrase(id); R.host();
   setTimeout(()=>{
     const catEl=document.getElementById('phrase-cat'); if(catEl) catEl.value=p.category||'';
     const phraseEl=document.getElementById('phrase-text'); if(phraseEl) phraseEl.value=p.phrase;
   },0);
 }
-function cancelEditPhrase(){ editingPhrase=null; R.host(); }
+function cancelEditPhrase(){ setEditingPhrase(null); R.host(); }
 async function deletePhrase(id){
   state.phraseBank=state.phraseBank.filter(x=>x.id!==id);
-  if(editingPhrase===id) editingPhrase=null;
+  if(editingPhrase===id) setEditingPhrase(null);
   await saveLobby(); R.host();
 }
 
@@ -982,7 +895,7 @@ async function phoneSubmitWager(amount){
   if(!myPlayerId||!currentLobbyCode||!state.wager) return;
   const key=`wager:${currentLobbyCode}:${state.wager.roundId}:${myPlayerId}`;
   await dbSet(key,String(amount));
-  phoneWagerSubmitted=true;
+  setPhoneWagerSubmitted(true);
   R.player();
 }
 async function phoneSubmitWagerAnswer(di){
@@ -997,18 +910,18 @@ async function phoneSubmitWagerAnswer(di){
 async function phoneVote(dispIdx){
   if(!state.steal||!myPlayerId) return;
   window._myVote=dispIdx;
-  phoneVotedRound=state.steal.roundId;
+  setPhoneVotedRound(state.steal.roundId);
   await dbSet(`gsv:${currentLobbyCode}:${state.steal.roundId}:${myPlayerId}`,String(dispIdx));
   R.player();
 }
 
 function claimPlayer(pid){
-  myPlayerId=pid;
+  setMyPlayerId(pid);
   try{ localStorage.setItem('gs-my-player-'+currentLobbyCode,pid); } catch(e){}
   R.player();
 }
 function unclaimPlayer(){
-  myPlayerId=null; phoneVotedRound=null; phoneWagerSubmitted=false;
+  setMyPlayerId(null); setPhoneVotedRound(null); setPhoneWagerSubmitted(false);
   try{ localStorage.removeItem('gs-my-player-'+currentLobbyCode); } catch(e){}
   R.player();
 }
@@ -1498,7 +1411,7 @@ function renderHost(){
 
   // Wheel animation (only once it's actually been spun)
   if(state.wheel&&state.wheel.spunAt&&state.wheel.spunAt!==lastWheelSeen){
-    lastWheelSeen=state.wheel.spunAt;
+    setLastWheelSeen(state.wheel.spunAt);
     animateWheel(state.wheel,'host');
   } else if(state.wheel&&state.wheel.spunAt){
     const disc=document.getElementById('wheel-disc-host');
@@ -1542,7 +1455,7 @@ function openAdjustModal(){
   const confirmBtn=document.getElementById('modal-confirm-btn');
   confirmBtn.style.display='';
   confirmBtn.textContent='Apply';
-  pendingModal=doAdjustment;
+  setPendingModal(doAdjustment);
   document.getElementById('modal-overlay').classList.add('show');
 }
 
@@ -1980,7 +1893,7 @@ function renderSetupTab(){
     {key:'levels', num:3, icon:'', label:'Levels & Puzzles', body:levelBody+'<hr class="divider">'+phraseBody},
     {key:'ready', num:4, icon:'', label:'Ready Check', body:readyBody},
   ];
-  if(!steps.some(s=>s.key===setupStep)) setupStep='players';
+  if(!steps.some(s=>s.key===setupStep)) setSetupStep('players');
   const idx=steps.findIndex(s=>s.key===setupStep);
   const cur=steps[idx];
 
@@ -2002,7 +1915,7 @@ function renderSetupTab(){
       </div>
     </div>`;
 }
-function goSetupStep(step){ setupStep=step; renderHost(); }
+function goSetupStep(step){ setSetupStep(step); renderHost(); }
 async function setGameMode(m){
   if(state.gamePhase!=='setup') return; // locked once hosting has started
   state.gameMode=m;
@@ -2086,7 +1999,7 @@ async function toggleLevelType(l){
   await saveLobby(); renderHost();
 }
 
-function setHostTab(t){ hostTab=t; renderHost(); }
+function setHostTab(t){ setActiveHostTab(t); renderHost(); }
 function openDisplay(){
   const url=new URL(location.href); url.searchParams.set('lobby',currentLobbyCode); url.hash='display';
   window.open(url.toString(),'_blank');
@@ -2437,7 +2350,7 @@ function renderDisplay(){
     const rb=document.getElementById('tv-result-banner');
     if(rb&&rb.innerHTML.trim()){ rb.classList.add('pop'); setTimeout(()=>rb.classList.remove('pop'),450); }
   }
-  if(state.wheel&&state.wheel.spunAt&&state.wheel.spunAt!==lastWheelSeen){ lastWheelSeen=state.wheel.spunAt; animateWheel(state.wheel,'tv'); }
+  if(state.wheel&&state.wheel.spunAt&&state.wheel.spunAt!==lastWheelSeen){ setLastWheelSeen(state.wheel.spunAt); animateWheel(state.wheel,'tv'); }
   else if(state.wheel&&state.wheel.spunAt){
     const disc=document.getElementById('wheel-disc-tv');
     if(disc){ const n=state.wheel.names.length,seg=360/n; disc.style.transition='none'; disc.style.transform=`rotate(${360*6+(360-(state.wheel.winnerIdx*seg+seg/2))}deg)`; }
@@ -2625,7 +2538,7 @@ function renderPlayer(){
     const res=document.getElementById('wheel-result-ph');
     if(res) res.textContent=state.wheel.outcomes?wheelOutcomeResultText(resolvedOutcomeFor(state.wheel)):wheelResultText(state.wheel);
   }
-  if(!state.wheel) phoneSpinRequestedFor=null;
+  if(!state.wheel) setPhoneSpinRequestedFor(null);
 }
 
 function submitPhoneWager(){
@@ -2696,7 +2609,7 @@ async function loadAndRenderLobbyList(){
 async function openExistingLobby(slug){
   const errEl=document.getElementById('host-error');
   const ok=await loadLobby(slug); if(!ok){ if(errEl) errEl.textContent='Lobby not found.'; return; }
-  setLobbyCode(slug); setupStep='players'; setLobbyInUrl(slug); render();
+  setLobbyCode(slug); setSetupStep('players'); setLobbyInUrl(slug); render();
 }
 async function deleteLobbyFromList(slug){
   if(!confirm('Delete this lobby? Cannot be undone.')) return;
@@ -2707,7 +2620,7 @@ async function createNewLobby(){
   const errEl=document.getElementById('host-error'); const name=(nameEl?.value||'').trim();
   if(!name){ if(errEl) errEl.textContent='Enter a lobby name.'; return; }
   const slug=await createLobby(name);
-  setLobbyInUrl(slug); hostTab='setup'; render();
+  setLobbyInUrl(slug); setActiveHostTab('setup'); render();
 }
 
 function renderEndScreen(){
@@ -2863,7 +2776,7 @@ bindRenderers({ host: renderHost, player: renderPlayer, display: renderDisplay, 
     const params=new URLSearchParams(location.search);
     const slug=params.get('lobby');
     if(slug){ const ok=await loadLobby(slug); if(ok) setLobbyCode(slug); }
-    if(currentLobbyCode){ try{ const saved=localStorage.getItem('gs-my-player-'+currentLobbyCode); if(saved&&playerById(saved)) myPlayerId=saved; } catch(e){} }
+    if(currentLobbyCode){ try{ const saved=localStorage.getItem('gs-my-player-'+currentLobbyCode); if(saved&&playerById(saved)) setMyPlayerId(saved); } catch(e){} }
     render(); pollTimer=setInterval(pollForUpdates,1500); return;
   }
   // Host mode — load from URL slug
