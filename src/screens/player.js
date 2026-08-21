@@ -56,14 +56,14 @@ export function renderPlayer(){
       content=w.revealed
         ?`<div class="card"><div class="ph-status">Wager window closed — you didn't lock one in this round.</div></div>`
         :`<div class="card card-gold">
-          <div style="font-size:13px;font-weight:700;color:#c070f0;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px;">💜 Final Wager</div>
+          <div class="ph-card-title is-wager">💜 Final Wager</div>
           <p class="ph-status">Wager from your personal bank. Max: ${money(maxWager)}.</p>
           <input type="number" class="ph-wager-input" id="ph-wager-input" min="0" max="${maxWager}" placeholder="0" value="">
           <button class="btn btn-primary btn-block mt-12 btn-lg" onclick="submitPhoneWager()">Lock In Wager</button>
         </div>`;
     } else if(!w.revealed){
       content=`<div class="card card-gold" style="text-align:center;">
-        <div style="font-size:13px;font-weight:700;color:#c070f0;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px;">💜 Final Wager</div>
+        <div class="ph-card-title is-wager">💜 Final Wager</div>
         <div class="ph-amount">${money(w.wagers[myPlayerId]||0)}</div>
         <div class="ph-status" style="margin-top:10px;">Wager locked in! Waiting for the question…</div>
       </div>`;
@@ -75,14 +75,14 @@ export function renderPlayer(){
       } else if(myWagerAns!==undefined){
         const myOrigIdx=wq.displayOrder[myWagerAns];
         content=`<div class="card" style="border-color:var(--c-gold-dim);text-align:center;">
-          <div style="font-size:13px;font-weight:700;color:var(--c-gold);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:16px;">🎯 Locked In</div>
+          <div class="ph-card-title">🎯 Locked In</div>
           <div style="font-size:clamp(32px,10vw,60px);font-weight:700;color:var(--c-gold-light);font-family:var(--font-display);letter-spacing:0.05em;">${letterFor(myWagerAns)})</div>
           <div style="font-size:clamp(18px,5vw,28px);font-weight:600;color:var(--c-ink);margin-top:6px;">${esc(wq.options[myOrigIdx])}</div>
           <div style="font-size:13px;color:var(--c-muted);margin-top:16px;">Watch the TV!</div>
         </div>`;
       } else {
         content=`<div class="card card-gold">
-          <div style="font-size:13px;font-weight:700;color:#c070f0;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px;">💜 Final Wager</div>
+          <div class="ph-card-title is-wager">💜 Final Wager</div>
           <div style="font-size:15px;font-weight:600;line-height:1.5;margin-bottom:14px;">${esc(wq.text)}</div>
           <div class="ph-vote-btns">
             ${wq.displayOrder.map((origIdx,di)=>`<button class="ph-vote-btn" onclick="phoneSubmitWagerAnswer(${di})">
@@ -102,14 +102,14 @@ export function renderPlayer(){
         const myVoteIdx=window._myVote!==undefined?window._myVote:-1;
         const myVoteOrigIdx=myVoteIdx>=0?q.displayOrder[myVoteIdx]:-1;
         content=`<div class="card" style="border-color:var(--c-gold-dim);text-align:center;">
-          <div style="font-size:13px;font-weight:700;color:var(--c-gold);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:16px;">🎯 Locked In</div>
+          <div class="ph-card-title">🎯 Locked In</div>
           <div style="font-size:clamp(32px,10vw,60px);font-weight:700;color:var(--c-gold-light);font-family:var(--font-display);letter-spacing:0.05em;">${myVoteIdx>=0?letterFor(myVoteIdx)+')'+'':''}</div>
           <div style="font-size:clamp(18px,5vw,28px);font-weight:600;color:var(--c-ink);margin-top:6px;">${myVoteOrigIdx>=0?esc(q.options[myVoteOrigIdx]):''}</div>
           <div style="font-size:13px;color:var(--c-muted);margin-top:16px;">Watch the TV!</div>
         </div>`;
       } else {
         content=`<div class="card" style="border-color:var(--c-gold-dim);">
-          <div style="font-size:13px;font-weight:700;color:var(--c-gold);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px;">🎯 Your Steal</div>
+          <div class="ph-card-title">🎯 Your Steal</div>
           <div style="font-size:15px;font-weight:600;line-height:1.5;margin-bottom:14px;">${esc(q.text)}</div>
           <div class="ph-vote-btns">
             ${q.displayOrder.map((origIdx,di)=>{
@@ -135,7 +135,7 @@ export function renderPlayer(){
     const spun=!!state.wheel.spunAt;
     const pending=!spun&&phoneSpinRequestedFor===state.wheel.id;
     content=`<div class="card" style="text-align:center;">
-      <div style="font-size:13px;font-weight:700;color:#c070f0;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px;">🎡 Wildcard</div>
+      <div class="ph-card-title is-wager">🎡 Wildcard</div>
       <div style="transform:scale(0.82);margin:-20px 0;">${buildWheelHTML(state.wheel,'ph')}</div>
       <div id="wheel-result-ph" class="ph-status" style="margin-top:4px;"></div>
       ${spun?'':pending
@@ -149,7 +149,7 @@ export function renderPlayer(){
     const defs=LIFELINE_DEFS.filter(({key})=>!(state.gameMode==='race'&&(key==='bomb'||key==='doubleDip')));
     const teammates=state.players.filter(p=>p.team===me.team&&p.id!==state.hotSeatPlayerId);
     content=`<div class="card">
-      <div style="font-size:13px;font-weight:700;color:var(--c-gold);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px;">Lifelines</div>
+      <div class="ph-card-title">Lifelines</div>
       <div class="ph-status" style="margin-bottom:12px;">You are in the hot seat. Watch the TV — use a lifeline here if needed.</div>
       <div style="display:flex;flex-direction:column;gap:8px;">
         ${defs.map(({key,label})=>{

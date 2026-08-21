@@ -9,6 +9,12 @@ body.mode-player .app{max-width:480px;margin:0 auto;padding:0;}
 .ph-player-name{font-size:24px;font-weight:700;color:var(--c-ink);margin-bottom:4px;}
 .ph-team{font-size:12px;text-transform:uppercase;letter-spacing:0.1em;color:var(--c-muted);}
 .ph-amount{font-size:42px;font-weight:700;color:var(--c-gold-light);font-family:var(--font-display);letter-spacing:0.02em;margin:8px 0;font-variant-numeric:tabular-nums;}
+/* Every card on the phone opens with a title naming the moment — Your Steal, Final Wager,
+   Wildcard, Lifelines. They were eight copies of the same inline style, set two pixels
+   SMALLER than the body text they introduce, and the wager and wildcard ones were an
+   off-palette light purple that measures 2.9:1 on the cream card. */
+.ph-card-title{font-size:15px;font-weight:700;color:var(--c-gold);text-transform:uppercase;letter-spacing:0.09em;margin-bottom:12px;}
+.ph-card-title.is-wager{color:var(--c-purple);}
 .ph-status{font-size:14px;color:var(--c-muted);text-align:center;line-height:1.6;padding:8px 0;}
 .ph-vote-btns{display:flex;flex-direction:column;gap:10px;}
 .ph-vote-btn{background:var(--c-surface2);border:1px solid var(--c-border2);color:var(--c-ink);border-radius:10px;padding:16px;font-size:15px;font-weight:600;text-align:left;cursor:pointer;transition:all .15s;}
