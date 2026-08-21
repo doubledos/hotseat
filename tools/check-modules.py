@@ -9,14 +9,20 @@ Catches the three failure modes that syntax checks do not:
 """
 import re, glob, os, sys
 
-FILES = ['src/main.js'] + sorted(glob.glob('src/*/*.js'))
+FILES = ['src/main.js'] + sorted(f for f in glob.glob('src/**/*.js', recursive=True) if f != 'src/main.js')
 
 def strip(s):
     s = re.sub(r'/\*.*?\*/', '', s, flags=re.S)
     return re.sub(r'//.*$', '', s, flags=re.M)
 
 def exports(p):
-    return set(re.findall(r'^export\s+(?:async\s+)?(?:function|const|let|var)\s+([A-Za-z_$][\w$]*)', open(p).read(), re.M))
+    """Names a module makes available: direct declarations and re-exports
+    (export { a, b } from './x.js'), which a barrel file uses."""
+    s = open(p).read()
+    e = set(re.findall(r'^export\s+(?:async\s+)?(?:function|const|let|var)\s+([A-Za-z_$][\w$]*)', s, re.M))
+    for m in re.finditer(r'^export\s*\{([^}]*)\}', s, re.M):
+        e |= {n.strip().split(' as ')[-1].strip() for n in m.group(1).split(',') if n.strip()}
+    return e
 
 def declared(body):
     """Every binding introduced anywhere in the file: declarations at any depth,
@@ -26,9 +32,15 @@ def declared(body):
     d |= set(re.findall(r'(?:^|\s)(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][\w$]*)', body))
     d |= set(re.findall(r'catch\s*\(\s*([A-Za-z_$][\w$]*)', body))
     d |= set(re.findall(r'(?<![.\w$])([A-Za-z_$][\w$]*)\s*=>', body))          # x => ...
-    for m in re.finditer(r'\(([^()]*)\)\s*(?:=>|\{)', body):                  # (a, b) => / function (a, b) {
-        for part in m.group(1).split(','):
-            d |= set(re.findall(r'[A-Za-z_$][\w$]*', part))
+    # Parameter lists only. Matching any '(...)  {' would treat `if (state.x) {`
+    # as a parameter list and silently mark `state` as bound, which hides real
+    # missing imports - that bug shipped a broken host tab.
+    for pat in (r'function\s*[A-Za-z_$][\w$]*\s*\(([^()]*)\)',
+                r'function\s*\(([^()]*)\)',
+                r'\(([^()]*)\)\s*=>'):
+        for m in re.finditer(pat, body):
+            for part in m.group(1).split(','):
+                d |= set(re.findall(r'[A-Za-z_$][\w$]*', part))
     return d
 
 def top_level(body):
@@ -58,7 +70,8 @@ for f in FILES:
             continue
         for n in sorted(names - exports(tgt)):
             problems.append(f'{f}: imports {n} which {m.group(2)} does not export')
-    body = strip(re.sub(r'^import .*$', '', raw, flags=re.M))
+    body = re.sub(r'^export\s*\{[^}]*\}\s*from\s*\'[^\']+\';?$', '', raw, flags=re.M)
+    body = strip(re.sub(r'^import .*$', '', body, flags=re.M))
     local = declared(body)
     used  = set(re.findall(r'(?<![.\w$])([A-Za-z_$][\w$]*)', body))
     for n in sorted(used - local - imported):

@@ -28,12 +28,12 @@ import { phoneSubmitWager, phoneSubmitWagerAnswer, phoneVote } from './rules/pho
 import { loadTestData } from './dev/testdata.js';
 import { buildBoardHTML, buildKeyboardHTML, puzzleTimerHTML } from './ui/puzzle-view.js';
 import { claimPlayer, unclaimPlayer } from './rules/phone.js';
-import { renderHost } from './screens/host.js';
+import { renderHost } from './screens/host/index.js';
 import { renderDisplay } from './screens/display.js';
 import { renderPlayer } from './screens/player.js';
 import { renderHostEntry, loadAndRenderLobbyList, renderLobbyEntry, renderPlayerClaim, renderEndScreen } from './screens/entry.js';
 import { createNewLobby, deleteLobbyFromList, openExistingLobby } from './screens/entry.js';
-import { copyPlayerLinkFromPopover, goSetupStep, openAdjustModal, openDisplay, openHostMoreMenu, quickAdjust, setGameMode, setHostTab, toggleLevelType, togglePlayerLinkPopover } from './screens/host.js';
+import { copyPlayerLinkFromPopover, goSetupStep, openAdjustModal, openDisplay, openHostMoreMenu, quickAdjust, setGameMode, setHostTab, toggleLevelType, togglePlayerLinkPopover } from './screens/host/index.js';
 import { setPromoteMenu, submitPhoneWager } from './screens/player.js';
 
 /* ============================================================
