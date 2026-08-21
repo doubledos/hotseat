@@ -115,7 +115,7 @@ export function renderPlayer(){
             ${q.displayOrder.map((origIdx,di)=>{
               if(di===f.hotSeatAnswer||di===f.doubleDipMissIdx){
                 return `<div class="ph-vote-btn ph-vote-btn-disabled">
-                  <span class="ph-vote-letter">${letterFor(di)})</span>${esc(q.options[origIdx])} <span style="font-size:12px;">— already wrong</span>
+                  <span class="ph-vote-letter">${letterFor(di)})</span><span class="ph-vote-struck">${esc(q.options[origIdx])}</span><span class="ph-vote-eliminated">already wrong</span>
                 </div>`;
               }
               return `<button class="ph-vote-btn" onclick="phoneVote(${di})">
