@@ -74,7 +74,7 @@ export async function confirmHotSeatReveal(){
   } else if(state.gameMode==='race'){
     // Race Mode: no steal — a miss just hands the hot seat to the other team, at their own level
     state.flow.stage='race-miss';
-  } else if(state.lifelines[state.hotSeatTeam].doubleDip&&!state.flow.doubleDipUsed){
+  } else if(state.flow.doubleDipArmed&&!state.flow.doubleDipUsed){
     // Double Dip: first miss just costs the guess, no steal yet
     state.flow.doubleDipUsed=true;
     state.flow.doubleDipMissIdx=di;

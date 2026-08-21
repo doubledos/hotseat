@@ -41,7 +41,8 @@ export async function useLifeline(key){
       state.currentQuestion=makeCurrentQuestion(newQ,lvl);
       // Drop the new question straight into place — keep whatever progress-free stage we
       // were already in (no re-reveal ceremony, no audio retrigger).
-      state.flow={stage:'selecting',optionsRevealed:state.currentQuestion.options.length,hotSeatAnswer:-1,stealPeeked:false,stealRevealed:false,doubleDipUsed:false,doubleDipMissIdx:-1};
+        const armed=state.flow.doubleDipArmed||false; // Swap replaces the question, not the turn
+      state.flow={stage:'selecting',optionsRevealed:state.currentQuestion.options.length,hotSeatAnswer:-1,stealPeeked:false,stealRevealed:false,doubleDipUsed:false,doubleDipMissIdx:-1,doubleDipArmed:armed};
     }
     await saveLobby(); R.host(); return;
   }
@@ -60,6 +61,14 @@ export async function useLifeline(key){
     state.currentQuestion=null;
     state.flow={stage:'idle',optionsRevealed:0,hotSeatAnswer:-1,stealPeeked:false,stealRevealed:false,doubleDipUsed:false};
     state.steal=null;
+    await saveLobby(); R.host(); return;
+  }
+  if(key==='doubleDip'){
+    // Two flags, two jobs. lifelines[team].doubleDip marks it spent for the rest
+    // of the game so it cannot be played twice. flow.doubleDipArmed is what a
+    // miss actually reads, and it dies with this question.
+    state.lifelines[team].doubleDip=true;
+    state.flow.doubleDipArmed=true;
     await saveLobby(); R.host(); return;
   }
   state.lifelines[team][key]=true;

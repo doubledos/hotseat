@@ -45,7 +45,10 @@ export function defaultState(){
     },
     // Current flow
     currentQuestion: null,
-    flow: {stage:'idle',optionsRevealed:0,hotSeatAnswer:-1,stealPeeked:false,stealRevealed:false,doubleDipUsed:false},
+    /* doubleDipArmed is per-question: set when the lifeline is played, and gone
+       as soon as flow resets for the next question. Distinct from
+       lifelines[team].doubleDip, which is the permanent "already spent" flag. */
+    flow: {stage:'idle',optionsRevealed:0,hotSeatAnswer:-1,stealPeeked:false,stealRevealed:false,doubleDipUsed:false,doubleDipArmed:false},
     // Steal
     steal: null,
     stealRoundCounter: 0,
