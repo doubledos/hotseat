@@ -89,6 +89,16 @@ body.mode-display .app>*{position:relative;z-index:1;}
 .rail-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
 .rail-dot.a{background:var(--team-a-mid);}
 .rail-dot.b{background:var(--team-b-mid);}
+/* Mode announcement chip — FINAL WAGER / PUZZLE. Had no rule at all, so it rendered as
+   14px body ink on the stage colour: near-invisible at TV distance. Filled accent pill,
+   same grammar as .tv-roster-next, sized to be read from across the room. */
+.tv-level-badge{display:flex;width:fit-content;max-width:100%;margin:0 auto clamp(8px,1.4vh,14px);
+  align-items:center;justify-content:center;gap:0.4em;padding:0.26em 0.85em;border-radius:999px;
+  background:var(--tv-accent);color:var(--tv-stage-ink,#241506);
+  font-family:var(--font-display);font-weight:400;font-size:clamp(16px,2.2vw,30px);line-height:1.2;
+  letter-spacing:0.09em;text-transform:uppercase;text-shadow:none;
+  box-shadow:0 4px 18px rgba(0,0,0,0.35);}
+.tv-level-badge svg{width:0.8em;height:0.8em;}
 .tv-wager-banner{background:var(--tv-panel-solid);border-left:3px solid var(--tv-accent);border-radius:2px;padding:9px 18px;text-align:center;font-family:var(--font-body);font-weight:600;font-size:clamp(13px,1.8vw,17px);text-transform:uppercase;letter-spacing:0.08em;color:var(--tv-text);text-shadow:var(--tv-text-shadow);margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px;}
 .tv-wager-banner svg{color:var(--tv-accent);}
 
