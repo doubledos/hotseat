@@ -105,7 +105,15 @@ body.mode-display .app>*{position:relative;z-index:1;}
   letter-spacing:0.09em;text-transform:uppercase;text-shadow:none;
   box-shadow:0 4px 18px rgba(0,0,0,0.35);}
 .tv-level-badge svg{width:0.8em;height:0.8em;}
-.tv-wager-banner{background:var(--tv-panel-solid);border-left:3px solid var(--tv-accent);border-radius:2px;padding:9px 18px;text-align:center;font-family:var(--font-body);font-weight:600;font-size:clamp(13px,1.8vw,17px);text-transform:uppercase;letter-spacing:0.08em;color:var(--tv-text);text-shadow:var(--tv-text-shadow);margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px;}
+/* The one instruction every phone in the room has to act on. It used to be a full-bleed bar
+   with a 3px left rule and 17px type — the quietest element on the stage at the loudest
+   moment. Now it echoes the mode chip above it, outlined rather than filled so the chip
+   still leads. */
+.tv-wager-banner{background:var(--tv-panel-solid);border:2px solid var(--tv-accent);border-radius:999px;
+  width:fit-content;max-width:100%;margin:0 auto clamp(8px,1.4vh,14px);
+  padding:0.3em 1em;text-align:center;font-family:var(--font-body);font-weight:600;
+  font-size:clamp(13px,1.45vw,26px);text-transform:uppercase;letter-spacing:0.08em;
+  color:var(--tv-text);text-shadow:var(--tv-text-shadow);display:flex;align-items:center;justify-content:center;gap:0.45em;}
 .tv-wager-banner svg{color:var(--tv-accent);}
 
 /* ===== Glitch ===== */
