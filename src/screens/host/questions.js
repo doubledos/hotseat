@@ -28,10 +28,11 @@ export function renderQuestionsTab(){
         ${editingQuestion?'<button class="btn btn-ghost btn-sm" onclick="cancelEditQuestion()">Cancel</button>':''}
       </div>
     </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <div class="bank-tools">
       <button class="btn btn-ghost btn-sm" onclick="exportQuestionsMarkdown()">Export .md</button>
       <label class="btn btn-ghost btn-sm" style="cursor:pointer;">Import .md <input type="file" accept=".md,.txt" style="display:none;" onchange="importQuestionsMarkdown(this.files[0])"></label>
-      <button class="btn btn-ghost btn-sm" onclick="showModal('','Reset all used flags for questions and phrases?','Reset All',resetAllUsedFlags)">Reset All Used Flags</button>
+      <span class="bank-tools-sep"></span>
+      <button class="btn btn-danger btn-sm" onclick="showModal('','Mark every question and phrase unused again?','Reset All',resetAllUsedFlags)">Reset every Used mark</button>
     </div>
   `;
   const listHtml=['easy','medium','hard'].map(diff=>{

@@ -23,6 +23,11 @@ export function renderGameTab(){
   const hp=hotSeatPlayer();
   let html='';
 
+  /* A wheel or an undecided steal is an interruption: the flow card is still
+     on screen underneath it, but it is not what to do next. Marking it queued
+     keeps exactly one control on the page reading as the next action. */
+  const interrupted=!!(state.wheel||(state.steal&&state.steal.outcome==='defended'));
+
   // Puzzle active
   if(state.puzzle.active){
     html+=renderPuzzleControls();
@@ -40,7 +45,7 @@ export function renderGameTab(){
   // Wager active handled by renderWagerTab
   // Normal question flow - always show flow card unless puzzle active
   if(!state.puzzle.active){
-    html+=renderFlowCard(isPuzzleLevel);
+    html+=renderFlowCard(isPuzzleLevel,interrupted);
   }
   return `<div class="play-layout"><div>${html}</div>${renderQuickAdjustRail()}</div>`;
 }
@@ -164,23 +169,28 @@ function stageBarHTML(brief,level,diff,extra){
   </div>`;
 }
 
-export function renderFlowCard(isPuzzleLevel){
+export function renderFlowCard(isPuzzleLevel,queued){
   const q=state.currentQuestion; const f=state.flow;
   const ll=state.lifelines[state.hotSeatTeam]; const s=state.steal;
+  const qCls=queued?' is-queued':'';
 
   const hpSeat=hotSeatPlayer();
   const hpName=hpSeat?esc(hpSeat.name):'the hot seat';
 
-  if(isPuzzleLevel&&!state.puzzle.active&&!q) return `<div class="flow-card">
-    ${stageBarHTML({tone:'read',label:'Puzzle round',todo:`No question this level — put the letter board on the TV for ${hpName}.`},activeLevel(),'puzzle')}
+  if(isPuzzleLevel&&!state.puzzle.active&&!q) return `<div class="flow-card${qCls}">
+    ${stageBarHTML({tone:'read',
+      label:queued?'Up next — puzzle round':'Puzzle round',
+      todo:queued?'Settle the card above first.':`No question this level — put the letter board on the TV for ${hpName}.`},
+      activeLevel(),'puzzle')}
     <div class="flow-controls"><button class="btn btn-primary btn-lg" onclick="triggerPuzzle()">Trigger the Glitch</button></div>
   </div>`;
 
   if(!q){
     const avail=state.questions.filter(x=>!x.used).length;
-    return `<div class="flow-card">
-      ${stageBarHTML({tone:'read',label:'Ready for the next question',
-        todo:`${hpName} is in the hot seat. ${avail} unused question${avail===1?'':'s'} left in the bank.`},
+    return `<div class="flow-card${qCls}">
+      ${stageBarHTML({tone:'read',
+        label:queued?'Up next — draw a question':'Ready for the next question',
+        todo:queued?'Settle the card above first.':`${hpName} is in the hot seat. ${avail} unused question${avail===1?'':'s'} left in the bank.`},
         activeLevel(),levelDiff(activeLevel()))}
       <div class="flow-controls"><button class="btn btn-primary btn-lg" onclick="hostDrawQuestion()">Draw Question</button></div>
     </div>`;
@@ -326,7 +336,7 @@ export function renderFlowCard(isPuzzleLevel){
   const reroll=stage==='idle'||stage==='question'
     ?`<button class="btn btn-ghost btn-sm" onclick="rerollQuestion()">Reroll</button>`:'';
 
-  return `<div class="flow-card tone-${brief.tone}">
+  return `<div class="flow-card tone-${brief.tone}${qCls}">
     ${stageBarHTML(brief,q.level,q.difficulty,reroll)}
     <div class="flow-slot">${questionSlot}</div>
     ${optSlots}

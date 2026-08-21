@@ -104,6 +104,25 @@ a{color:inherit;text-decoration:none;}
 .btn-act{padding:13px 20px;font-size:15px;margin-top:8px;}
 .flow-await{font-size:13px;color:var(--c-muted);margin-top:8px;padding:11px 12px;background:var(--c-surface2);
   border:1px dashed var(--c-border2);border-radius:8px;text-align:center;}
+
+/* Queued: a wheel or an unresolved steal is on top, so this card is still
+   reachable but is not the next action. Its primary button steps down to a
+   secondary so only one control on the page reads as "do this now". */
+.flow-card.is-queued{border-color:var(--c-border);box-shadow:none;}
+.flow-card.is-queued .flow-stage{background:var(--c-surface2);border-bottom-color:var(--c-border);}
+.flow-card.is-queued .flow-stage-label{font-size:15px;color:var(--c-muted);}
+.flow-card.is-queued .btn-primary{background:transparent;border:1.5px solid var(--c-border2);color:var(--c-muted);}
+.flow-card.is-queued .btn-primary:hover{background:transparent;border-color:var(--c-accent);color:var(--c-accent);box-shadow:none;}
+
+/* ===== Destructive controls =====
+   Anything that cannot be undone mid-game is separated from its neighbours
+   rather than sitting in the same row at the same weight. */
+.bank-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.bank-tools-sep{width:1px;height:22px;background:var(--c-border);margin:0 4px;}
+
+/* The stock warning colour is tuned for the TV's dark stage and is unreadable
+   on the host's cream. This is the only notice that phones will not sync. */
+body.mode-host .sync-warning{background:rgba(184,48,47,0.09);border-color:var(--c-red);color:#8a2422;}
 .flow-opt.correct{border-color:var(--c-green-light);box-shadow:inset 0 0 0 1px var(--c-green-light);}
 .flow-opt.wrong-pick{border-color:var(--c-red-light);box-shadow:inset 0 0 0 1px var(--c-red-light);}
 .flow-opt.answer-flash{border-color:var(--c-accent);background:rgba(255,122,69,0.1);}
