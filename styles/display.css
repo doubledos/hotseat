@@ -31,10 +31,10 @@ body.mode-display .app>*{position:relative;z-index:1;}
 .tv-team-block{flex:1;display:flex;flex-direction:column;align-items:center;padding:8px 12px;gap:2px;border-radius:10px;transition:background .3s;min-width:0;}
 .tv-team-block.is-hot.team-a{background:linear-gradient(180deg, rgba(62,198,255,0.22) 0%, rgba(62,198,255,0.03) 100%);box-shadow:inset 0 -3px 0 var(--team-a-mid);}
 .tv-team-block.is-hot.team-b{background:linear-gradient(180deg, rgba(255,141,199,0.22) 0%, rgba(255,141,199,0.03) 100%);box-shadow:inset 0 -3px 0 var(--team-b-mid);}
-.tv-team-name{font-size:19px;text-transform:uppercase;letter-spacing:0.06em;font-weight:700;text-shadow:var(--tv-text-shadow);}
+.tv-team-name{font-size:clamp(16px,1.5vw,29px);text-transform:uppercase;letter-spacing:0.06em;font-weight:700;text-shadow:var(--tv-text-shadow);}
 .tv-team-block.team-a .tv-team-name{color:var(--team-a-mid);}
 .tv-team-block.team-b .tv-team-name{color:var(--team-b-mid);}
-.tv-team-bank{font-size:26px;font-weight:700;color:var(--tv-text);font-family:var(--font-display);font-variant-numeric:tabular-nums;text-shadow:var(--tv-text-shadow);opacity:0.85;}
+.tv-team-bank{font-size:clamp(22px,2.15vw,41px);font-weight:700;color:var(--tv-text);font-family:var(--font-display);font-variant-numeric:tabular-nums;text-shadow:var(--tv-text-shadow);opacity:0.85;}
 .tv-team-block.is-hot .tv-team-bank{opacity:1;}
 .tv-roster{display:flex;flex-wrap:wrap;gap:clamp(10px,1.5vw,18px);justify-content:center;margin-top:8px;}
 .tv-ll-bar{display:flex;gap:clamp(32px,5.5vw,76px);justify-content:center;margin-top:clamp(18px,3vh,32px);flex-wrap:wrap;}
@@ -45,10 +45,10 @@ body.mode-display .app>*{position:relative;z-index:1;}
 .tv-ll-item.used .tv-ll-label{opacity:0.45;}
 .tv-ll-slash{position:absolute;left:15%;right:15%;top:50%;height:2px;background:currentColor;transform:rotate(-45deg);opacity:0.9;}
 .tv-ll-label{font-family:var(--font-body);font-size:clamp(12px,1.6vw,16px);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--tv-text);text-shadow:var(--tv-text-shadow);}
-.tv-roster-p{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:56px;}
-.tv-roster-flame{width:20px;height:29px;flex-shrink:0;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.4));}
-.tv-roster-name{font-size:13.5px;text-transform:uppercase;letter-spacing:0.04em;color:var(--tv-text-soft);text-shadow:var(--tv-text-shadow);font-weight:600;}
-.tv-roster-next{margin-top:2px;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.09em;color:var(--tv-stage-ink,#241506);background:var(--tv-accent);padding:2px 8px;border-radius:999px;text-shadow:none;line-height:1.4;}
+.tv-roster-p{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:clamp(56px,4.4vw,84px);}
+.tv-roster-flame{width:clamp(18px,1.35vw,26px);height:auto;aspect-ratio:146/211;flex-shrink:0;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.4));}
+.tv-roster-name{font-size:clamp(12px,1.06vw,20px);text-transform:uppercase;letter-spacing:0.04em;color:var(--tv-text-soft);text-shadow:var(--tv-text-shadow);font-weight:600;}
+.tv-roster-next{margin-top:2px;font-size:clamp(9.5px,0.76vw,14px);font-weight:800;text-transform:uppercase;letter-spacing:0.09em;color:var(--tv-stage-ink,#241506);background:var(--tv-accent);padding:0.22em 0.7em;border-radius:999px;text-shadow:none;line-height:1.4;}
 .tv-main{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:safe center;padding:16px clamp(16px,3vw,40px);text-align:center;overflow-x:hidden;overflow-y:auto;position:relative;}
 .tv-waiting{font-size:clamp(28px,5vw,52px);color:var(--tv-text-soft);font-family:var(--font-display);letter-spacing:0.06em;text-shadow:var(--tv-text-shadow);}
 .tv-waiting-bounce span{display:inline-block;animation:tv-letter-bounce 1.1s ease-in-out infinite;}
@@ -66,7 +66,10 @@ body.mode-display .app>*{position:relative;z-index:1;}
 .tv-opt.is-final{border-color:var(--tv-accent);box-shadow:0 0 0 2px var(--tv-accent),0 0 22px rgba(255,221,51,0.4);animation:tv-final-pulse 1.1s ease-in-out infinite;}
 @keyframes tv-final-pulse{0%,100%{box-shadow:0 0 0 2px var(--tv-accent),0 0 16px rgba(255,221,51,0.35);}50%{box-shadow:0 0 0 2px var(--tv-accent),0 0 30px rgba(255,221,51,0.65);}}
 @media (prefers-reduced-motion:reduce){.tv-opt.is-final{animation:none;}}
-.tv-opt-verdict{position:absolute;top:-11px;right:-11px;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,0.4);}
+/* The tick / cross is the whole "what just happened" signal for a miss or a steal, so it
+   scales with the screen instead of staying a 26px dot on a 1080p TV. The em-sized icon
+   inside rides the badge's own font-size. */
+.tv-opt-verdict{position:absolute;top:-0.34em;right:-0.34em;width:1em;height:1em;font-size:clamp(26px,1.95vw,38px);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,0.4);}
 .tv-opt-verdict.good{background:var(--c-green-light);color:#072213;}
 .tv-opt-verdict.bad{background:var(--c-red-light);color:#2b0705;}
 @keyframes tv-reveal-pop{0%{transform:scale(0.85);opacity:0;}60%{transform:scale(1.04);opacity:1;}100%{transform:scale(1);opacity:1;}}
