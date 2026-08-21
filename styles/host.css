@@ -169,8 +169,20 @@ a{color:inherit;text-decoration:none;}
 .setup-step-pill{display:inline-flex;align-items:center;gap:6px;background:var(--c-surface);border:1.5px solid var(--c-border2);color:var(--c-muted);padding:8px 16px;border-radius:999px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;}
 .setup-step-pill:hover{border-color:var(--c-accent);color:var(--c-ink);}
 .setup-step-pill.active{background:var(--c-accent);border-color:var(--c-accent);color:#fff8ec;}
-.setup-step-num{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,0.15);font-size:10px;}
+.setup-step-num{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,0.15);font-size:10px;font-weight:700;}
 .setup-step-pill.active .setup-step-num{background:rgba(255,255,255,0.25);}
+/* Step state, so the operator can see what is still outstanding without
+   opening every step. Blocking = red, thin but workable = gold, done = green. */
+.setup-step-pill.state-ok:not(.active) .setup-step-num{background:var(--c-green);color:#fff;}
+.setup-step-pill.state-warn:not(.active) .setup-step-num{background:var(--c-gold-fill);color:#3a2306;}
+.setup-step-pill.state-bad:not(.active){border-color:var(--c-red-light);color:var(--c-ink);}
+.setup-step-pill.state-bad:not(.active) .setup-step-num{background:var(--c-red);color:#fff;}
+
+.setup-card{max-width:1100px;margin:0 auto;}
+.setup-head{margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--c-border);}
+.setup-head-title{font-size:12px;text-transform:uppercase;letter-spacing:0.1em;color:var(--c-gold);font-weight:700;}
+.setup-head-blurb{font-size:13px;color:var(--c-muted);margin-top:5px;max-width:70ch;line-height:1.5;}
+.setup-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:24px;padding-top:16px;border-top:1px solid var(--c-border);}
 .main-content{max-width:1400px;margin:0 auto;padding:16px 20px 60px;}
 /* ===== Play layout — uses wide-screen width instead of one centered column ===== */
 .play-layout{display:grid;grid-template-columns:1fr 300px;gap:20px;align-items:start;}
@@ -197,11 +209,17 @@ a{color:inherit;text-decoration:none;}
 .btn-link{display:block;width:100%;background:none;border:none;padding:8px 0 0;margin-top:8px;font-size:12px;color:var(--c-muted);text-decoration:underline;cursor:pointer;text-align:left;border-top:1px dashed var(--c-border);padding-top:10px;}
 .btn-link:hover{color:var(--c-accent);}
 
-/* ===== Checklist ===== */
-.check-item{display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;}
-.check-ok{color:var(--c-green-light);}
-.check-warn{color:var(--c-gold);}
-.check-bad{color:var(--c-red-light);}
+/* ===== Ready check ===== */
+.checklist{max-width:720px;}
+.check-group-label{font-size:11px;text-transform:uppercase;letter-spacing:0.09em;font-weight:700;color:var(--c-muted);margin:18px 0 6px;}
+.check-group-label:first-child{margin-top:0;}
+.check-item{display:flex;align-items:center;gap:10px;font-size:14px;padding:8px 12px;background:var(--c-surface2);border:1px solid var(--c-border);border-radius:8px;margin-bottom:6px;}
+.check-text{flex:1;min-width:0;}
+.check-glyph{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;font-size:12px;font-weight:700;flex-shrink:0;color:#fff;}
+.check-ok{background:var(--c-green);}
+.check-warn{background:var(--c-gold-fill);color:#3a2306;}
+.check-bad{background:var(--c-red);}
+.check-item:has(.check-bad){border-color:var(--c-red-light);background:rgba(184,48,47,0.07);}
 
 
 

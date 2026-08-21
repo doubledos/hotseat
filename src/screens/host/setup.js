@@ -21,11 +21,32 @@ export function renderSetupTab(){
   const bCount=players.filter(p=>p.team==='B').length;
   const qCount=state.questions.length;
   const hardFail=players.length<2||aCount<1||bCount<1;
+
+  /* Two different kinds of "not ready", which the old single checklist ran
+     together: a blocker actually stops Start Hosting, a recommendation does
+     not. A thin question bank used to render as a red cross next to an enabled
+     Start button, which reads as "you are stuck" when you are not. */
   const checks=[
-    {ok:players.length>=2,text:`Players: ${players.length} added (need ≥2)`},
-    {ok:aCount>=1&&bCount>=1,text:`Both teams have players (${state.teamAName}: ${aCount}, ${state.teamBName}: ${bCount})`},
-    {ok:qCount>=15,level:qCount>=15?'ok':qCount>=5?'warn':'bad',text:`Questions: ${qCount} in pool (recommend ≥15)`},
+    {level:players.length>=2?'ok':'bad', blocking:true, step:'players',
+      text:players.length>=2?`${players.length} players added`:`Only ${players.length} player${players.length===1?'':'s'} — needs at least 2`},
+    {level:aCount>=1&&bCount>=1?'ok':'bad', blocking:true, step:'players',
+      text:`${esc(state.teamAName)}: ${aCount} · ${esc(state.teamBName)}: ${bCount}${aCount<1||bCount<1?' — both teams need a player':''}`},
+    {level:qCount>=15?'ok':'warn', blocking:false, step:'questions',
+      text:qCount===0?'No questions in the bank — the game has nothing to draw':`${qCount} question${qCount===1?'':'s'} in the bank${qCount<15?' — 15 or more makes for a full game':''}`},
+    {level:state.phraseBank.length>0||!state.levelTypes.includes('puzzle')?'ok':'warn', blocking:false, step:'levels',
+      text:state.levelTypes.includes('puzzle')
+        ?`${state.levelTypes.filter(t=>t==='puzzle').length} puzzle level${state.levelTypes.filter(t=>t==='puzzle').length===1?'':'s'} · ${state.phraseBank.length} phrase${state.phraseBank.length===1?'':'s'} to draw from`
+        :'No puzzle levels set — every level is a trivia question'},
   ];
+  /* Red is reserved for "this stops you starting" in both the rail and the
+     checklist. Gold means look at it; the game will still run. */
+  const glyph={ok:'✓',warn:'!',bad:'✗'};
+  const stepState={
+    players:hardFail?'bad':'ok',
+    questions:qCount>=15?'ok':'warn',
+    levels:'none',
+    ready:hardFail?'bad':'ok',
+  };
 
   const playersBody=`
     ${state.players.length===0&&state.questions.length===0?`<div class="quickstart-row">
@@ -99,39 +120,59 @@ export function renderSetupTab(){
         </div>`).join('')}
     </div>`;
 
+  const checkRow=c=>`<div class="check-item">
+      <span class="check-glyph check-${c.level}">${glyph[c.level]}</span>
+      <span class="check-text">${c.text}</span>
+      ${c.level==='ok'?'':`<button class="btn btn-ghost btn-sm" onclick="goSetupStep('${c.step}')">Fix this</button>`}
+    </div>`;
+  const blockers=checks.filter(c=>c.blocking);
+  const advisories=checks.filter(c=>!c.blocking);
   const readyBody=`
     <div class="checklist">
-      ${checks.map(c=>`<div class="check-item"><span class="${c.ok?'check-ok':'check-bad'}">${c.ok?'✓':'✗'}</span>${esc(c.text)}</div>`).join('')}
+      <div class="check-group-label">Required before you can start</div>
+      ${blockers.map(checkRow).join('')}
+      <div class="check-group-label">Not blocking — worth a look</div>
+      ${advisories.map(checkRow).join('')}
     </div>
-    <button class="btn btn-primary btn-block mt-12" ${hardFail?'disabled':''} onclick="startHosting()">Start Hosting</button>
-    ${hardFail?'<div class="hint mt-8">Fix issues above to start.</div>':''}`;
+    <button class="btn btn-primary btn-block btn-lg mt-16" ${hardFail?'disabled':''} onclick="startHosting()">${hardFail?'Start Hosting — not ready yet':'Start Hosting'}</button>
+    <div class="hint text-center mt-8">${hardFail
+      ?'Clear the required items above to start.'
+      :'Locks the game mode and starts the pacing clock. Players, questions and levels stay editable from this tab once you are live.'}</div>`;
 
+  /* Each step says what it is for. Without this the operator has to open a
+     step to find out whether it is something they must do or something they
+     can skip — and steps 3 and 4 are the two most commonly misread. */
   const steps=[
-    {key:'players', num:1, icon:'', label:'Players & Teams', body:playersBody},
-    {key:'questions', num:2, icon:'', label:'Questions', body:renderQuestionsTab()},
-    {key:'levels', num:3, icon:'', label:'Levels & Puzzles', body:levelBody+'<hr class="divider">'+phraseBody},
-    {key:'ready', num:4, icon:'', label:'Ready Check', body:readyBody},
+    {key:'players', num:1, label:'Players & Teams', body:playersBody,
+      blurb:'Who is playing, and which team they sit with. At least one player on each side.'},
+    {key:'questions', num:2, label:'Questions', body:renderQuestionsTab(),
+      blurb:'The trivia bank the game draws from. Answer A is always the correct one.'},
+    {key:'levels', num:3, label:'Levels & Puzzles', body:levelBody+'<hr class="divider">'+phraseBody,
+      blurb:'Optional. Turn any of the 15 levels into a word puzzle, and stock the phrases they pull from.'},
+    {key:'ready', num:4, label:'Ready Check', body:readyBody,
+      blurb:'What the game still needs before you can go live.'},
   ];
   if(!steps.some(s=>s.key===setupStep)) setSetupStep('players');
   const idx=steps.findIndex(s=>s.key===setupStep);
   const cur=steps[idx];
 
   const stepRail=`<div class="setup-steps">
-    ${steps.map(s=>`<button class="setup-step-pill ${s.key===setupStep?'active':''}" onclick="goSetupStep('${s.key}')">
-      <span class="setup-step-num">${s.num}</span>${s.label}
+    ${steps.map(s=>`<button class="setup-step-pill state-${stepState[s.key]} ${s.key===setupStep?'active':''}" onclick="goSetupStep('${s.key}')">
+      <span class="setup-step-num">${stepState[s.key]==='ok'?'✓':s.num}</span>${s.label}
     </button>`).join('')}
   </div>`;
 
-  const prevBtn=idx>0?`<button class="btn btn-ghost" onclick="goSetupStep('${steps[idx-1].key}')">← Back</button>`:'<span></span>';
-  const nextBtn=idx<steps.length-1?`<button class="btn btn-primary" onclick="goSetupStep('${steps[idx+1].key}')">Next →</button>`:'<span></span>';
+  const prevBtn=idx>0?`<button class="btn btn-ghost" onclick="goSetupStep('${steps[idx-1].key}')">← ${steps[idx-1].label}</button>`:'<span></span>';
+  const nextBtn=idx<steps.length-1?`<button class="btn btn-primary" onclick="goSetupStep('${steps[idx+1].key}')">${steps[idx+1].label} →</button>`:'<span></span>';
 
   return `${stepRail}
-    <div class="card" style="max-width:1100px;margin:0 auto;">
-      <div style="font-size:12px;text-transform:uppercase;letter-spacing:0.1em;color:var(--c-gold);font-weight:700;margin-bottom:14px;">${cur.label}</div>
-      ${cur.body}
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:16px;border-top:1px solid var(--c-border);">
-        ${prevBtn}${nextBtn}
+    <div class="card setup-card">
+      <div class="setup-head">
+        <div class="setup-head-title">Step ${cur.num} of 4 · ${cur.label}</div>
+        <div class="setup-head-blurb">${cur.blurb}</div>
       </div>
+      ${cur.body}
+      <div class="setup-foot">${prevBtn}${nextBtn}</div>
     </div>`;
 }
 export function goSetupStep(step){ setSetupStep(step); renderHost(); }
