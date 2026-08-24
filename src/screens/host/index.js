@@ -190,9 +190,11 @@ document.addEventListener('click',(e)=>{
   }
 });
 export function openHostMoreMenu(){
+  /* showPicker escapes its labels, so these two rows can only be told apart by
+     their wording. One of them wipes a game in progress, so it says so. */
   showPicker('More actions', [
-    {label:'Manual Adjustment', value:'adjust'},
-    {label:'New Game', value:'newgame'},
+    {label:'Manual Adjustment — add or subtract money', value:'adjust'},
+    {label:'⚠ New Game — clears scores, ladder and lifelines', value:'newgame'},
   ], v=>{
     if(v==='adjust') openAdjustModal();
     else if(v==='newgame') newGame();
