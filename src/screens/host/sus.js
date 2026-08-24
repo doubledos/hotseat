@@ -50,6 +50,21 @@ function stageCard(label, todo, tone, bodyHTML, actionHTML){
 export function renderSusTab(){
   const s = state.sus;
 
+  /* The bank could not cover a full round, so nothing was dealt. Say what is
+     missing and how to fix it - the host is mid-game and needs an action, not
+     an error. */
+  if(s.dealError){
+    return stageCard('Not enough questions to deal round '+(s.round+1),
+      `${s.dealError.needed} needed for the players still in, only ${s.dealError.got} unused left in the bank.`,
+      'bad',
+      `<div class="sus-note">Nothing was dealt, so no round was scored. Add at least
+        ${s.dealError.needed - s.dealError.got} more question${s.dealError.needed-s.dealError.got===1?'':'s'}
+        on the Setup tab, then deal again. Every player needs their own question and none repeat.</div>
+       ${susTrackerHTML()}`,
+      `<button class="btn btn-ghost btn-lg" onclick="setHostTab('setup')">Go to the question bank</button>
+       <button class="btn btn-primary btn-lg" onclick="dealSusRound()">Try again</button>`);
+  }
+
   if(!s.active && s.stage!=='ended'){
     return stageCard('Sus mode ready',
       `${state.players.length} players. One of them will be told they are Sus.`,

@@ -91,6 +91,7 @@ export function defaultState(){
       suspendedFor:{},   // playerId -> the round number they sit out
       votes:{},          // voterId -> targetId | 'skip'
       lastSuspendedId:null, // who the last vote suspended, for the result screen
+      dealError:null,    // {needed,got} when the bank cannot cover a full round
       outcome:null,      // 'team' | 'sus'
       susRevealId:null,
     },

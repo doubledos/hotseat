@@ -108,6 +108,27 @@ export async function startSusGame(){
 
 export async function dealSusRound(){
   const s = state.sus;
+
+  /* Refuse to deal a short round.
+
+     pickSusQuestions returns fewer than asked rather than reusing a question,
+     so a thin bank used to mean some players simply got nothing - and the round
+     then scored against only the players who did. A round four people were
+     meant to play would tally 1 of 1 and pass, which is worse than not dealing
+     at all, because it silently hands the group a win.
+
+     Setup's pre-flight makes this unlikely, but it is not sufficient: players
+     can be added after the check, and a lobby can be resumed with a bank that
+     has since been edited. */
+  const wanted = eligiblePlayers(s.round + 1);
+  const available = pickSusQuestions(wanted.length);
+  if(available.length < wanted.length){
+    s.dealError = {needed: wanted.length, got: available.length};
+    await saveLobby(); R.all();
+    return;
+  }
+  s.dealError = null;
+
   s.round += 1;
   s.stage = 'answering';
   s.reveal = [];
@@ -118,12 +139,12 @@ export async function dealSusRound(){
   const players = eligiblePlayers(s.round);
   s.eligible = players.map(p=>p.id);
 
-  const drawn = pickSusQuestions(players.length);
+  const drawn = available;   // reserved above, after the sufficiency check
   const key = {};
   for(let i=0;i<players.length;i++){
     const p = players[i];
     const q = drawn[i];
-    if(!q) continue;                       // setup's pre-flight should prevent this
+    if(!q) continue;                       // unreachable: the check above guarantees enough
     q.used = true;
     /* Shuffle here and send only the shuffled options. The phone never learns
        which one is right, so the answer key stays out of both the blob and the
