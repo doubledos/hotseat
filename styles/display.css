@@ -143,3 +143,62 @@ body.mode-display .app>*{position:relative;z-index:1;}
 .glitching::before,.glitching::after{content:attr(data-text);position:absolute;inset:0;background:inherit;}
 .glitching::before{animation:glitch1 1.8s steps(1) 1;color:var(--c-red-light);}
 .glitching::after{animation:glitch2 1.8s steps(1) 1;color:var(--c-gold-light);}
+
+/* ===== Sus mode (TV) =====
+   Read from across a room, so each stage commits to one dominant element and
+   sizes scale with the viewport rather than sitting at fixed pixels.
+
+   Colours come from the --tv-* stage tokens, not from raw values or from the
+   brand file's names. Those tokens are what re-theme the TV per stage, and
+   referencing a token that does not exist fails silently: the text still
+   renders, in inherited dark ink, invisible on a dark stage. */
+.tv-sus-stage{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:100%;gap:clamp(10px,1.8vh,22px);padding:clamp(16px,3vh,40px);text-align:center;}
+.tv-sus-headline{font-family:var(--font-display);font-size:clamp(34px,5.2vw,84px);
+  line-height:1.05;color:var(--tv-text);text-shadow:var(--tv-text-shadow);}
+.tv-sus-sub{font-size:clamp(15px,1.7vw,28px);color:var(--tv-text);opacity:0.72;
+  max-width:28ch;line-height:1.35;}
+
+/* Round tracker: the group's whole history in one strip. */
+.tv-sus-tracker{display:flex;align-items:center;gap:clamp(8px,1.2vw,18px);}
+.tv-sus-pips{display:flex;gap:clamp(4px,0.6vw,9px);}
+.tv-sus-pip{display:flex;align-items:center;justify-content:center;
+  width:clamp(18px,2.1vw,34px);height:clamp(18px,2.1vw,34px);border-radius:7px;
+  background:var(--tv-panel);color:var(--tv-text);
+  font-size:clamp(11px,1.2vw,19px);font-weight:800;}
+.tv-sus-pip.is-pass{background:var(--c-green-light);color:#06240f;}
+.tv-sus-pip.is-fail{background:var(--c-red-light);color:#2b0606;}
+.tv-sus-pip.is-now{box-shadow:0 0 0 3px var(--tv-accent);}
+.tv-sus-count{font-size:clamp(12px,1.3vw,21px);color:var(--tv-text);opacity:0.6;
+  text-transform:uppercase;letter-spacing:0.08em;font-weight:700;}
+
+/* Who has answered - names, not anonymous dots, so the host can chase someone. */
+.tv-sus-players{display:flex;flex-wrap:wrap;justify-content:center;gap:clamp(8px,1.2vw,18px);}
+.tv-sus-player{padding:clamp(8px,1vh,14px) clamp(12px,1.4vw,22px);border-radius:12px;
+  background:var(--tv-panel);border:2px solid transparent;min-width:clamp(90px,9vw,150px);}
+.tv-sus-player.is-in{background:rgba(47,168,96,0.22);border-color:var(--c-green-light);}
+.tv-sus-player-name{font-size:clamp(15px,1.7vw,28px);font-weight:700;color:var(--tv-text);}
+.tv-sus-player-state{font-size:clamp(11px,1.1vw,17px);color:var(--tv-text);opacity:0.55;}
+.tv-sus-sat{font-size:clamp(12px,1.3vw,20px);color:var(--c-red-light);
+  text-transform:uppercase;letter-spacing:0.07em;font-weight:700;}
+
+/* The reveal: one player at a time, verdict unmissable. */
+.tv-sus-revealed{display:flex;flex-direction:column;align-items:center;gap:clamp(6px,1.2vh,16px);
+  padding:clamp(16px,3vh,42px) clamp(20px,4vw,70px);border-radius:20px;
+  border:3px solid transparent;background:rgba(0,0,0,0.16);max-width:min(90vw,1100px);}
+.tv-sus-revealed.is-right{border-color:var(--c-green-light);}
+.tv-sus-revealed.is-wrong{border-color:var(--c-red-light);}
+.tv-sus-who{font-family:var(--font-display);font-size:clamp(28px,4vw,64px);
+  color:var(--tv-text);line-height:1.05;text-shadow:var(--tv-text-shadow);}
+.tv-sus-q{font-size:clamp(16px,1.9vw,32px);color:var(--tv-text);opacity:0.78;line-height:1.3;}
+/* The answer given is the thing the room is judging, so it gets the accent. */
+.tv-sus-answer{font-size:clamp(22px,2.8vw,46px);font-weight:700;color:var(--tv-accent);}
+.tv-sus-verdict{font-family:var(--font-display);font-size:clamp(26px,3.4vw,56px);letter-spacing:0.04em;}
+.is-right .tv-sus-verdict{color:var(--c-green-light);}
+.is-wrong .tv-sus-verdict{color:var(--c-red-light);}
+
+.tv-sus-verdict-big{font-family:var(--font-display);font-size:clamp(44px,7vw,120px);line-height:1.02;}
+.tv-sus-verdict-big.is-pass{color:var(--c-green-light);}
+.tv-sus-verdict-big.is-fail{color:var(--c-red-light);}
+.tv-sus-votecount{font-size:clamp(18px,2.2vw,36px);font-weight:700;color:var(--tv-accent);}
+.tv-sus-reveal-name{font-family:var(--font-display);font-size:clamp(22px,2.8vw,46px);color:var(--tv-accent);}

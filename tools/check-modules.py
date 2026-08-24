@@ -8,6 +8,9 @@ Catches the three failure modes that syntax checks do not:
      fine and silently do nothing
   4. a function called from an inline onclick="..." that main.js never
      republishes on window - the button renders and silently does nothing
+  5. a CSS custom property that is used but never defined - the declaration is
+     dropped and the element renders with an inherited value, which on the TV
+     means dark ink on a dark stage
 """
 import re, glob, os, sys
 
@@ -131,6 +134,22 @@ for name, f in sorted(handler_names):
         continue
     if not re.search(r'\b' + re.escape(name) + r'\b', barrel):
         problems.append(f'{f}: onclick calls {name}, which main.js never puts on window')
+
+# 5. CSS custom properties. A var() naming something undefined does not error;
+#    the declaration is simply dropped, so text keeps its inherited colour. That
+#    is how .tv-level-badge shipped as 14px dark brown on a dark maroon stage.
+#    var(--x, fallback) is fine by definition, so those are skipped.
+css_files = sorted(glob.glob('styles/*.css'))
+if css_files:
+    defined = set()
+    for f in css_files + (['index.html'] if os.path.exists('index.html') else []):
+        defined |= set(re.findall(r'(--[a-zA-Z0-9-]+)\s*:', open(f).read()))
+    for f in css_files:
+        for m in re.finditer(r'var\(\s*(--[a-zA-Z0-9-]+)\s*([,)])', open(f).read()):
+            if m.group(2) == ',':
+                continue  # has a fallback
+            if m.group(1) not in defined:
+                problems.append(f'{f}: uses {m.group(1)}, which no stylesheet defines')
 
 for p in problems:
     print('  ' + p)
