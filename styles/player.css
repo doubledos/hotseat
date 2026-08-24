@@ -37,3 +37,36 @@ body.mode-player .app{max-width:480px;margin:0 auto;padding:0;}
 .ph-submenu-back{background:none;border:none;color:var(--c-muted);font-size:12px;text-align:left;padding:0 0 2px;cursor:pointer;}
 .ph-wager-input{width:100%;font-size:32px;font-weight:700;text-align:center;background:var(--c-surface);border:2px solid var(--c-gold-dim);border-radius:10px;color:var(--c-gold-light);padding:14px;letter-spacing:0.05em;}
 .ph-wager-input:focus{border-color:var(--c-gold);}
+
+/* ===== Sus mode ===== */
+/* The role card is the one thing on this screen a player must not misread, so
+   it is the loudest element and the two roles never share a colour. */
+.ph-role{text-align:center;}
+.ph-role.is-sus{border-color:var(--c-red);box-shadow:0 0 18px rgba(184,48,47,0.25);}
+.ph-role.is-good{border-color:var(--c-green);box-shadow:0 0 18px rgba(30,125,67,0.2);}
+.ph-role-label{font-family:var(--font-display);font-size:26px;line-height:1.1;margin-bottom:8px;}
+.ph-role.is-sus .ph-role-label{color:var(--c-red-light);}
+.ph-role.is-good .ph-role-label{color:var(--c-green-light);}
+.ph-role-sub{font-size:14px;color:var(--c-muted);line-height:1.45;}
+.ph-role-sub+.ph-role-sub{margin-top:8px;}
+
+.ph-question{font-size:20px;font-weight:600;line-height:1.35;margin-bottom:16px;color:var(--c-ink);}
+.ph-opts{display:flex;flex-direction:column;gap:10px;}
+/* Full-width targets with room for a thumb - these are tapped in a hurry. */
+.ph-opt{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  background:var(--c-surface2);border:1px solid var(--c-border2);border-radius:var(--r);
+  padding:15px 16px;font-family:var(--font-body);font-size:17px;font-weight:600;
+  color:var(--c-ink);cursor:pointer;transition:all .12s;}
+.ph-opt:active{transform:scale(0.985);}
+.ph-opt:hover{border-color:var(--c-accent);color:var(--c-accent);}
+.ph-opt-letter{display:flex;align-items:center;justify-content:center;flex:0 0 26px;height:26px;
+  border-radius:6px;background:var(--c-accent);color:#fff;font-size:13px;font-weight:700;}
+.ph-skip{margin-top:10px;justify-content:center;background:none;color:var(--c-muted);font-weight:500;}
+
+.ph-suspended{border-color:var(--c-red);}
+.ph-pips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;}
+.ph-pip{display:flex;align-items:center;justify-content:center;width:22px;height:22px;
+  border-radius:5px;font-size:12px;font-weight:700;}
+.ph-pip.is-pass{background:var(--c-green);color:#fff;}
+.ph-pip.is-fail{background:var(--c-red);color:#fff;}
+.ph-dim{font-size:13px;color:var(--c-muted);line-height:1.45;}
