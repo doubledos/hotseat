@@ -15,6 +15,7 @@ import { buildLifelinesBar, buildTeamRoster } from '../ui/atoms.js';
 import { chairIconSVG, hotSeatLogoImg, teamFlameIcon, teamMidColor, tvIcon } from '../ui/icons.js';
 import { buildBoardHTML, puzzleTimerHTML, startPuzzleTimerRAF } from '../ui/puzzle-view.js';
 import { animateWheel, buildWheelHTML, wheelResultText } from '../ui/wheel-view.js';
+import { renderSusDisplay } from './display-sus.js';
 
 /* Surface-local render bookkeeping: what this surface last drew, so it can
    tell a real change from a repaint. Owned here because nothing else reads it. */
@@ -29,6 +30,15 @@ export function renderDisplay(){
   if(mode!=='display') return;
   document.body.classList.add('mode-display');
   const root=document.getElementById('app-root');
+  /* Sus mode is its own game with its own stages. Everything below this reads
+     the ladder, hot seat, steal and puzzle, none of which it uses. One early
+     return keeps the two apart. */
+  if(state.gameMode==='sus'){
+    root.className='app tv-stage-maroon';
+    root.innerHTML=renderSusDisplay();
+    return;
+  }
+
   const q=state.currentQuestion; const f=state.flow; const hp=hotSeatPlayer();
   const puz=state.puzzle; const s=state.steal;
   const tvStage=puz.active?'green':((state.gamePhase==='setup'||!hp)?'gold':'maroon');

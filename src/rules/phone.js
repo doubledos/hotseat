@@ -6,6 +6,8 @@ import { state } from '../core/state.js';
 import { saveLobby } from '../core/lobby.js';
 import { R } from '../ui/rerender.js';
 import { myPlayerId, phoneVotedRound, phoneWagerSubmitted, setPhoneVotedRound, setPhoneWagerSubmitted } from '../core/session.js';
+import { susAnsweredRound, susVotedRound, setSusAnsweredRound, setSusVotedRound, setSusMyRole } from '../core/session.js';
+import { susAnsKey, susVoteKey } from './sus.js';
 import { playerById } from './ladder.js';
 import { dbSet } from '../core/db.js';
 import { currentLobbyCode, setMyPlayerId } from '../core/session.js';
@@ -35,6 +37,31 @@ export async function phoneVote(dispIdx){
   R.player();
 }
 
+/* ===== Phone: Sus mode =====
+   Both write only this player's own row and let the host merge them. Six
+   phones writing the lobby blob at once would lose answers to each other. */
+export async function phoneSubmitSusAnswer(idx){
+  const s = state.sus;
+  if(!myPlayerId||!currentLobbyCode||!s.active) return;
+  if(s.stage!=='answering') return;
+  if(!s.eligible.includes(myPlayerId)) return;   // suspended players sit the round out
+  if(susAnswered() ) return;                      // one shot, no changing it later
+  await dbSet(susAnsKey(s.round, myPlayerId), String(idx));
+  setSusAnsweredRound(s.round);
+  R.player();
+}
+export async function phoneSubmitSusVote(targetId){
+  const s = state.sus;
+  if(!myPlayerId||!currentLobbyCode||!s.active) return;
+  if(s.stage!=='voting') return;
+  if(!s.eligible.includes(myPlayerId)) return;   // suspended players do not vote
+  if(susVotedRound===s.round) return;
+  await dbSet(susVoteKey(s.round, myPlayerId), String(targetId||'skip'));
+  setSusVotedRound(s.round);
+  R.player();
+}
+export function susAnswered(){ return susAnsweredRound===state.sus.round; }
+
 export function claimPlayer(pid){
   setMyPlayerId(pid);
   try{ localStorage.setItem('gs-my-player-'+currentLobbyCode,pid); } catch(e){}
@@ -42,6 +69,7 @@ export function claimPlayer(pid){
 }
 export function unclaimPlayer(){
   setMyPlayerId(null); setPhoneVotedRound(null); setPhoneWagerSubmitted(false);
+  setSusAnsweredRound(null); setSusVotedRound(null); setSusMyRole(null);
   try{ localStorage.removeItem('gs-my-player-'+currentLobbyCode); } catch(e){}
   R.player();
 }

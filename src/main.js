@@ -35,6 +35,8 @@ import { renderHostEntry, loadAndRenderLobbyList, renderLobbyEntry, renderPlayer
 import { createNewLobby, deleteLobbyFromList, openExistingLobby } from './screens/entry.js';
 import { copyPlayerLinkFromPopover, goSetupStep, openAdjustModal, openDisplay, openHostMoreMenu, quickAdjust, setGameMode, setHostTab, toggleLevelType, togglePlayerLinkPopover } from './screens/host/index.js';
 import { setPromoteMenu, submitPhoneWager } from './screens/player.js';
+import { startSusGame, dealSusRound, beginSusReveal, susRevealNext, tallySusRound, openSusVoting, closeSusVoting, nextSusRound, endSusGame, pollSusAnswers, pollSusVotes } from './rules/sus.js';
+import { phoneSubmitSusAnswer, phoneSubmitSusVote } from './rules/phone.js';
 
 /* ============================================================
    FORTUNE & FORTUNE v3
@@ -87,6 +89,13 @@ async function pollForUpdates(){
   }
   if(mode==='host'&&currentLobbyCode&&state.wheel&&!state.wheel.spunAt){
     await pollSpinRequest();
+  }
+  /* Sus mode: phones write their own answer and vote rows, the host merges
+     them. Only the stage that is actually collecting gets polled, so a game
+     sitting on a reveal is not hitting the database for nothing. */
+  if(mode==='host'&&currentLobbyCode&&state.gameMode==='sus'&&state.sus.active){
+    if(state.sus.stage==='answering') await pollSusAnswers();
+    else if(state.sus.stage==='voting') await pollSusVotes();
   }
 }
 
@@ -158,6 +167,10 @@ document.addEventListener('keydown', handleHostKeydown);
    ============================================================ */
 Object.assign(window, {
   setPromoteMenu,
+  /* Sus mode */
+  startSusGame, dealSusRound, beginSusReveal, susRevealNext, tallySusRound,
+  openSusVoting, closeSusVoting, nextSusRound, endSusGame,
+  phoneSubmitSusAnswer, phoneSubmitSusVote,
   addPlayer, advanceLevelNoMoney, cancelEditPhrase, cancelEditQuestion,
   cancelModal, changeHotSeatPick, claimPlayer, confirmBombWheel,
   confirmHotSeatReveal, confirmModal, confirmWheelWinner, copyPlayerLinkFromPopover,

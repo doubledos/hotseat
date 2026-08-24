@@ -22,6 +22,20 @@ export function pickQuestion(difficulty){
   if(!pool.length) return null;
   return pool[Math.floor(Math.random()*pool.length)];
 }
+/* Sus mode deals one distinct question per player per round, so it needs a
+   batch rather than a single draw, and it ignores difficulty - a round is a
+   group check, not a rung on a ladder.
+
+   Unlike pickQuestion this never falls back to already-used questions. Handing
+   two players the same question, or reusing one, would let them compare notes
+   and would make a wrong answer look like sabotage when it was a repeat. It
+   returns fewer than n rather than duplicating; the caller decides what to do,
+   and setup blocks the game from starting when the bank is too small. */
+export function unusedQuestionCount(){ return state.questions.filter(q=>!q.used).length; }
+export function pickSusQuestions(n){
+  const pool = shuffleArray(state.questions.filter(q=>!q.used));
+  return pool.slice(0, n);
+}
 export function makeCurrentQuestion(q, level){
   const opts = (q.options||[]).slice();
   return {

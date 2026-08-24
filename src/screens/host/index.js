@@ -11,6 +11,7 @@ import { renderGameTab } from './game.js';
 import { renderRulesTab } from './rules.js';
 import { renderSetupTab } from './setup.js';
 import { renderWagerTab } from './wager.js';
+import { renderSusTab } from './sus.js';
 
 import { LEVEL_MONEY, LIFELINE_DEFS } from '../../core/constants.js';
 import { hasSupabase } from '../../core/db.js';
@@ -85,7 +86,11 @@ export function renderHost(){
 
   // Reference strip — secondary info (teams/scores + ladder + pacing), not primary controls
   const isRaceMode=state.gameMode==='race';
-  const ladderBar=state.gamePhase==='live'||state.gamePhase==='wager'||state.gamePhase==='puzzle'?
+  /* Sus mode has no teams, no banks and no ladder, so the reference strip would
+     be showing the operator three things that do not exist in the game they are
+     running. Its own tracker carries the state that matters. */
+  const ladderBar=state.gameMode==='sus'?'':
+    state.gamePhase==='live'||state.gamePhase==='wager'||state.gamePhase==='puzzle'?
     `<div class="ref-strip">
       <div class="team-strip" style="row-gap:6px;">
         <span class="team-label">${esc(state.teamAName)}</span>
@@ -116,6 +121,11 @@ export function renderHost(){
     body=renderRulesTab();
   } else if(state.gamePhase==='setup'||hostTab==='setup'){
     body=renderSetupTab();
+  } else if(state.gameMode==='sus'){
+    /* Sus mode owns the whole play area - it has no ladder, steal or wager for
+       the other branches to fall through to. Its own ended state is part of
+       the panel, so it comes before the generic ended screen. */
+    body=renderSusTab();
   } else if(state.gamePhase==='ended'){
     body=renderEndedHost();
   } else if(state.gamePhase==='wager'){

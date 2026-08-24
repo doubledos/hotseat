@@ -6,14 +6,57 @@ Catches the three failure modes that syntax checks do not:
   2. an import that the target module does not actually export
   3. import statements buried inside a leading block comment, which parse
      fine and silently do nothing
+  4. a function called from an inline onclick="..." that main.js never
+     republishes on window - the button renders and silently does nothing
+  5. a CSS custom property that is used but never defined - the declaration is
+     dropped and the element renders with an inherited value, which on the TV
+     means dark ink on a dark stage
 """
 import re, glob, os, sys
 
 FILES = ['src/main.js'] + sorted(f for f in glob.glob('src/**/*.js', recursive=True) if f != 'src/main.js')
 
 def strip(s):
+    """Remove comments AND string contents.
+
+    String contents matter: this file is full of prose like 'Sus mode ready',
+    and a plain scan reads the word `mode` in there as a reference to the
+    session binding of the same name. Template literals are kept only for their
+    ${...} expressions, which are real code.
+    """
     s = re.sub(r'/\*.*?\*/', '', s, flags=re.S)
-    return re.sub(r'//.*$', '', s, flags=re.M)
+    s = re.sub(r'//.*$', '', s, flags=re.M)
+    out, i, n = [], 0, len(s)
+    quote, tpl_depth = None, []
+    while i < n:
+        c = s[i]
+        if quote is None:
+            if c in ('"', "'", '`'):
+                quote = c
+                if c == '`':
+                    tpl_depth.append(0)
+                out.append(' ')
+            else:
+                out.append(c)
+            i += 1
+            continue
+        # inside a string
+        if c == '\\':
+            i += 2; continue
+        if quote == '`' and c == '$' and i + 1 < n and s[i+1] == '{':
+            # step back into code for the interpolation
+            depth, j = 1, i + 2
+            while j < n and depth:
+                if s[j] == '{': depth += 1
+                elif s[j] == '}': depth -= 1
+                j += 1
+            out.append(' ' + strip(s[i+2:j-1]) + ' ')
+            i = j; continue
+        if c == quote:
+            quote = None
+            if c == '`' and tpl_depth: tpl_depth.pop()
+        i += 1
+    return ''.join(out)
 
 def exports(p):
     """Names a module makes available: direct declarations and re-exports
@@ -77,6 +120,36 @@ for f in FILES:
     for n in sorted(used - local - imported):
         if n in owner and owner[n] != f:
             problems.append(f'{f}: uses {n}, which is declared in {owner[n]} and not imported')
+
+# 4. Inline handlers resolve in global scope at runtime, not through imports,
+#    so every name called from an on*="..." attribute must appear in main.js's
+#    window barrel. This is the failure mode that ships a dead button.
+barrel = open('src/main.js').read()
+handler_names = set()
+for f in FILES:
+    for m in re.finditer(r'on(?:click|change|input|keydown|blur)="([A-Za-z_$][\w$]*)\(', open(f).read()):
+        handler_names.add((m.group(1), f))
+for name, f in sorted(handler_names):
+    if name in ('if', 'this'):
+        continue
+    if not re.search(r'\b' + re.escape(name) + r'\b', barrel):
+        problems.append(f'{f}: onclick calls {name}, which main.js never puts on window')
+
+# 5. CSS custom properties. A var() naming something undefined does not error;
+#    the declaration is simply dropped, so text keeps its inherited colour. That
+#    is how .tv-level-badge shipped as 14px dark brown on a dark maroon stage.
+#    var(--x, fallback) is fine by definition, so those are skipped.
+css_files = sorted(glob.glob('styles/*.css'))
+if css_files:
+    defined = set()
+    for f in css_files + (['index.html'] if os.path.exists('index.html') else []):
+        defined |= set(re.findall(r'(--[a-zA-Z0-9-]+)\s*:', open(f).read()))
+    for f in css_files:
+        for m in re.finditer(r'var\(\s*(--[a-zA-Z0-9-]+)\s*([,)])', open(f).read()):
+            if m.group(2) == ',':
+                continue  # has a fallback
+            if m.group(1) not in defined:
+                problems.append(f'{f}: uses {m.group(1)}, which no stylesheet defines')
 
 for p in problems:
     print('  ' + p)

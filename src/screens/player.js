@@ -14,6 +14,7 @@ import { resolvedOutcomeFor, wheelOutcomeResultText } from '../rules/wheel.js';
 import { renderLobbyEntry, renderPlayerClaim } from './entry.js';
 import { R } from '../ui/rerender.js';
 import { animateWheel, buildWheelHTML, wheelResultText } from '../ui/wheel-view.js';
+import { renderSusPlayer } from './player-sus.js';
 
 /* Surface-local render bookkeeping: what this surface last drew, so it can
    tell a real change from a repaint. Owned here because nothing else reads it. */
@@ -39,6 +40,21 @@ export function renderPlayer(){
   }
 
   const me=playerById(myPlayerId);
+
+  /* Sus mode is a different game - no teams, hot seat, steal or wager for the
+     rest of this function to describe. One early return rather than branches
+     threaded through everything below. */
+  if(state.gameMode==='sus'){
+    root.innerHTML=`<div class="ph-screen">
+      <div class="ph-bank-hero">
+        <div class="ph-player-name">${esc(me.name)}</div>
+      </div>
+      ${renderSusPlayer(me)}
+      <button class="btn btn-ghost btn-sm" style="margin-top:auto;" onclick="unclaimPlayer()">Not ${esc(me.name)}?</button>
+    </div>`;
+    return;
+  }
+
   const s=state.steal;
   const w=state.wager;
   const q=state.currentQuestion;

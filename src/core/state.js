@@ -67,6 +67,34 @@ export function defaultState(){
     adjustments: [],
     // Phrase bank (puzzle content)
     phraseBank: [],
+    /* Sus mode. Its own self-contained game: no ladder, money, teams, hot seat,
+       steal or lifelines. Everything above this line is untouched when
+       gameMode is 'sus'.
+
+       Note what is NOT here: who the Sus player is, and the answer key. Every
+       surface polls this whole blob, so anything in it is readable from dev
+       tools. Those two live in rows a phone has no reason to fetch - see the
+       key table in rules/sus.js. susRevealId is filled in only once the game
+       is over and secrecy no longer matters. */
+    sus: {
+      active:false,
+      round:0,
+      totalRounds:10,
+      passesNeeded:6,
+      threshold:0.6,
+      stage:'idle',      // idle | answering | reveal | round-result | voting | vote-result | ended
+      eligible:[],       // player ids answering this round (excludes the suspended)
+      submitted:[],      // player ids whose answer has landed
+      reveal:[],         // built at reveal time: {playerId,text,options,pickedIdx,correctIdx}
+      revealIdx:0,
+      results:[],        // one per finished round: {passed,correct,eligible}
+      suspendedFor:{},   // playerId -> the round number they sit out
+      votes:{},          // voterId -> targetId | 'skip'
+      lastSuspendedId:null, // who the last vote suspended, for the result screen
+      dealError:null,    // {needed,got} when the bank cannot cover a full round
+      outcome:null,      // 'team' | 'sus'
+      susRevealId:null,
+    },
     // Ending
     ended: false,
   };
@@ -79,6 +107,11 @@ export function normalizeState(s){
   }
   if(!s.puzzle) s.puzzle = d.puzzle;
   if(!s.wager) s.wager = d.wager;
+  /* Lobbies saved before Sus mode existed have no sus block, and ones saved
+     mid-development may be missing newer fields. Fill in per key rather than
+     replacing wholesale, so a game in progress is not reset. */
+  if(!s.sus) s.sus = d.sus;
+  else for(const k of Object.keys(d.sus)) if(!(k in s.sus)) s.sus[k]=d.sus[k];
   if(!s.lifelines.A.hasOwnProperty('promote')){
     ['A','B'].forEach(t=>{
       s.lifelines[t].promote = s.lifelines[t].huddle||false;

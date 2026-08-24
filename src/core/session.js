@@ -26,6 +26,16 @@ export let myPlayerId = null; // phone: which player this device has claimed
 export function setMyPlayerId(next){ myPlayerId = next; return myPlayerId; }
 export let phoneVotedRound = null;
 export function setPhoneVotedRound(next){ phoneVotedRound = next; return phoneVotedRound; }
+
+/* Sus mode, per tab: which round this phone has already answered and voted in.
+   Held here rather than in game state so one player's phone cannot reveal
+   another's progress, and so a repaint does not offer a second submission. */
+export let susAnsweredRound = null;
+export function setSusAnsweredRound(next){ susAnsweredRound = next; return susAnsweredRound; }
+export let susVotedRound = null;
+export function setSusVotedRound(next){ susVotedRound = next; return susVotedRound; }
+export let susMyRole = null;   // 'sus' | 'good', fetched once per game
+export function setSusMyRole(next){ susMyRole = next; return susMyRole; }
 export let phoneWagerSubmitted = false;
 export function setPhoneWagerSubmitted(next){ phoneWagerSubmitted = next; return phoneWagerSubmitted; }
 export let seenWagerIds = new Set();

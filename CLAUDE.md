@@ -49,6 +49,7 @@ src/rules/       game logic - no markup
   ladder.js      player lookups, level helpers, winLevel
   pool.js        drawing a question from the bank
   wheel.js       Wildcard outcome pool and resolution
+  sus.js         Sus mode: roles, dealing, scoring, voting, suspension
 
 src/ui/          markup fragments, no game logic
   atoms.js       ladder strip, difficulty pill, team roster, lifeline bar
@@ -59,9 +60,9 @@ src/ui/          markup fragments, no game logic
   rerender.js    the render bus (see below)
 
 src/screens/     one file per surface
-  host.js        the operator console and all its tabs
-  display.js     the TV
-  player.js      the phone
+  host/          the operator console, one file per tab (incl. sus.js)
+  display.js     the TV          display-sus.js  the TV in Sus mode
+  player.js      the phone       player-sus.js   the phone in Sus mode
   entry.js       lobby entry, claim, lobby list, end screen
   display-audio.js  Web Audio score (TV only)
 
@@ -88,15 +89,24 @@ Rules trigger a repaint through `ui/rerender.js` — `R.host()`, `R.player()`, `
 reassign it; the three places that swap the whole object call `setState()`. The same pattern
 applies to session flags: read the import directly, write through the setter.
 
-**4. Run the checker after moving code between modules.**
+**4. Run the checkers after any change.**
 
 ```bash
 python3 tools/check-modules.py
+node tools/test-sus-rules.mjs
 ```
 
-It catches what `node --check` cannot: imports buried in a header comment (valid JS that does
-nothing), a module using an unexported binding from another file, and imports naming something
-the target does not export. Each of those shipped a silently-broken surface during the split.
+`check-modules.py` catches five things `node --check` cannot, every one of which has actually
+shipped a silently broken surface here:
+- imports buried in a header comment (valid JS that does nothing)
+- a module using an unexported binding from another file
+- imports naming something the target does not export
+- a function called from an inline `onclick` that `main.js` never puts on `window` — the button
+  renders and does nothing
+- a CSS custom property used but never defined — the declaration is dropped and the element
+  keeps its inherited colour, which on the TV means dark ink on a dark stage
+
+`test-sus-rules.mjs` covers the Sus scoring and voting maths in plain node.
 
 ## Testing locally
 
@@ -110,7 +120,9 @@ To exercise the game without touching production data, copy `src/` and blank `SU
 the copy's `core/db.js`; the code falls back to `localStorage`. Point a copy of `index.html` at
 the copied tree. Give the copy a fresh directory name each time — a query string busts the
 cache for `index.html` but **not** for the `.js` modules it imports, which will silently serve
-you stale code.
+you stale code. **The same applies to the stylesheets** — `index.html` links them without a
+version, so a query string busts the modules but not the CSS. Rewrite the `<link>` hrefs with
+the same stamp, or you will debug a surface that is rendering last week's styles.
 
 ## Known wart
 
