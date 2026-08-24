@@ -9,14 +9,30 @@ body.mode-player .app{max-width:480px;margin:0 auto;padding:0;}
 .ph-player-name{font-size:24px;font-weight:700;color:var(--c-ink);margin-bottom:4px;}
 .ph-team{font-size:12px;text-transform:uppercase;letter-spacing:0.1em;color:var(--c-muted);}
 .ph-amount{font-size:42px;font-weight:700;color:var(--c-gold-light);font-family:var(--font-display);letter-spacing:0.02em;margin:8px 0;font-variant-numeric:tabular-nums;}
+/* Every card on the phone opens with a title naming the moment — Your Steal, Final Wager,
+   Wildcard, Lifelines. They were eight copies of the same inline style, set two pixels
+   SMALLER than the body text they introduce, and the wager and wildcard ones were an
+   off-palette light purple that measures 2.9:1 on the cream card. */
+.ph-card-title{font-size:15px;font-weight:700;color:var(--c-gold);text-transform:uppercase;letter-spacing:0.09em;margin-bottom:12px;}
+.ph-card-title.is-wager{color:var(--c-purple);}
 .ph-status{font-size:14px;color:var(--c-muted);text-align:center;line-height:1.6;padding:8px 0;}
 .ph-vote-btns{display:flex;flex-direction:column;gap:10px;}
 .ph-vote-btn{background:var(--c-surface2);border:1px solid var(--c-border2);color:var(--c-ink);border-radius:10px;padding:16px;font-size:15px;font-weight:600;text-align:left;cursor:pointer;transition:all .15s;}
 .ph-vote-btn:hover{border-color:var(--c-accent);}
+/* Phones have no hover, so tapping an option gave no feedback at all until the host's
+   next poll came back and the card re-rendered. */
+.ph-vote-btn:active{background:var(--c-accent);color:#fff8ec;border-color:var(--c-accent-hi);transform:scale(0.985);}
+.ph-vote-btn:active .ph-vote-letter{color:#fff8ec;}
 .ph-vote-btn.picked{background:var(--c-accent);color:#fff8ec;border-color:var(--c-accent-hi);}
 .ph-vote-letter{color:var(--c-accent);font-weight:700;margin-right:8px;}
 .ph-vote-btn.picked .ph-vote-letter{color:#fff8ec;}
-.ph-vote-btn-disabled{opacity:0.4;cursor:default;}
+/* An option the hot seat already burned. This is information the stealing player has to
+   act on — do not pick that one — so it is muted rather than faded: at opacity 0.4 both
+   the answer and its "already wrong" note sat near 2:1 against the card. */
+.ph-vote-btn-disabled{cursor:default;background:var(--c-surface);border-style:dashed;border-color:var(--c-border2);color:var(--c-muted);display:flex;align-items:center;gap:8px;}
+.ph-vote-btn-disabled .ph-vote-letter{color:var(--c-muted);margin-right:0;}
+.ph-vote-struck{text-decoration:line-through;text-decoration-color:var(--c-red);text-decoration-thickness:2px;}
+.ph-vote-eliminated{margin-left:auto;flex-shrink:0;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--c-red);}
 .ph-submenu{display:flex;flex-direction:column;gap:8px;padding:10px;background:var(--c-surface2);border:1px solid var(--c-border);border-radius:10px;}
 .ph-submenu-back{background:none;border:none;color:var(--c-muted);font-size:12px;text-align:left;padding:0 0 2px;cursor:pointer;}
 .ph-wager-input{width:100%;font-size:32px;font-weight:700;text-align:center;background:var(--c-surface);border:2px solid var(--c-gold-dim);border-radius:10px;color:var(--c-gold-light);padding:14px;letter-spacing:0.05em;}
