@@ -14,6 +14,7 @@ import { cancelEditPhrase, deletePhrase, savePhraseFromForm, startEditPhrase } f
 import { renderHost } from './index.js';
 import { renderQuestionsTab } from './questions.js';
 import { showModal } from '../../ui/modal.js';
+import { unusedQuestionCount } from '../../rules/pool.js';
 
 export function renderSetupTab(){
   const players=state.players;
@@ -62,8 +63,12 @@ export function renderSetupTab(){
         <button class="mode-opt ${state.gameMode==='race'?'is-active':''}" onclick="setGameMode('race')">
           <b>Race Mode</b><span>Separate ladders — first team to level 15 wins, no money</span>
         </button>
+        <button class="mode-opt ${state.gameMode==='sus'?'is-active':''}" onclick="setGameMode('sus')">
+          <b>Sus Mode</b><span>One secret saboteur — everyone answers, the group votes</span>
+        </button>
       </div>
     </div>
+    ${state.gameMode==='sus'?susSetupHTML():''}
     <div class="two-col">
       <div>
         <div class="field"><label>Name</label><input type="text" class="input" id="player-name-input" placeholder="Player name"></div>
@@ -175,6 +180,33 @@ export function renderSetupTab(){
       <div class="setup-foot">${prevBtn}${nextBtn}</div>
     </div>`;
 }
+/* Sus mode deals a distinct question to every player, every round, and never
+   reuses one. That means rounds x players questions before a game can start -
+   10 x 6 is 60, which is far more than the ladder game ever needs. Without
+   this check the game would deal fine for a few rounds and then strand with
+   players holding nothing, so the shortfall is stated up front and in the
+   host's terms: how many are missing, not just that something is wrong. */
+export function susQuestionsNeeded(){
+  return state.sus.totalRounds * Math.max(1, state.players.length);
+}
+export function susBankShortfall(){
+  return Math.max(0, susQuestionsNeeded() - unusedQuestionCount());
+}
+function susSetupHTML(){
+  const need = susQuestionsNeeded();
+  const have = unusedQuestionCount();
+  const short = Math.max(0, need-have);
+  return `<div class="sus-preflight ${short?'is-short':'is-ok'}">
+    <div class="sus-preflight-head">${short?'Not enough questions yet':'Question bank is ready'}</div>
+    <div class="sus-preflight-body">
+      ${state.sus.totalRounds} rounds x ${state.players.length||1} player${state.players.length===1?'':'s'}
+      = <b>${need}</b> needed, <b>${have}</b> unused in the bank.
+      ${short?`<br><b>Add ${short} more</b> — every player gets their own question each round, and none repeat.`
+             :`<br>Enough for a full game.`}
+    </div>
+  </div>`;
+}
+
 export function goSetupStep(step){ setSetupStep(step); renderHost(); }
 export async function setGameMode(m){
   if(state.gamePhase!=='setup') return; // locked once hosting has started
