@@ -63,16 +63,18 @@ export function renderQuickAdjustRail(){
       <button class="qa-btn" onclick="quickAdjust('${t.target}',null,${step})" title="+${money(step)}">+</button>
     </span>
   </div>`).join('');
-  const playerRows=state.players.map(p=>`<div class="qa-row">
+  const playerRows=state.players.map(p=>`<div class="qa-row${state.hotSeatPlayerId===p.id?' is-hot':''}">
     <span class="qa-name">${esc(p.name)}</span>
     <span class="qa-amount">${money(p.personalBank)}</span>
     <span class="qa-steppers">
-      <button class="qa-btn" onclick="quickAdjust('player','${p.id}',-${step})" title="-${money(step)}">−</button>
+      <button class="qa-btn" onclick="quickAdjust('player','${p.id}',-${step})" title="−${money(step)}">−</button>
       <button class="qa-btn" onclick="quickAdjust('player','${p.id}',${step})" title="+${money(step)}">+</button>
     </span>
   </div>`).join('');
+  /* The step size used to live only in a title attribute, so a host tapping
+     under pressure had no idea how much each tap was worth. */
   return `<div class="quick-adjust-rail">
-    <div class="qa-title">Quick Adjust</div>
+    <div class="qa-title">Quick Adjust <span class="qa-step">${money(step)} a tap</span></div>
     <div class="qa-section-label">Teams</div>
     ${teamRows}
     <div class="qa-section-label">Players</div>

@@ -216,14 +216,18 @@ body.mode-host .sync-warning{background:rgba(184,48,47,0.09);border-color:var(--
 .mode-opt.is-active b{color:var(--c-accent);}
 @media(max-width:760px){.two-col{grid-template-columns:1fr;}}
 .quick-adjust-rail{background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--r);padding:16px;position:sticky;top:76px;}
-.qa-title{font-size:12px;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;color:var(--c-ink);margin-bottom:10px;}
+.qa-title{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:12px;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;color:var(--c-ink);margin-bottom:10px;}
+.qa-step{font-size:11px;font-weight:700;letter-spacing:0;text-transform:none;color:var(--c-muted);font-variant-numeric:tabular-nums;}
+.qa-row.is-hot{background:var(--c-gold-fill);border-radius:7px;margin:0 -8px;padding-left:8px;padding-right:8px;}
+.qa-row.is-hot .qa-name{font-weight:700;color:#3a2306;}
+.qa-row.is-hot .qa-amount{color:#5c3d06;}
 .qa-section-label{font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--c-muted);font-weight:600;margin:12px 0 6px;}
 .qa-section-label:first-of-type{margin-top:0;}
 .qa-row{display:flex;align-items:center;gap:8px;padding:5px 0;}
 .qa-name{flex:1;font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .qa-amount{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--c-gold);min-width:52px;text-align:right;}
 .qa-steppers{display:flex;gap:4px;}
-.qa-btn{width:24px;height:24px;border-radius:6px;border:1px solid var(--c-border2);background:var(--c-surface2);color:var(--c-ink);font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .12s;}
+.qa-btn{width:28px;height:28px;border-radius:6px;border:1px solid var(--c-border2);background:var(--c-surface2);color:var(--c-ink);font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .12s;}
 .qa-btn:hover{border-color:var(--c-accent);color:var(--c-accent);}
 .btn-link{display:block;width:100%;background:none;border:none;padding:8px 0 0;margin-top:8px;font-size:12px;color:var(--c-muted);text-decoration:underline;cursor:pointer;text-align:left;border-top:1px dashed var(--c-border);padding-top:10px;}
 .btn-link:hover{color:var(--c-accent);}
