@@ -1,6 +1,6 @@
 /* atoms.js
    Small markup fragments shared by more than one surface: the money ladder
-   strip, difficulty pill, and the team roster / lifeline bars the TV and the
+   strip and the team roster / lifeline bars the TV and the
    host console both draw. */
 
 import { LEVEL_MONEY, LIFELINE_DEFS } from '../core/constants.js';
@@ -25,9 +25,6 @@ export function ladderStripHTML(team){
   return html;
 }
 
-export function diffPill(d){
-  return `<span class="diff-${d}">${d}</span>`;
-}
 
 /* ===== Puzzle timer live update ===== */
 

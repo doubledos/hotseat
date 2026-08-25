@@ -26,8 +26,6 @@ export function defaultState(){
     hotSeatTeam: 'A',
     hotSeatPlayerId: null,
     hotSeatQueue: {A:[], B:[]}, // ordered player ids for rotation
-    // Questions (pool, lives in lobby state)
-    questions: [],
     // Ladder
     ladderCurrent: 1,
     ladderWon: Array(15).fill(false), // which levels have been cleared
@@ -37,7 +35,7 @@ export function defaultState(){
       A:{current:1, won:Array(15).fill(false)},
       B:{current:1, won:Array(15).fill(false)}
     },
-    levelTypes: Array(15).fill(''), // '' = auto by difficulty, 'puzzle' = puzzle
+    levelTypes: Array(15).fill(''), // '' = trivia, 'puzzle' = word puzzle
     // Lifelines
     lifelines: {
       A:{promote:false,doubleDip:false,swap:false},
@@ -65,8 +63,6 @@ export function defaultState(){
     wager: {active:false, question:null, wagers:{}, revealed:false, resolved:false},
     // Score adjustments
     adjustments: [],
-    // Phrase bank (puzzle content)
-    phraseBank: [],
     /* Sus mode. Its own self-contained game: no ladder, money, teams, hot seat,
        steal or lifelines. Everything above this line is untouched when
        gameMode is 'sus'.

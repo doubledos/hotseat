@@ -297,3 +297,42 @@ body.mode-host .sync-warning{background:rgba(184,48,47,0.09);border-color:var(--
 .sus-preflight.is-ok .sus-preflight-head{color:var(--c-green);}
 .sus-preflight.is-short .sus-preflight-head{color:var(--c-red);}
 .sus-preflight-body{font-size:13px;color:var(--c-muted);line-height:1.5;}
+
+/* ===== Question bank editor =====
+   The whole library is one textarea, so it gets real height and a monospace
+   face - this is a list being scanned and edited, not prose. */
+.bank-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:12px;}
+.bank-title{font-size:16px;font-weight:700;color:var(--c-ink);}
+.bank-sub{font-size:13px;color:var(--c-muted);margin-top:2px;}
+.bank-actions{display:flex;gap:6px;flex-wrap:wrap;}
+.bank-help{font-size:12px;color:var(--c-muted);line-height:1.6;margin-bottom:10px;
+  padding:10px 12px;background:var(--c-surface2);border-radius:8px;}
+.bank-help code{background:var(--c-bg);padding:1px 5px;border-radius:4px;
+  font-size:11px;color:var(--c-ink);}
+.bank-textarea{width:100%;min-height:420px;resize:vertical;padding:12px 14px;
+  border:1px solid var(--c-border2);border-radius:var(--r);background:var(--c-surface);
+  color:var(--c-ink);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:13px;line-height:1.65;white-space:pre;overflow-wrap:normal;overflow-x:auto;}
+.bank-textarea:focus{outline:none;border-color:var(--c-accent);
+  box-shadow:0 0 0 3px rgba(217,74,31,0.14);}
+
+/* A refused save must read as "nothing happened", not as data loss. */
+.bank-status{margin-top:10px;padding:10px 12px;border-radius:8px;font-size:13px;font-weight:600;border:1px solid;}
+.bank-status.is-ok{background:rgba(30,125,67,0.08);border-color:var(--c-green);color:var(--c-green);}
+.bank-status.is-bad{background:rgba(184,48,47,0.08);border-color:var(--c-red);color:var(--c-red);}
+.bank-errors{margin-top:8px;display:flex;flex-direction:column;gap:6px;}
+.bank-error{font-size:12px;color:var(--c-ink);background:var(--c-surface2);
+  border-left:3px solid var(--c-red);border-radius:0 6px 6px 0;padding:7px 10px;}
+.bank-error-src{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:11px;color:var(--c-muted);margin-top:3px;white-space:pre-wrap;word-break:break-all;}
+.bank-savebar{display:flex;align-items:center;gap:10px;margin-top:12px;}
+.bank-dirty{font-size:12px;font-weight:700;color:var(--c-accent);
+  text-transform:uppercase;letter-spacing:0.06em;}
+
+/* Test mode has to be impossible to miss. Forgetting it is OFF is what costs
+   sixty real questions. */
+.bank-testmode{margin-bottom:10px;padding:10px 12px;border-radius:8px;font-size:13px;
+  background:rgba(107,63,160,0.10);border:1px solid var(--c-purple);color:var(--c-purple);font-weight:600;}
+.testmode-flag{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;
+  background:var(--c-purple);color:#fff;font-size:11px;font-weight:800;
+  text-transform:uppercase;letter-spacing:0.07em;}

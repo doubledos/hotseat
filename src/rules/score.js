@@ -75,7 +75,7 @@ export async function doNewGame(){
   state.wager={active:false,question:null,wagers:{},revealed:false,resolved:false};
   state.adjustments=[];
   state.ended=false;
-  if(keepQuestions){ state.questions.forEach(q=>q.used=false); state.phraseBank.forEach(p=>p.used=false); }
-  else { state.questions=[]; state.phraseBank=[]; }
+  /* The bank is global and retirement is permanent, so a new game never
+     resets or clears questions - there is nothing lobby-local left to reset. */
   await saveLobby(); setActiveHostTab('setup'); R.host();
 }

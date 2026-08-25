@@ -13,25 +13,25 @@ import { showModal, showPicker } from '../ui/modal.js';
 import { esc, money, shuffleArray } from '../core/util.js';
 import { LEVEL_MONEY } from '../core/constants.js';
 import { seenWagerIds, setSeenWagerIds } from '../core/session.js';
-import { activeLevel, advanceLevel, hotSeatPlayer, isLevelWon, levelDiff, levelMoney, levelType, opposingTeam, playerById, teamName, winLevel } from './ladder.js';
+import { activeLevel, advanceLevel, hotSeatPlayer, isLevelWon, levelMoney, levelType, opposingTeam, playerById, teamName, winLevel } from './ladder.js';
 import { correctDisplayIdx, makeCurrentQuestion, pickQuestion } from './pool.js';
 import { startWager } from './wager.js';
 import { dbGet, dbList } from '../core/db.js';
 import { currentLobbyCode, mode } from '../core/session.js';
 import { letterFor } from '../core/util.js';
+import { spend } from './pool.js';
 
 /* ===== Question flow ===== */
 export async function hostDrawQuestion(){
   const lvl = activeLevel();
-  const diff = levelDiff(lvl);
   const lt = levelType(lvl);
   if(lt==='puzzle'){
     state.currentQuestion=null;
     state.flow={stage:'idle',optionsRevealed:0,hotSeatAnswer:-1,stealPeeked:false,stealRevealed:false,doubleDipUsed:false};
   } else {
-    const q = pickQuestion(diff);
+    const q = pickQuestion();
     if(!q){ state.currentQuestion=null; } else {
-      q.used=true;
+      spend(q);
       state.currentQuestion = makeCurrentQuestion(q, lvl);
       state.flow={stage:'idle',optionsRevealed:0,hotSeatAnswer:-1,stealPeeked:false,stealRevealed:false,doubleDipUsed:false};
     }
@@ -43,10 +43,9 @@ export async function hostDrawQuestion(){
 export async function rerollQuestion(){
   const q = state.currentQuestion;
   const lvl = activeLevel();
-  const diff = q ? q.difficulty : levelDiff(lvl);
-  const newQ = pickQuestion(diff);
+  const newQ = pickQuestion();
   if(!newQ) return;
-  newQ.used=true;
+  spend(newQ);
   state.currentQuestion = makeCurrentQuestion(newQ, lvl);
   state.flow={stage:'idle',optionsRevealed:0,hotSeatAnswer:-1,stealPeeked:false,stealRevealed:false,doubleDipUsed:false};
   await saveLobby(); R.host();

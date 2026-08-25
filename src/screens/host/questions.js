@@ -1,59 +1,70 @@
 /* host/questions.js
-   The Questions tab: question and phrase bank editing, plus markdown
-   import / export. */
+   The question bank editor: one textarea holding the whole library.
 
-import { editingQuestion } from '../../core/session.js';
-import { state } from '../../core/state.js';
+   There is no per-question form any more. The bank is global and permanent, so
+   the useful operations are "paste a batch in" and "fix a line", both of which
+   a text field does better than a form.
+
+   Saving is guarded: the text is parsed first, and a bank that does not parse
+   is refused with the offending line numbers rather than half-written. */
+
+import { bank } from '../../core/bank.js';
+import { bankDraft, bankStatus, isTestMode, testModeForced } from '../../core/session.js';
+import { bankText } from '../../rules/bank-edit.js';
 import { esc } from '../../core/util.js';
-import { exportQuestionsMarkdown, importQuestionsMarkdown } from '../../rules/porting.js';
-import { cancelEditQuestion, deleteQuestion, resetAllUsedFlags, saveQuestionFromForm, startEditQuestion } from '../../rules/questions.js';
-import { diffPill } from '../../ui/atoms.js';
-import { showModal } from '../../ui/modal.js';
 
 export function renderQuestionsTab(){
-  const byDiff={easy:[],medium:[],hard:[]};
-  state.questions.forEach(q=>{ (byDiff[q.difficulty]||byDiff.easy).push(q); });
-  const formHtml=`
-    <div class="card card-sm" style="margin-bottom:14px;">
-      <div style="font-size:13px;font-weight:700;color:var(--c-gold);margin-bottom:10px;">${editingQuestion?'Editing Question':'New Question'}</div>
-      <div class="field"><label>Question</label><textarea class="input" id="q-text" rows="2" placeholder="Question text"></textarea></div>
-      <div class="field">
-        <label>Answers — <b style="color:var(--c-gold-light);">A is always correct</b>; fill only A for hidden-answer</label>
-        <div class="row"><div class="field"><input type="text" class="input" id="q-opt-a" placeholder="A — correct answer"></div><div class="field"><input type="text" class="input" id="q-opt-b" placeholder="B (optional)"></div></div>
-        <div class="row"><div class="field"><input type="text" class="input" id="q-opt-c" placeholder="C (optional)"></div><div class="field"><input type="text" class="input" id="q-opt-d" placeholder="D (optional)"></div></div>
+  const text = bankDraft===null ? bankText() : bankDraft;
+  const dirty = bankDraft!==null;
+  const unused = bank.questions.filter(q=>!q.usedAt).length;
+  const retired = bank.questions.length - unused;
+  const st = bankStatus;
+
+  /* Test mode is stated here as well as on the play screen: this is where a
+     bank gets edited, and knowing whether a game will consume questions is
+     part of reading the numbers above. */
+  const testBanner = isTestMode()
+    ? `<div class="bank-testmode">Test mode ${testModeForced()?'(forced — no database configured)':'on'} —
+         questions drawn in a game will <b>not</b> be retired.</div>`
+    : '';
+
+  return `
+    <div class="card">
+      <div class="bank-head">
+        <div>
+          <div class="bank-title">Question bank</div>
+          <div class="bank-sub">${bank.questions.length} question${bank.questions.length===1?'':'s'} ·
+            <b>${unused}</b> unused · ${retired} retired · ${bank.phrases.length} phrase${bank.phrases.length===1?'':'s'}</div>
+        </div>
+        <div class="bank-actions">
+          <button class="btn btn-ghost btn-sm" onclick="downloadBank()">Download</button>
+          <label class="btn btn-ghost btn-sm" style="cursor:pointer;">Upload
+            <input type="file" accept=".txt,.md" style="display:none;" onchange="uploadBank(this.files[0])">
+          </label>
+          <button class="btn btn-ghost btn-sm" onclick="undoBankSave()">Undo last save</button>
+        </div>
       </div>
-      <div class="field"><label>Difficulty</label><select class="input" id="q-diff"><option value="easy">Easy (Levels 1-5)</option><option value="medium">Medium (Levels 6-10)</option><option value="hard">Hard (Levels 11-15)</option></select></div>
-      <div style="display:flex;gap:8px;">
-        <button class="btn btn-primary" onclick="saveQuestionFromForm()">${editingQuestion?'Save':'Add Question'}</button>
-        ${editingQuestion?'<button class="btn btn-ghost btn-sm" onclick="cancelEditQuestion()">Cancel</button>':''}
+      ${testBanner}
+
+      <div class="bank-help">
+        One question per line: <code>Question text | correct answer | wrong | wrong | wrong</code>.
+        The first answer is the correct one. A leading <code>x</code> marks a question as retired
+        (<code>x2026-08-25</code> keeps the date); delete the <code>x</code> to bring it back.
+        Blank lines and <code>#</code> comments are ignored. Phrases go below <code>--- PHRASES ---</code>.
       </div>
-    </div>
-    <div class="bank-tools">
-      <button class="btn btn-ghost btn-sm" onclick="exportQuestionsMarkdown()">Export .md</button>
-      <label class="btn btn-ghost btn-sm" style="cursor:pointer;">Import .md <input type="file" accept=".md,.txt" style="display:none;" onchange="importQuestionsMarkdown(this.files[0])"></label>
-      <span class="bank-tools-sep"></span>
-      <button class="btn btn-danger btn-sm" onclick="showModal('','Mark every question and phrase unused again?','Reset All',resetAllUsedFlags)">Reset every Used mark</button>
-    </div>
-  `;
-  const listHtml=['easy','medium','hard'].map(diff=>{
-    const qs=byDiff[diff];
-    return `<div style="margin-bottom:16px;">
-      <div style="font-size:12px;text-transform:uppercase;letter-spacing:0.1em;font-weight:700;margin-bottom:6px;">${diffPill(diff)} — ${qs.length} question${qs.length===1?'':'s'}</div>
-      <div class="q-list">
-        ${qs.length===0?`<div class="hint">No ${diff} questions yet.</div>`:qs.map(q=>`
-          <div class="q-row ${editingQuestion===q.id?'editing':''}">
-            <div class="q-row-text">
-              ${esc(q.text)}
-              <div class="q-row-sub">✓ ${esc((q.options||[])[0]||'')} · ${(q.options||[]).length} option${(q.options||[]).length===1?' (hidden)':'s'}</div>
-            </div>
-            <div class="q-row-actions">
-              ${q.used?'<span class="used-tag">Used</span>':''}
-              <button class="btn btn-ghost btn-sm" onclick="startEditQuestion('${q.id}')">Edit</button>
-              <button class="btn btn-danger btn-sm" onclick="showModal('','Delete this question?','Delete',()=>deleteQuestion('${q.id}'))">✕</button>
-            </div>
-          </div>`).join('')}
+
+      <textarea id="bank-text" class="bank-textarea" spellcheck="false"
+        oninput="onBankInput(this.value)">${esc(text)}</textarea>
+
+      ${st ? `<div class="bank-status ${st.ok?'is-ok':'is-bad'}">${esc(st.message)}</div>` : ''}
+      ${st && st.errors && st.errors.length ? `<div class="bank-errors">${
+        st.errors.slice(0,12).map(e=>`<div class="bank-error"><b>line ${e.line}</b> ${esc(e.msg)}<div class="bank-error-src">${esc(e.text)}</div></div>`).join('')
+      }${st.errors.length>12?`<div class="bank-error">…and ${st.errors.length-12} more</div>`:''}</div>` : ''}
+
+      <div class="bank-savebar">
+        <button class="btn btn-primary" onclick="saveBankFromEditor()">Save bank</button>
+        ${dirty?`<button class="btn btn-ghost" onclick="confirmDiscardDraft()">Discard changes</button>
+                 <span class="bank-dirty">Unsaved changes</span>`:''}
       </div>
     </div>`;
-  }).join('');
-  return `<div class="two-col"><div>${formHtml}</div><div>${listHtml}</div></div>`;
 }

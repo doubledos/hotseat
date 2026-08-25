@@ -5,6 +5,8 @@
    Exported as live `let` bindings, so importers always read the current value.
    Rebinding from another module is impossible, so writes go through setters. */
 
+import { hasSupabase } from './db.js';
+
 export let mode = 'entry';            // entry | host | display | player
 export let currentLobbyCode = '';
 
@@ -36,6 +38,46 @@ export let susVotedRound = null;
 export function setSusVotedRound(next){ susVotedRound = next; return susVotedRound; }
 export let susMyRole = null;   // 'sus' | 'good', fetched once per game
 export function setSusMyRole(next){ susMyRole = next; return susMyRole; }
+
+/* ===== Test mode =====
+   When on, a drawn question is not retired, so our own runs do not consume the
+   real library.
+
+   It belongs to whoever is hosting, not to a game, so it lives in localStorage
+   rather than in the lobby blob - a phone has no business knowing or changing
+   it.
+
+   It is forced on whenever Supabase is absent, which is exactly the local
+   throwaway build we test against. The dangerous direction is not forgetting
+   to switch it on, it is forgetting to switch it OFF while developing, which
+   silently destroys sixty real questions with no error and no undo beyond
+   hand-editing the bank. Tying it to the environment removes that whole class
+   of mistake. */
+const TEST_MODE_KEY = 'hotseat-test-mode';
+let testModeOverride = null;   // null = not yet read from storage
+export function isTestMode(){
+  if(!hasSupabase) return true;              // local build: always safe
+  if(testModeOverride === null){
+    try{ testModeOverride = localStorage.getItem(TEST_MODE_KEY) === '1'; }
+    catch(e){ testModeOverride = false; }
+  }
+  return testModeOverride;
+}
+/* True when the environment forces it, so the host console can say the toggle
+   is unavailable rather than appearing broken. */
+export function testModeForced(){ return !hasSupabase; }
+/* The bank editor's unsaved text, and the last parse result shown beneath it.
+   Draft is null when the textarea is showing the stored bank unmodified. */
+export let bankDraft = null;
+export function setBankDraft(next){ bankDraft = next; return bankDraft; }
+export let bankStatus = null;   // {ok, message, errors[]}
+export function setBankStatus(next){ bankStatus = next; return bankStatus; }
+
+export function setTestMode(on){
+  testModeOverride = !!on;
+  try{ localStorage.setItem(TEST_MODE_KEY, on ? '1' : '0'); }catch(e){}
+  return testModeOverride;
+}
 export let phoneWagerSubmitted = false;
 export function setPhoneWagerSubmitted(next){ phoneWagerSubmitted = next; return phoneWagerSubmitted; }
 export let seenWagerIds = new Set();

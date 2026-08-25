@@ -1,46 +1,46 @@
 /* pool.js
-   Drawing a question from the bank.
+   Drawing a question from the global bank.
 
-   displayOrder is a shuffle of the four options; index 0 is always the correct
-   answer, so correctDisplayIdx finds where it landed on screen. */
+   displayOrder is a shuffle of the options; index 0 is always the correct
+   answer, so correctDisplayIdx finds where it landed on screen.
+
+   There are no difficulty tiers. The game is not played for money, so an easy
+   rung has nothing to offer - every level draws from the whole library. */
 
 import { state } from '../core/state.js';
+import { bank, unusedQuestions, retire } from '../core/bank.js';
+import { isTestMode } from '../core/session.js';
 import { shuffleArray } from '../core/util.js';
 
 export function correctDisplayIdx(q){ return q&&q.displayOrder?q.displayOrder.indexOf(0):-1; }
 
-export function availableQuestions(difficulty){
-  const pool = state.questions.filter(q=>q.difficulty===difficulty&&!q.used);
-  if(pool.length) return pool;
-  return state.questions.filter(q=>q.difficulty===difficulty); // fallback used ones
-}
-export function pickQuestion(difficulty){
-  let pool = state.questions.filter(q=>q.difficulty===difficulty&&!q.used);
-  if(!pool.length) pool = state.questions.filter(q=>q.difficulty===difficulty);
-  if(!pool.length) pool = state.questions.filter(q=>!q.used);
-  if(!pool.length) pool = state.questions;
+export function unusedQuestionCount(){ return unusedQuestions().length; }
+
+/* A single draw for the ladder game. Retired questions are never handed back:
+   with one permanent library, a repeat means someone has already heard it. */
+export function pickQuestion(){
+  const pool = unusedQuestions();
   if(!pool.length) return null;
   return pool[Math.floor(Math.random()*pool.length)];
 }
-/* Sus mode deals one distinct question per player per round, so it needs a
-   batch rather than a single draw, and it ignores difficulty - a round is a
-   group check, not a rung on a ladder.
 
-   Unlike pickQuestion this never falls back to already-used questions. Handing
-   two players the same question, or reusing one, would let them compare notes
-   and would make a wrong answer look like sabotage when it was a repeat. It
-   returns fewer than n rather than duplicating; the caller decides what to do,
-   and setup blocks the game from starting when the bank is too small. */
-export function unusedQuestionCount(){ return state.questions.filter(q=>!q.used).length; }
+/* Sus mode deals one distinct question per player per round, so it needs a
+   batch. It returns fewer than n rather than repeating: two players holding
+   the same question could compare notes, and a repeat would make an honest
+   wrong answer look like sabotage. dealSusRound refuses a short round. */
 export function pickSusQuestions(n){
-  const pool = shuffleArray(state.questions.filter(q=>!q.used));
-  return pool.slice(0, n);
+  return shuffleArray(unusedQuestions()).slice(0, n);
 }
+
+/* Retire what was drawn, unless we are in test mode. This is the single place
+   a question is spent, so there is one thing to get right. */
+export function spend(q){ retire(q, isTestMode()); }
+
 export function makeCurrentQuestion(q, level){
   const opts = (q.options||[]).slice();
   return {
     id:q.id, level:level||state.ladderCurrent,
-    difficulty:q.difficulty, text:q.text,
+    text:q.text,
     options:opts,
     displayOrder: opts.length>1 ? shuffleArray(opts.map((_,i)=>i)) : [0],
     imageKey: q.imageKey||null,

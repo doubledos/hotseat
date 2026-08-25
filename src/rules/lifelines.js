@@ -11,11 +11,12 @@ import { showModal, showPicker } from '../ui/modal.js';
 import { esc, genId } from '../core/util.js';
 import { LIFELINE_DEFS } from '../core/constants.js';
 import { myPlayerId, phoneLifelineRequestedKey, phoneSpinRequestedFor, setPhoneLifelineRequestedKey, setPhoneSpinRequestedFor } from '../core/session.js';
-import { activeLevel, hotSeatPlayer, levelDiff, opposingTeam, playerById, teamName } from './ladder.js';
+import { activeLevel, hotSeatPlayer, opposingTeam, playerById, teamName } from './ladder.js';
 import { makeCurrentQuestion, pickQuestion } from './pool.js';
 import { buildBombWheelOutcomes, wheelOutcomeLabel } from './wheel.js';
 import { dbDelete, dbGet, dbSet } from '../core/db.js';
 import { currentLobbyCode, mode } from '../core/session.js';
+import { spend } from './pool.js';
 
 /* ===== Lifelines ===== */
 export async function useLifeline(key){
@@ -34,10 +35,9 @@ export async function useLifeline(key){
   if(key==='swap'){
     state.lifelines[team].swap=true;
     const lvl=activeLevel();
-    const diff=state.currentQuestion?state.currentQuestion.difficulty:levelDiff(lvl);
-    const newQ=pickQuestion(diff);
+    const newQ=pickQuestion();
     if(newQ){
-      newQ.used=true;
+      spend(newQ);
       state.currentQuestion=makeCurrentQuestion(newQ,lvl);
       // Drop the new question straight into place — keep whatever progress-free stage we
       // were already in (no re-reveal ceremony, no audio retrigger).
