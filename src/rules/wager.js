@@ -8,17 +8,17 @@ import { R } from '../ui/rerender.js';
 import { showModal } from '../ui/modal.js';
 import { esc, money } from '../core/util.js';
 import { seenWagerIds } from '../core/session.js';
-import { levelDiff, playerById, teamName } from './ladder.js';
+import { playerById, teamName } from './ladder.js';
 import { correctDisplayIdx, makeCurrentQuestion, pickQuestion } from './pool.js';
 import { endGame } from './score.js';
 import { dbGet, dbList } from '../core/db.js';
 import { currentLobbyCode, mode, setSeenWagerIds } from '../core/session.js';
+import { spend } from './pool.js';
 
 /* ===== Wager (before level 15) ===== */
 export async function startWager(){
-  const diff=levelDiff(15);
-  const q=pickQuestion(diff);
-  if(q) q.used=true;
+  const q=pickQuestion();
+  if(q) spend(q);
   setSeenWagerIds(new Set());
   state.wagerRoundCounter++;
   state.wager={

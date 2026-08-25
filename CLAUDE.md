@@ -34,6 +34,8 @@ src/core/
   lobby.js       load / save / create / list a lobby
   db.js          Supabase kv_store; falls back to localStorage if SUPABASE_URL is blank
   constants.js   ladder money, lifelines, brand asset paths
+  bank.js        the global question bank: one row, host-only, permanent
+  bank-format.js parse / serialise the bank's text form (pure, tested)
   util.js        esc, money, genId, slugify, debounce, shuffleArray
 
 src/rules/       game logic - no markup
@@ -42,12 +44,11 @@ src/rules/       game logic - no markup
   puzzle.js      letter board, guess timer, solving
   wager.js       the Final Wager
   score.js       manual adjustments, end game, new game
-  questions.js   question and phrase bank CRUD
-  porting.js     markdown import / export
+  bank-edit.js   the textarea editor's actions
   players.js     roster, teams, hot seat order
   phone.js       what a phone is allowed to submit
   ladder.js      player lookups, level helpers, winLevel
-  pool.js        drawing a question from the bank
+  pool.js        drawing from the bank, and spending what is drawn
   wheel.js       Wildcard outcome pool and resolution
   sus.js         Sus mode: roles, dealing, scoring, voting, suspension
 
@@ -94,6 +95,7 @@ applies to session flags: read the import directly, write through the setter.
 ```bash
 python3 tools/check-modules.py
 node tools/test-sus-rules.mjs
+node tools/test-bank-format.mjs
 ```
 
 `check-modules.py` catches five things `node --check` cannot, every one of which has actually
@@ -106,7 +108,25 @@ shipped a silently broken surface here:
 - a CSS custom property used but never defined — the declaration is dropped and the element
   keeps its inherited colour, which on the TV means dark ink on a dark stage
 
-`test-sus-rules.mjs` covers the Sus scoring and voting maths in plain node.
+`test-sus-rules.mjs` covers the Sus scoring and voting maths in plain node, and
+`test-bank-format.mjs` the bank parser — the one thing standing between a paste into a textarea
+and the whole question library.
+
+## The question bank
+
+One global library in its own `kv_store` row (`bank:v1`), **not** in the lobby blob — every
+surface polls that blob, and at a thousand questions the bank alone would be ~177KB a tick to
+the TV. Only the host loads it.
+
+Edited as one textarea on the Setup wizard's Questions step:
+`Question text | correct | wrong | wrong | wrong`, one per line, a leading `x` (optionally
+`x2026-08-25`) marking a question retired. Retirement is **permanent** — there is no reset.
+A save that does not parse is refused with line numbers and leaves the stored bank untouched;
+the previous version is kept at `bank:v1:prev` for one-step undo.
+
+**Test mode** stops a drawn question being retired. It is forced on whenever `SUPABASE_URL` is
+blank, which is exactly the local throwaway build — so our own runs can never burn the real
+library. There are no difficulty tiers; every level draws from the whole bank.
 
 ## Testing locally
 

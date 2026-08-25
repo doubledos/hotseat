@@ -42,6 +42,7 @@ import { dbSet, dbGet, dbList, dbDelete } from '../core/db.js';
 import { currentLobbyCode, mode } from '../core/session.js';
 import { shuffleArray } from '../core/util.js';
 import { pickSusQuestions } from './pool.js';
+import { spend } from './pool.js';
 
 export const susRoleKey  = (pid)          => `susrole:${currentLobbyCode}:${pid}`;
 export const susQKey     = (round, pid)   => `susq:${currentLobbyCode}:${round}:${pid}`;
@@ -145,7 +146,7 @@ export async function dealSusRound(){
     const p = players[i];
     const q = drawn[i];
     if(!q) continue;                       // unreachable: the check above guarantees enough
-    q.used = true;
+    spend(q);
     /* Shuffle here and send only the shuffled options. The phone never learns
        which one is right, so the answer key stays out of both the blob and the
        row the player can read. */

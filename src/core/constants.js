@@ -10,8 +10,6 @@ export const LOGO_WHITE_PNG = "hotseat-logotext.png";
 /* ===== Constants ===== */
 export const QWERTY = ['QWERTYUIOP','ASDFGHJKL','ZXCVBNM'];
 export const LEVEL_MONEY = [100,200,300,500,750,1000,2000,4000,8000,16000,32000,64000,125000,500000,1000000];
-export const DIFFICULTIES = ['easy','medium','hard'];
-export const LEVEL_DIFFICULTY_DEFAULT = (l) => l<=5?'easy':l<=10?'medium':'hard';
 export const LIFELINE_DEFS = [
   {key:'promote', label:'Promote', icon:'', desc:'Swap a teammate into the hot seat permanently'},
   {key:'doubleDip', label:'Double Dip', icon:'', desc:'Two attempts; first miss triggers no steal'},

@@ -4,23 +4,23 @@
 
 import { LEVEL_MONEY } from '../../core/constants.js';
 import { saveLobby } from '../../core/lobby.js';
-import { editingPhrase, mode, setSetupStep, setupStep } from '../../core/session.js';
+import { mode, setSetupStep, setupStep } from '../../core/session.js';
 import { state } from '../../core/state.js';
 import { esc, money } from '../../core/util.js';
 import { loadTestData } from '../../dev/testdata.js';
 import { teamName } from '../../rules/ladder.js';
 import { addPlayer, deletePlayer, startHosting, togglePlayerTeam } from '../../rules/players.js';
-import { cancelEditPhrase, deletePhrase, savePhraseFromForm, startEditPhrase } from '../../rules/questions.js';
 import { renderHost } from './index.js';
 import { renderQuestionsTab } from './questions.js';
 import { showModal } from '../../ui/modal.js';
 import { unusedQuestionCount } from '../../rules/pool.js';
+import { bank } from '../../core/bank.js';
 
 export function renderSetupTab(){
   const players=state.players;
   const aCount=players.filter(p=>p.team==='A').length;
   const bCount=players.filter(p=>p.team==='B').length;
-  const qCount=state.questions.length;
+  const qCount=unusedQuestionCount();
   const hardFail=players.length<2||aCount<1||bCount<1;
 
   /* Two different kinds of "not ready", which the old single checklist ran
@@ -33,10 +33,10 @@ export function renderSetupTab(){
     {level:aCount>=1&&bCount>=1?'ok':'bad', blocking:true, step:'players',
       text:`${esc(state.teamAName)}: ${aCount} · ${esc(state.teamBName)}: ${bCount}${aCount<1||bCount<1?' — both teams need a player':''}`},
     {level:qCount>=15?'ok':'warn', blocking:false, step:'questions',
-      text:qCount===0?'No questions in the bank — the game has nothing to draw':`${qCount} question${qCount===1?'':'s'} in the bank${qCount<15?' — 15 or more makes for a full game':''}`},
-    {level:state.phraseBank.length>0||!state.levelTypes.includes('puzzle')?'ok':'warn', blocking:false, step:'levels',
+      text:qCount===0?'No unused questions left — the game has nothing to draw':`${qCount} unused question${qCount===1?'':'s'} in the bank${qCount<15?' — 15 or more makes for a full game':''}`},
+    {level:bank.phrases.length>0||!state.levelTypes.includes('puzzle')?'ok':'warn', blocking:false, step:'levels',
       text:state.levelTypes.includes('puzzle')
-        ?`${state.levelTypes.filter(t=>t==='puzzle').length} puzzle level${state.levelTypes.filter(t=>t==='puzzle').length===1?'':'s'} · ${state.phraseBank.length} phrase${state.phraseBank.length===1?'':'s'} to draw from`
+        ?`${state.levelTypes.filter(t=>t==='puzzle').length} puzzle level${state.levelTypes.filter(t=>t==='puzzle').length===1?'':'s'} · ${bank.phrases.length} phrase${bank.phrases.length===1?'':'s'} to draw from`
         :'No puzzle levels set — every level is a trivia question'},
   ];
   /* Red is reserved for "this stops you starting" in both the rail and the
@@ -50,7 +50,7 @@ export function renderSetupTab(){
   };
 
   const playersBody=`
-    ${state.players.length===0&&state.questions.length===0?`<div class="quickstart-row">
+    ${state.players.length===0&&bank.questions.length===0?`<div class="quickstart-row">
       <span>Just want to try it out?</span>
       <button class="btn btn-ghost btn-sm" onclick="loadTestData()">Load Test Data</button>
     </div>`:''}
@@ -98,32 +98,12 @@ export function renderSetupTab(){
           ${state.levelTypes[l-1]==='puzzle'?'Puzzle':'Trivia'}
         </button>
       </div>`;
-  const levelBody=`<div class="hint" style="margin-bottom:10px;">All levels default to Easy unless changed. Set a level to Puzzle to use a word puzzle instead of a question.</div>
+  const levelBody=`<div class="hint" style="margin-bottom:10px;">Every level draws from the same bank. Set a level to Puzzle to use a word puzzle instead of a question.</div>
     <div class="two-col">
       <div>${Array.from({length:8},(_,i)=>i+1).map(levelRow).join('')}</div>
       <div>${Array.from({length:7},(_,i)=>i+9).map(levelRow).join('')}</div>
     </div>`;
 
-  const phraseBody=`
-    <div class="row">
-      <div class="field"><label>Category</label><input type="text" class="input" id="phrase-cat" placeholder="Movie Title"></div>
-      <div class="field w2"><label>${editingPhrase?'Editing phrase':'Phrase'}</label><input type="text" class="input" id="phrase-text" placeholder="THE FULL ANSWER IN CAPS"></div>
-    </div>
-    <div class="row">
-      <button class="btn btn-primary btn-sm" onclick="savePhraseFromForm()">${editingPhrase?'Save Changes':'Add Phrase'}</button>
-      ${editingPhrase?'<button class="btn btn-ghost btn-sm" onclick="cancelEditPhrase()">Cancel</button>':''}
-    </div>
-    <div class="q-list">
-      ${state.phraseBank.length===0?'<div class="hint">No phrases yet.</div>':state.phraseBank.map(p=>`
-        <div class="q-row ${editingPhrase===p.id?'editing':''}">
-          <div class="q-row-text">${p.category?`<span class="diff-puzzle" style="margin-right:6px;">${esc(p.category)}</span>`:''}${esc(p.phrase)}</div>
-          <div class="q-row-actions">
-            ${p.used?'<span class="used-tag">Used</span>':''}
-            <button class="btn btn-ghost btn-sm" onclick="startEditPhrase('${p.id}')">Edit</button>
-            <button class="btn btn-danger btn-sm" onclick="showModal('','Delete this phrase?','Delete',()=>deletePhrase('${p.id}'))">✕</button>
-          </div>
-        </div>`).join('')}
-    </div>`;
 
   const checkRow=c=>`<div class="check-item">
       <span class="check-glyph check-${c.level}">${glyph[c.level]}</span>
@@ -152,7 +132,7 @@ export function renderSetupTab(){
       blurb:'Who is playing, and which team they sit with. At least one player on each side.'},
     {key:'questions', num:2, label:'Questions', body:renderQuestionsTab(),
       blurb:'The trivia bank the game draws from. Answer A is always the correct one.'},
-    {key:'levels', num:3, label:'Levels & Puzzles', body:levelBody+'<hr class="divider">'+phraseBody,
+    {key:'levels', num:3, label:'Levels & Puzzles', body:levelBody+`<hr class="divider"><div class="hint">Puzzle phrases live in the question bank, on the Questions tab.</div>`,
       blurb:'Optional. Turn any of the 15 levels into a word puzzle, and stock the phrases they pull from.'},
     {key:'ready', num:4, label:'Ready Check', body:readyBody,
       blurb:'What the game still needs before you can go live.'},

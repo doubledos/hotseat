@@ -7,15 +7,16 @@ import { state } from '../../core/state.js';
 import { LIFELINE_DEFS } from '../../core/constants.js';
 import { esc, letterFor, money } from '../../core/util.js';
 import { advanceLevelNoMoney, changeHotSeatPick, confirmBombWheel, confirmHotSeatReveal, confirmWheelWinner, dismissDefendedSteal, flowAdvance, getNextInLine, hostDrawQuestion, hostSelectAnswer, hostSetStealVote, lockStealAnswer, markCorrect, raceSwapAfterMiss, rerollQuestion, resolveSteal, retryDoubleDip, revealCorrectAnswer, unlockStealAnswer } from '../../rules/flow.js';
-import { activeLevel, hotSeatPlayer, levelDiff, levelMoney, levelType, opposingTeam, teamName } from '../../rules/ladder.js';
+import { activeLevel, hotSeatPlayer, levelMoney, levelType, opposingTeam, teamName } from '../../rules/ladder.js';
 import { spinWheel, undoLifeline, useLifeline } from '../../rules/lifelines.js';
 import { correctDisplayIdx } from '../../rules/pool.js';
 import { pausePuzzleTimer, puzzleSolved, resumePuzzleTimer, swapPuzzleHotSeat, triggerPuzzle } from '../../rules/puzzle.js';
 import { applyAdjustment } from '../../rules/score.js';
 import { openAdjustModal } from './adjust.js';
-import { diffPill } from '../../ui/atoms.js';
+
 import { buildBoardHTML, buildKeyboardHTML, puzzleTimerHTML } from '../../ui/puzzle-view.js';
 import { buildWheelHTML } from '../../ui/wheel-view.js';
+import { unusedQuestionCount } from '../../rules/pool.js';
 
 export function renderGameTab(){
   const lt=levelType(activeLevel());
@@ -156,7 +157,6 @@ function stageStakes(level,diff,extra){
   return `<div class="flow-stage-meta">
     <span class="flow-stage-level">Level ${level}</span>
     ${isRace?'':`<span class="money-sm">${money(levelMoney(level))}</span>`}
-    ${diff?diffPill(diff):''}
     ${extra||''}
   </div>`;
 }
@@ -188,12 +188,12 @@ export function renderFlowCard(isPuzzleLevel,queued){
   </div>`;
 
   if(!q){
-    const avail=state.questions.filter(x=>!x.used).length;
+    const avail=unusedQuestionCount();
     return `<div class="flow-card${qCls}">
       ${stageBarHTML({tone:'read',
         label:queued?'Up next — draw a question':'Ready for the next question',
         todo:queued?'Settle the card above first.':`${hpName} is in the hot seat. ${avail} unused question${avail===1?'':'s'} left in the bank.`},
-        activeLevel(),levelDiff(activeLevel()))}
+        activeLevel())}
       <div class="flow-controls"><button class="btn btn-primary btn-lg" onclick="hostDrawQuestion()">Draw Question</button></div>
     </div>`;
   }
@@ -339,7 +339,7 @@ export function renderFlowCard(isPuzzleLevel,queued){
     ?`<button class="btn btn-ghost btn-sm" onclick="rerollQuestion()">Reroll</button>`:'';
 
   return `<div class="flow-card tone-${brief.tone}${qCls}">
-    ${stageBarHTML(brief,q.level,q.difficulty,reroll)}
+    ${stageBarHTML(brief,q.level,reroll)}
     <div class="flow-slot">${questionSlot}</div>
     ${optSlots}
     ${actionSlot}

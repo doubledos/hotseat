@@ -3,7 +3,7 @@
    See CLAUDE.md for the file map. */
 
 import { dbDelete, dbGet, dbList, dbSet, hasSupabase } from './core/db.js';
-import { LEVEL_DIFFICULTY_DEFAULT, LEVEL_MONEY, LIFELINE_DEFS, PUZZLE_TIMER_MS, QWERTY } from './core/constants.js';
+import { LEVEL_MONEY, LIFELINE_DEFS, PUZZLE_TIMER_MS, QWERTY } from './core/constants.js';
 import { bounceText, debounce, esc, genId, letterFor, money, shuffleArray, slugify } from './core/util.js';
 import { playBigWinThenTheme, playLoop, playOnce, stopLoop } from './screens/display-audio.js';
 import { defaultState, normalizeState, setState, state } from './core/state.js';
@@ -12,8 +12,8 @@ import { R, bindRenderers } from './ui/rerender.js';
 import { currentLobbyCode, editingPhrase, editingQuestion, hostTab, lastWheelSeen, mode, myPlayerId, phoneLifelineRequestedKey, phonePromoteMenuOpen, phoneSpinRequestedFor, phoneVotedRound, phoneWagerSubmitted, seenWagerIds, setEditingPhrase, setEditingQuestion, setActiveHostTab, setLastWheelSeen, setLobbyCode, setMode, setMyPlayerId, setPhoneLifelineRequestedKey, setPhonePromoteMenuOpen, setPhoneSpinRequestedFor, setPhoneVotedRound, setPhoneWagerSubmitted, setSeenWagerIds, setSetupStep, setupStep } from './core/session.js';
 import { createLobby, lastSavedJSON, listLobbies, loadLobby, lobbyKey, saveLobby, setLastSaved } from './core/lobby.js';
 import { cancelModal, confirmModal, setPendingModal, showModal, showPicker } from './ui/modal.js';
-import { activeLevel, advanceLevel, elapsedMinutes, hotSeatPlayer, isLevelWon, levelDiff, levelMoney, levelType, opposingTeam, playerById, teamName, winLevel } from './rules/ladder.js';
-import { availableQuestions, correctDisplayIdx, makeCurrentQuestion, pickQuestion } from './rules/pool.js';
+import { activeLevel, advanceLevel, elapsedMinutes, hotSeatPlayer, isLevelWon, levelMoney, levelType, opposingTeam, playerById, teamName, winLevel } from './rules/ladder.js';
+import {correctDisplayIdx, makeCurrentQuestion, pickQuestion} from './rules/pool.js';
 import { buildBombWheelOutcomes, resolvedOutcomeFor, wheelMoneyLabel, wheelOutcomeLabel, wheelOutcomeResultText, wheelSliceColor, wheelSliceVisual } from './rules/wheel.js';
 import { animateWheel, buildWheelHTML, flashWheelResult, onWheelLanded, revealWheelOutcome, showWheelZoom, wheelResultText } from './ui/wheel-view.js';
 import { changeHotSeatPick, confirmHotSeatReveal, dismissDefendedSteal, flowAdvance, flowButtonLabel, getNextInLine, hostDrawQuestion, hostSelectAnswer, hostSetStealVote, lockStealAnswer, markCorrect, advanceLevelNoMoney, pollStealVotes, raceSwapAfterMiss, rerollQuestion, resolveSteal, retryDoubleDip, revealCorrectAnswer, revealHotSeatResult, revealStealGuess, rotateQueue, startSteal, unlockStealAnswer, applyStealWinner, confirmWheelWinner, confirmBombWheel } from './rules/flow.js';
@@ -22,8 +22,7 @@ import { applyAdjustment, doNewGame, endGame, newGame } from './rules/score.js';
 import { pausePuzzleTimer, pressLetter, puzzleSolved, resumePuzzleTimer, swapPuzzleHotSeat, triggerPuzzle } from './rules/puzzle.js';
 import { finalizeWager, pollWagerAnswers, pollWagers, revealWagerQuestion, startWager } from './rules/wager.js';
 import { addPlayer, deletePlayer, setHotSeat, startHosting, togglePlayerTeam } from './rules/players.js';
-import { cancelEditPhrase, cancelEditQuestion, deletePhrase, deleteQuestion, resetAllUsedFlags, savePhraseFromForm, saveQuestionFromForm, startEditPhrase, startEditQuestion } from './rules/questions.js';
-import { exportQuestionsMarkdown, importQuestionsMarkdown } from './rules/porting.js';
+import { downloadBank, uploadBank, undoBankSave, onBankInput, saveBankFromEditor, confirmDiscardDraft, bankText, importLegacyBank } from './rules/bank-edit.js';
 import { phoneSubmitWager, phoneSubmitWagerAnswer, phoneVote } from './rules/phone.js';
 import { loadTestData } from './dev/testdata.js';
 import { buildBoardHTML, buildKeyboardHTML, puzzleTimerHTML } from './ui/puzzle-view.js';
@@ -37,6 +36,7 @@ import { copyPlayerLinkFromPopover, goSetupStep, openAdjustModal, openDisplay, o
 import { setPromoteMenu, submitPhoneWager } from './screens/player.js';
 import { startSusGame, dealSusRound, beginSusReveal, susRevealNext, tallySusRound, openSusVoting, closeSusVoting, nextSusRound, endSusGame, pollSusAnswers, pollSusVotes } from './rules/sus.js';
 import { phoneSubmitSusAnswer, phoneSubmitSusVote } from './rules/phone.js';
+import { loadBank, bank } from './core/bank.js';
 
 /* ============================================================
    FORTUNE & FORTUNE v3
@@ -167,26 +167,25 @@ document.addEventListener('keydown', handleHostKeydown);
    ============================================================ */
 Object.assign(window, {
   setPromoteMenu,
+  /* Question bank editor */
+  downloadBank, uploadBank, undoBankSave, onBankInput, saveBankFromEditor,
+  confirmDiscardDraft,
   /* Sus mode */
   startSusGame, dealSusRound, beginSusReveal, susRevealNext, tallySusRound,
   openSusVoting, closeSusVoting, nextSusRound, endSusGame,
   phoneSubmitSusAnswer, phoneSubmitSusVote,
-  addPlayer, advanceLevelNoMoney, cancelEditPhrase, cancelEditQuestion,
-  cancelModal, changeHotSeatPick, claimPlayer, confirmBombWheel,
+  addPlayer, advanceLevelNoMoney, cancelModal, changeHotSeatPick, claimPlayer, confirmBombWheel,
   confirmHotSeatReveal, confirmModal, confirmWheelWinner, copyPlayerLinkFromPopover,
-  createNewLobby, deleteLobbyFromList, deletePhrase, deletePlayer,
-  deleteQuestion, dismissDefendedSteal, esc, exportQuestionsMarkdown,
-  finalizeWager, flowAdvance, goSetupStep, hostDrawQuestion,
-  hostSelectAnswer, hostSetStealVote, importQuestionsMarkdown, loadTestData,
+  createNewLobby, deleteLobbyFromList, deletePlayer,
+  dismissDefendedSteal, esc,   finalizeWager, flowAdvance, goSetupStep, hostDrawQuestion,
+  hostSelectAnswer, hostSetStealVote, loadTestData,
   lockStealAnswer, markCorrect, newGame, openAdjustModal,
   openDisplay, openExistingLobby, openHostMoreMenu, pausePuzzleTimer,
   phoneRequestLifeline, phoneSubmitWagerAnswer, phoneVote, pressLetter,
   puzzleSolved, quickAdjust, raceSwapAfterMiss, renderPlayer,
   requestSpinWheel, rerollQuestion, resolveSteal, resumePuzzleTimer,
-  retryDoubleDip, revealCorrectAnswer, revealWagerQuestion, savePhraseFromForm,
-  saveQuestionFromForm, setGameMode, setHostTab, setHotSeat,
-  showModal, spinWheel, startEditPhrase, startEditQuestion,
-  startHosting, submitPhoneWager, swapPuzzleHotSeat, toggleLevelType,
+  retryDoubleDip, revealCorrectAnswer, revealWagerQuestion, setGameMode, setHostTab, setHotSeat,
+  showModal, spinWheel, startHosting, submitPhoneWager, swapPuzzleHotSeat, toggleLevelType,
   togglePlayerLinkPopover, togglePlayerTeam, triggerPuzzle, unclaimPlayer,
   undoLifeline, unlockStealAnswer, useLifeline,
 });
@@ -210,6 +209,8 @@ bindRenderers({ host: renderHost, player: renderPlayer, display: renderDisplay, 
     if(currentLobbyCode){ try{ const saved=localStorage.getItem('gs-my-player-'+currentLobbyCode); if(saved&&playerById(saved)) setMyPlayerId(saved); } catch(e){} }
     render(); pollTimer=setInterval(pollForUpdates,1500); return;
   }
+  /* Host only: the bank is a separate row and no other surface needs it. */
+  await loadBank();
   // Host mode — load from URL slug
   const hParams=new URLSearchParams(location.search); const hSlug=hParams.get('lobby');
   if(hSlug){ const ok=await loadLobby(hSlug); if(ok) setLobbyCode(hSlug); }

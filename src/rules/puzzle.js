@@ -9,14 +9,16 @@ import { showModal, showPicker } from '../ui/modal.js';
 import { esc } from '../core/util.js';
 import { PUZZLE_TIMER_MS } from '../core/constants.js';
 import { activeLevel, hotSeatPlayer, levelMoney, opposingTeam, playerById, teamName, winLevel } from './ladder.js';
+import { bank, unusedPhrases, retire } from '../core/bank.js';
+import { isTestMode } from '../core/session.js';
 
 /* ===== Puzzle ===== */
 export async function triggerPuzzle(){
-  const avail=state.phraseBank.filter(p=>!p.used);
-  const pool=avail.length?avail:state.phraseBank;
+  const avail=unusedPhrases();
+  const pool=avail.length?avail:bank.phrases;
   if(!pool.length){ showModal('','No puzzle phrases in the bank. Add some in Setup.',null,null); return; }
   const entry=pool[Math.floor(Math.random()*pool.length)];
-  entry.used=true;
+  retire(entry, isTestMode());
   state.puzzle={
     phrase:entry.phrase, category:entry.category||'',
     revealedLetters:[], usedLetters:[],

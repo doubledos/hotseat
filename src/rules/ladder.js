@@ -4,7 +4,7 @@
    Classic mode shares one ladder across both teams; race mode gives each team
    its own, which is why the level helpers all take an optional team. */
 
-import { LEVEL_DIFFICULTY_DEFAULT, LEVEL_MONEY } from '../core/constants.js';
+import { LEVEL_MONEY } from '../core/constants.js';
 import { state } from '../core/state.js';
 import { saveLobby } from '../core/lobby.js';
 import { R } from '../ui/rerender.js';
@@ -27,7 +27,6 @@ export function isLevelWon(team, l){
 }
 export function levelMoney(l){ return LEVEL_MONEY[(l||activeLevel())-1]||100; }
 export function levelType(l){ const idx=(l||activeLevel())-1; return state.levelTypes[idx]==='puzzle'?'puzzle':'trivia'; }
-export function levelDiff(l){ const idx=(l||activeLevel())-1; if(state.levelTypes[idx]==='puzzle') return 'puzzle'; return LEVEL_DIFFICULTY_DEFAULT(l||activeLevel()); }
 // Marks the given team's current level cleared and advances them. Returns true if that
 // clear means the team just won the race (race mode only — reached past level 15).
 export function advanceLevel(team){
