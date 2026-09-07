@@ -32,7 +32,7 @@ import { renderDisplay } from './screens/display.js';
 import { renderPlayer } from './screens/player.js';
 import { renderHostEntry, loadAndRenderLobbyList, renderLobbyEntry, renderPlayerClaim, renderEndScreen } from './screens/entry.js';
 import { createNewLobby, deleteLobbyFromList, openExistingLobby } from './screens/entry.js';
-import { copyPlayerLinkFromPopover, goSetupStep, openAdjustModal, openDisplay, openHostMoreMenu, quickAdjust, setGameMode, setHostTab, toggleLevelType, togglePlayerLinkPopover } from './screens/host/index.js';
+import { backToLobby, copyPlayerLinkFromPopover, goSetupStep, openAdjustModal, openDisplay, openHostMoreMenu, quickAdjust, setGameMode, setHostTab, toggleLevelType, togglePlayerLinkPopover } from './screens/host/index.js';
 import { setPromoteMenu, submitPhoneWager } from './screens/player.js';
 import { startSusGame, dealSusRound, beginSusReveal, susRevealNext, tallySusRound, openSusVoting, closeSusVoting, nextSusRound, endSusGame, pollSusAnswers, pollSusVotes } from './rules/sus.js';
 import { phoneSubmitSusAnswer, phoneSubmitSusVote } from './rules/phone.js';
@@ -174,7 +174,7 @@ Object.assign(window, {
   startSusGame, dealSusRound, beginSusReveal, susRevealNext, tallySusRound,
   openSusVoting, closeSusVoting, nextSusRound, endSusGame,
   phoneSubmitSusAnswer, phoneSubmitSusVote,
-  addPlayer, advanceLevelNoMoney, cancelModal, changeHotSeatPick, claimPlayer, confirmBombWheel,
+  addPlayer, advanceLevelNoMoney, backToLobby, cancelModal, changeHotSeatPick, claimPlayer, confirmBombWheel,
   confirmHotSeatReveal, confirmModal, confirmWheelWinner, copyPlayerLinkFromPopover,
   createNewLobby, deleteLobbyFromList, deletePlayer,
   dismissDefendedSteal, esc,   finalizeWager, flowAdvance, goSetupStep, hostDrawQuestion,

@@ -16,7 +16,7 @@ import { renderSusTab } from './sus.js';
 import { LEVEL_MONEY, LIFELINE_DEFS } from '../../core/constants.js';
 import { hasSupabase } from '../../core/db.js';
 import { saveLobby } from '../../core/lobby.js';
-import { currentLobbyCode, editingPhrase, editingQuestion, hostTab, lastWheelSeen, mode, seenWagerIds, setActiveHostTab, setLastWheelSeen, setSetupStep, setupStep } from '../../core/session.js';
+import { currentLobbyCode, editingPhrase, editingQuestion, hostTab, lastWheelSeen, mode, seenWagerIds, setActiveHostTab, setLastWheelSeen, setLobbyCode, setSetupStep, setupStep } from '../../core/session.js';
 import { state } from '../../core/state.js';
 import { debounce, esc, letterFor, money } from '../../core/util.js';
 import { loadTestData } from '../../dev/testdata.js';
@@ -30,6 +30,7 @@ import { applyAdjustment, newGame } from '../../rules/score.js';
 import { finalizeWager, revealWagerQuestion } from '../../rules/wager.js';
 import { resolvedOutcomeFor, wheelOutcomeResultText } from '../../rules/wheel.js';
 import { ladderStripHTML } from '../../ui/atoms.js';
+import { R } from '../../ui/rerender.js';
 import { chairIconSVG } from '../../ui/icons.js';
 import { setPendingModal, showModal, showPicker } from '../../ui/modal.js';
 import { buildBoardHTML, buildKeyboardHTML, puzzleTimerHTML, startPuzzleTimerRAF } from '../../ui/puzzle-view.js';
@@ -69,6 +70,7 @@ export function renderHost(){
       <button class="tab-btn ${activeHostTab==='rules'?'active':''}" onclick="setHostTab('rules')">Rules</button>
     </div>
     <div style="margin-left:auto;display:flex;gap:8px;align-items:center;position:relative;">
+      <button class="btn btn-ghost btn-sm" onclick="backToLobby()" title="Leave this game, keep it running in the background">← Lobby</button>
       <button class="btn btn-ghost btn-sm" onclick="openDisplay()">Display</button>
       <div style="position:relative;">
         <button class="btn btn-ghost btn-sm" onclick="togglePlayerLinkPopover()">Players</button>
@@ -170,6 +172,15 @@ export function renderEndedHost(){
 }
 
 export function setHostTab(t){ setActiveHostTab(t); renderHost(); }
+export function backToLobby(){
+  /* Leaves the current game and returns to the lobby list. The game itself
+     keeps running server-side (nothing here touches saved state) — this just
+     drops the current lobby off this device's URL so the host can reopen it,
+     or start/join a different one, from the entry screen. */
+  setLobbyCode('');
+  const url=new URL(location.href); url.searchParams.delete('lobby'); history.replaceState({},'',url.toString());
+  R.all();
+}
 export function openDisplay(){
   const url=new URL(location.href); url.searchParams.set('lobby',currentLobbyCode); url.hash='display';
   window.open(url.toString(),'_blank');
